@@ -55,6 +55,7 @@ Contents
 
    quickstart
    user_guide
+   testing
    api_reference
    examples
 
