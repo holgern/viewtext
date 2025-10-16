@@ -384,6 +384,9 @@ Basic Commands
     # Show all available formatters
     viewtext formatters
 
+    # Show all template formatters in layouts
+    viewtext templates
+
     # Render a layout with mock data
     viewtext render weather
 
@@ -423,6 +426,26 @@ The CLI provides rich formatted output with tables and colors:
     └────────────────┴─────────────────────┴───────┘
 
     Total layouts: 2
+
+**Template Formatters Command**
+
+The ``templates`` command shows all layouts using template formatters:
+
+.. code-block:: bash
+
+    $ viewtext -c examples/demo_template_formatter.toml templates
+
+    Configuration File: examples/demo_template_formatter.toml
+
+    ┌────────────────────────┬──────────────┬─────────────────────────┬──────────────┐
+    │ Layout                 │ Field        │ Template                │ Fields Used  │
+    ├────────────────────────┼──────────────┼─────────────────────────┼──────────────┤
+    │ crypto_composite_price │ current_price│ {fiat} - ${usd} - {sat} │ price.fiat,  │
+    │ (Crypto Price Display) │              │                         │ price.usd,   │
+    │                        │              │                         │ price.sat    │
+    └────────────────────────┴──────────────┴─────────────────────────┴──────────────┘
+
+    Total template formatters: 1
 
 Advanced Usage
 --------------

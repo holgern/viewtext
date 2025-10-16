@@ -65,6 +65,9 @@ viewtext render weather
 # Show all available formatters
 viewtext formatters
 
+# Show all template formatters in config
+viewtext templates
+
 # Show configuration info
 viewtext info
 
@@ -80,6 +83,7 @@ viewtext --config examples/layouts.toml show weather
 - **fields**: Display all field mappings from the configuration file
 - **render**: Render a layout with mock data
 - **formatters**: List all available formatters and their descriptions
+- **templates**: List all template formatters used in layouts
 - **info**: Show configuration file information and global formatters
 
 ### Global Options

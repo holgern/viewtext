@@ -254,6 +254,66 @@ def list_formatters() -> None:
     console.print(f"\n[bold]Total formatters:[/bold] {len(formatters)}\n")
 
 
+@app.command(name="templates")
+def list_templates() -> None:
+    config = config_path
+    try:
+        loader = LayoutLoader(config)
+        layouts_config = loader.load()
+
+        console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
+
+        template_lines = []
+        for layout_name, layout_config in layouts_config.layouts.items():
+            for line in layout_config.lines:
+                if line.formatter == "template":
+                    template_lines.append(
+                        {
+                            "layout": layout_name,
+                            "layout_name": layout_config.name,
+                            "field": line.field,
+                            "index": line.index,
+                            "template": line.formatter_params.get("template", ""),
+                            "fields": line.formatter_params.get("fields", []),
+                        }
+                    )
+
+        if not template_lines:
+            console.print(
+                "[yellow]No template formatters found in configuration file[/yellow]"
+            )
+            return
+
+        table = Table(
+            title="Template Formatters", show_header=True, header_style="bold"
+        )
+        table.add_column("Layout", style="cyan", overflow="fold")
+        table.add_column("Field", style="green", overflow="fold")
+        table.add_column("Template", style="yellow", overflow="fold", width=40)
+        table.add_column("Fields Used", style="magenta", overflow="fold")
+
+        for item in template_lines:
+            fields_str = ", ".join(item["fields"])
+            table.add_row(
+                f"{item['layout']}\n({item['layout_name']})",
+                item["field"],
+                item["template"],
+                fields_str,
+            )
+
+        console.print(table)
+        console.print(
+            f"\n[bold]Total template formatters:[/bold] {len(template_lines)}\n"
+        )
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+    except Exception as e:
+        console.print(f"[red]Error loading templates:[/red] {e}")
+        raise typer.Exit(code=1) from None
+
+
 @app.command()
 def info() -> None:
     config = config_path
