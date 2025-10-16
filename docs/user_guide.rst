@@ -129,6 +129,27 @@ Format time differences in human-readable format:
     300 → "5m ago"  # short format
     300 → "5 minutes ago"  # long format
 
+**template**
+
+Combine multiple fields using a template string with Python format specifications:
+
+.. code-block:: yaml
+
+    formatter_params:
+        template: "{symbol} - ${price:.2f} - {volume}/$"
+        fields: ["symbol", "price", "volume"]
+
+.. code-block:: text
+
+    # With context: {"symbol": "BTC", "price": 45234.567, "volume": "1.2M"}
+    "BTC - $45234.57 - 1.2M/$"
+
+The template formatter supports:
+
+- Nested field access via dot notation (e.g., ``current_price.usd``)
+- Python format specifications (e.g., ``.2f`` for 2 decimal places)
+- Multiple fields combined in a single line
+
 Custom Formatters
 ~~~~~~~~~~~~~~~~~
 
@@ -340,6 +361,68 @@ Best Practices
 5. **Reuse formatters**: Define global formatter configurations for consistency
 
 6. **Test layouts**: Verify layouts with sample data before deployment
+
+Command Line Interface
+----------------------
+
+ViewText includes a CLI for inspecting and testing layouts.
+
+Basic Commands
+~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    # List all available layouts
+    viewtext list
+
+    # Show specific layout configuration
+    viewtext show weather
+
+    # Show field mappings from config
+    viewtext fields
+
+    # Show all available formatters
+    viewtext formatters
+
+    # Render a layout with mock data
+    viewtext render weather
+
+    # Show configuration info
+    viewtext info
+
+Global Config Option
+~~~~~~~~~~~~~~~~~~~~
+
+Use the ``--config`` or ``-c`` option to specify a custom configuration file:
+
+.. code-block:: bash
+
+    # Global option can be placed before any command
+    viewtext -c examples/layouts.toml list
+    viewtext --config my_layouts.toml show weather
+    viewtext -c custom.toml render crypto_ticker
+
+The default config file is ``layouts.toml`` in the current directory.
+
+CLI Output
+~~~~~~~~~~
+
+The CLI provides rich formatted output with tables and colors:
+
+.. code-block:: bash
+
+    $ viewtext list
+
+    Configuration File: layouts.toml
+
+    ┌────────────────┬─────────────────────┬───────┐
+    │ Layout Name    │ Display Name        │ Lines │
+    ├────────────────┼─────────────────────┼───────┤
+    │ weather        │ Weather Display     │     6 │
+    │ crypto_ticker  │ Crypto Ticker       │     5 │
+    └────────────────┴─────────────────────┴───────┘
+
+    Total layouts: 2
 
 Advanced Usage
 --------------

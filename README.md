@@ -51,35 +51,40 @@ Viewtext includes a CLI for inspecting and testing layouts:
 
 ```bash
 # Show all available layouts
-viewtext show-layouts
+viewtext list
 
 # Show specific layout configuration
-viewtext show-layout weather
+viewtext show weather
 
 # Show field mappings from config
-viewtext show-fields
+viewtext fields
 
 # Render a layout with mock data
 viewtext render weather
 
 # Show all available formatters
-viewtext show-formatters
+viewtext formatters
 
 # Show configuration info
 viewtext info
 
-# Use custom config file
-viewtext show-layouts --config my_layouts.toml
+# Use custom config file (global option)
+viewtext -c my_layouts.toml list
+viewtext --config examples/layouts.toml show weather
 ```
 
 ### CLI Commands
 
-- **show-layouts**: List all layouts in the configuration file
-- **show-layout**: Display detailed configuration for a specific layout
-- **show-fields**: Display all field mappings from the configuration file
+- **list**: List all layouts in the configuration file
+- **show**: Display detailed configuration for a specific layout
+- **fields**: Display all field mappings from the configuration file
 - **render**: Render a layout with mock data
-- **show-formatters**: List all available formatters and their descriptions
+- **formatters**: List all available formatters and their descriptions
 - **info**: Show configuration file information and global formatters
+
+### Global Options
+
+- **--config, -c**: Path to layouts.toml file (can be placed before any command)
 
 ## License
 

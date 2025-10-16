@@ -2,7 +2,7 @@
 
 import importlib
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
@@ -16,8 +16,22 @@ from .registry_builder import get_registry_from_config
 app = typer.Typer(help="ViewText CLI - Text grid layout generator")
 console = Console()
 
+config_path: str = "layouts.toml"
 
-def create_mock_context() -> dict:
+
+@app.callback()
+def main_callback(
+    ctx: typer.Context,
+    config: str = typer.Option(
+        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
+    ),
+) -> None:
+    global config_path
+    config_path = config
+    ctx.obj = {"config": config}
+
+
+def create_mock_context() -> dict[str, Any]:
     return {
         "demo1": "Hello",
         "demo2": "World",
@@ -30,12 +44,9 @@ def create_mock_context() -> dict:
     }
 
 
-@app.command()
-def show_layouts(
-    config: str = typer.Option(
-        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
-    ),
-) -> None:
+@app.command(name="list")
+def list_layouts() -> None:
+    config = config_path
     try:
         loader = LayoutLoader(config)
         layouts_config = loader.load()
@@ -67,13 +78,11 @@ def show_layouts(
         raise typer.Exit(code=1) from None
 
 
-@app.command()
+@app.command(name="show")
 def show_layout(
     layout_name: str = typer.Argument(..., help="Name of the layout to display"),
-    config: str = typer.Option(
-        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
-    ),
 ) -> None:
+    config = config_path
     try:
         loader = LayoutLoader(config)
         layout = loader.get_layout(layout_name)
@@ -114,13 +123,11 @@ def show_layout(
 @app.command()
 def render(
     layout_name: str = typer.Argument(..., help="Name of the layout to render"),
-    config: str = typer.Option(
-        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
-    ),
     field_registry: Optional[str] = typer.Option(
         None, "--registry", "-r", help="Custom field registry module path"
     ),
 ) -> None:
+    config = config_path
     try:
         loader = LayoutLoader(config)
         layout = loader.get_layout(layout_name)
@@ -181,12 +188,9 @@ def render(
         raise typer.Exit(code=1) from None
 
 
-@app.command()
-def show_fields(
-    config: str = typer.Option(
-        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
-    ),
-) -> None:
+@app.command(name="fields")
+def list_fields() -> None:
+    config = config_path
     try:
         loader = LayoutLoader(config)
         field_mappings = loader.get_field_mappings()
@@ -222,8 +226,8 @@ def show_fields(
         raise typer.Exit(code=1) from None
 
 
-@app.command()
-def show_formatters() -> None:
+@app.command(name="formatters")
+def list_formatters() -> None:
     get_formatter_registry()
 
     console.print("\n[bold]Available Formatters[/bold]\n")
@@ -239,6 +243,7 @@ def show_formatters() -> None:
         "number": "Formats numbers with optional prefix/suffix and decimals",
         "datetime": "Formats datetime objects or timestamps",
         "relative_time": 'Formats time intervals as relative time (e.g., "5m ago")',
+        "template": "Combines multiple fields using a template string",
     }
 
     for formatter_name in sorted(formatters.keys()):
@@ -250,23 +255,20 @@ def show_formatters() -> None:
 
 
 @app.command()
-def info(
-    config: str = typer.Option(
-        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
-    ),
-) -> None:
+def info() -> None:
+    config = config_path
     try:
-        config_path = Path(config)
+        config_file = Path(config)
 
         console.print("\n[bold]ViewText Configuration Info[/bold]\n")
 
-        console.print(f"[bold]Config File:[/bold] {config_path.absolute()}")
-        console.print(f"[bold]Exists:[/bold] {config_path.exists()}")
+        console.print(f"[bold]Config File:[/bold] {config_file.absolute()}")
+        console.print(f"[bold]Exists:[/bold] {config_file.exists()}")
 
-        if config_path.exists():
-            console.print(f"[bold]Size:[/bold] {config_path.stat().st_size} bytes")
+        if config_file.exists():
+            console.print(f"[bold]Size:[/bold] {config_file.stat().st_size} bytes")
 
-            loader = LayoutLoader(str(config_path))
+            loader = LayoutLoader(str(config_file))
             layouts_config = loader.load()
 
             console.print(
