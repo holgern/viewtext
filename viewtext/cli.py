@@ -25,10 +25,16 @@ def main_callback(
     config: str = typer.Option(
         "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
     ),
+    formatters: Optional[str] = typer.Option(
+        None, "--formatters", "-f", help="Path to formatters.toml file"
+    ),
+    fields: Optional[str] = typer.Option(
+        None, "--fields", "-F", help="Path to fields.toml file"
+    ),
 ) -> None:
     global config_path
     config_path = config
-    ctx.obj = {"config": config}
+    ctx.obj = {"config": config, "formatters": formatters, "fields": fields}
 
 
 def create_mock_context() -> dict[str, Any]:
@@ -45,13 +51,22 @@ def create_mock_context() -> dict[str, Any]:
 
 
 @app.command(name="list")
-def list_layouts() -> None:
+def list_layouts(ctx: typer.Context) -> None:
     config = config_path
+    formatters_path = ctx.obj.get("formatters")
+    fields_path = ctx.obj.get("fields")
     try:
-        loader = LayoutLoader(config)
+        loader = LayoutLoader(config, formatters_path, fields_path)
         layouts_config = loader.load()
 
         console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
+        if formatters_path:
+            console.print(
+                f"[bold green]Formatters File:[/bold green] {formatters_path}"
+            )
+        if fields_path:
+            console.print(f"[bold green]Fields File:[/bold green] {fields_path}")
+        console.print()
 
         if not layouts_config.layouts:
             console.print("[yellow]No layouts found in configuration file[/yellow]")
@@ -80,11 +95,14 @@ def list_layouts() -> None:
 
 @app.command(name="show")
 def show_layout(
+    ctx: typer.Context,
     layout_name: str = typer.Argument(..., help="Name of the layout to display"),
 ) -> None:
     config = config_path
+    formatters_path = ctx.obj.get("formatters")
+    fields_path = ctx.obj.get("fields")
     try:
-        loader = LayoutLoader(config)
+        loader = LayoutLoader(config, formatters_path, fields_path)
         layout = loader.get_layout(layout_name)
 
         console.print(
@@ -122,14 +140,17 @@ def show_layout(
 
 @app.command()
 def render(
+    ctx: typer.Context,
     layout_name: str = typer.Argument(..., help="Name of the layout to render"),
     field_registry: Optional[str] = typer.Option(
         None, "--registry", "-r", help="Custom field registry module path"
     ),
 ) -> None:
     config = config_path
+    formatters_path = ctx.obj.get("formatters")
+    fields_path = ctx.obj.get("fields")
     try:
-        loader = LayoutLoader(config)
+        loader = LayoutLoader(config, formatters_path, fields_path)
         layout = loader.get_layout(layout_name)
 
         if field_registry:
@@ -189,13 +210,17 @@ def render(
 
 
 @app.command(name="fields")
-def list_fields() -> None:
+def list_fields(ctx: typer.Context) -> None:
     config = config_path
+    formatters_path = ctx.obj.get("formatters")
+    fields_path = ctx.obj.get("fields")
     try:
-        loader = LayoutLoader(config)
+        loader = LayoutLoader(config, formatters_path, fields_path)
         field_mappings = loader.get_field_mappings()
 
         console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
+        if fields_path:
+            console.print(f"[bold green]Fields File:[/bold green] {fields_path}\n")
 
         if not field_mappings:
             console.print(
@@ -255,10 +280,12 @@ def list_formatters() -> None:
 
 
 @app.command(name="templates")
-def list_templates() -> None:
+def list_templates(ctx: typer.Context) -> None:
     config = config_path
+    formatters_path = ctx.obj.get("formatters")
+    fields_path = ctx.obj.get("fields")
     try:
-        loader = LayoutLoader(config)
+        loader = LayoutLoader(config, formatters_path, fields_path)
         layouts_config = loader.load()
 
         console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
@@ -315,8 +342,10 @@ def list_templates() -> None:
 
 
 @app.command()
-def info() -> None:
+def info(ctx: typer.Context) -> None:
     config = config_path
+    formatters_path = ctx.obj.get("formatters")
+    fields_path = ctx.obj.get("fields")
     try:
         config_file = Path(config)
 
@@ -324,11 +353,15 @@ def info() -> None:
 
         console.print(f"[bold]Config File:[/bold] {config_file.absolute()}")
         console.print(f"[bold]Exists:[/bold] {config_file.exists()}")
+        if formatters_path:
+            console.print(f"[bold]Formatters File:[/bold] {formatters_path}")
+        if fields_path:
+            console.print(f"[bold]Fields File:[/bold] {fields_path}")
 
         if config_file.exists():
             console.print(f"[bold]Size:[/bold] {config_file.stat().st_size} bytes")
 
-            loader = LayoutLoader(str(config_file))
+            loader = LayoutLoader(str(config_file), formatters_path, fields_path)
             layouts_config = loader.load()
 
             console.print(

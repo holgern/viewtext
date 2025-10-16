@@ -162,7 +162,12 @@ class LayoutLoader:
     Weather Display
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(
+        self,
+        config_path: Optional[str] = None,
+        formatters_path: Optional[str] = None,
+        fields_path: Optional[str] = None,
+    ):
         """
         Initialize the layout loader.
 
@@ -170,10 +175,16 @@ class LayoutLoader:
         ----------
         config_path : str, optional
             Path to the TOML configuration file
+        formatters_path : str, optional
+            Path to separate formatters TOML file
+        fields_path : str, optional
+            Path to separate fields TOML file
         """
         if config_path is None:
             config_path = self._get_default_config_path()
         self.config_path = config_path
+        self.formatters_path = formatters_path
+        self.fields_path = fields_path
         self._layouts_config: Optional[LayoutsConfig] = None
 
     @staticmethod
@@ -216,8 +227,105 @@ class LayoutLoader:
         with open(self.config_path, "rb") as f:
             data = tomllib.load(f)
 
+        if self.formatters_path or self.fields_path:
+            data = self._merge_configs(data)
+
         self._layouts_config = LayoutsConfig(**data)
         return self._layouts_config
+
+    def _merge_configs(self, base_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Merge additional configuration files into the base data.
+
+        Parameters
+        ----------
+        base_data : dict[str, Any]
+            Base configuration data from main config file
+
+        Returns
+        -------
+        dict[str, Any]
+            Merged configuration data
+        """
+        if self.formatters_path and os.path.exists(self.formatters_path):
+            with open(self.formatters_path, "rb") as f:
+                formatters_data = tomllib.load(f)
+                if "formatters" in formatters_data:
+                    if "formatters" not in base_data:
+                        base_data["formatters"] = {}
+                    base_data["formatters"].update(formatters_data["formatters"])
+
+        if self.fields_path and os.path.exists(self.fields_path):
+            with open(self.fields_path, "rb") as f:
+                fields_data = tomllib.load(f)
+                if "fields" in fields_data:
+                    if "fields" not in base_data:
+                        base_data["fields"] = {}
+                    base_data["fields"].update(fields_data["fields"])
+
+        return base_data
+
+    @staticmethod
+    def load_from_files(
+        layouts_path: str,
+        formatters_path: Optional[str] = None,
+        fields_path: Optional[str] = None,
+    ) -> LayoutsConfig:
+        """
+        Load configuration from multiple TOML files.
+
+        Parameters
+        ----------
+        layouts_path : str
+            Path to the layouts TOML file
+        formatters_path : str, optional
+            Path to the formatters TOML file
+        fields_path : str, optional
+            Path to the fields TOML file
+
+        Returns
+        -------
+        LayoutsConfig
+            Merged configuration object
+
+        Raises
+        ------
+        FileNotFoundError
+            If the layouts file does not exist
+
+        Examples
+        --------
+        >>> config = LayoutLoader.load_from_files(
+        ...     "layouts.toml",
+        ...     formatters_path="formatters.toml",
+        ...     fields_path="fields.toml"
+        ... )
+        >>> print(list(config.layouts.keys()))
+        ['demo', 'advanced']
+        """
+        if not os.path.exists(layouts_path):
+            raise FileNotFoundError(f"Layout config not found: {layouts_path}")
+
+        with open(layouts_path, "rb") as f:
+            data = tomllib.load(f)
+
+        if formatters_path and os.path.exists(formatters_path):
+            with open(formatters_path, "rb") as f:
+                formatters_data = tomllib.load(f)
+                if "formatters" in formatters_data:
+                    if "formatters" not in data:
+                        data["formatters"] = {}
+                    data["formatters"].update(formatters_data["formatters"])
+
+        if fields_path and os.path.exists(fields_path):
+            with open(fields_path, "rb") as f:
+                fields_data = tomllib.load(f)
+                if "fields" in fields_data:
+                    if "fields" not in data:
+                        data["fields"] = {}
+                    data["fields"].update(fields_data["fields"])
+
+        return LayoutsConfig(**data)
 
     def get_layout(self, layout_name: str) -> dict[str, Any]:
         """

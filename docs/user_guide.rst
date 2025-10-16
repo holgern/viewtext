@@ -309,6 +309,101 @@ Loading Layouts
     # Get a specific layout
     layout = loader.get_layout("weather")
 
+Split Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For large projects, you can split your configuration into separate files for better
+organization and maintainability:
+
+.. code-block:: python
+
+    from viewtext import LayoutLoader
+
+    # Method 1: Using constructor parameters
+    loader = LayoutLoader(
+        config_path="layouts.toml",
+        formatters_path="formatters.toml",
+        fields_path="fields.toml"
+    )
+    config = loader.load()
+
+    # Method 2: Using static method
+    config = LayoutLoader.load_from_files(
+        layouts_path="layouts.toml",
+        formatters_path="formatters.toml",
+        fields_path="fields.toml"
+    )
+
+**Example: Separate Formatters File**
+
+``formatters.toml``:
+
+.. code-block:: toml
+
+    [formatters.price_usd]
+    type = "price"
+    symbol = "$"
+    decimals = 2
+
+    [formatters.price_eur]
+    type = "price"
+    symbol = "€"
+    decimals = 2
+
+``layouts.toml``:
+
+.. code-block:: toml
+
+    [layouts.product]
+    name = "Product Display"
+
+    [[layouts.product.lines]]
+    field = "price"
+    index = 0
+    formatter = "price_usd"
+
+**Example: Separate Fields File**
+
+``fields.toml``:
+
+.. code-block:: toml
+
+    [fields.temperature]
+    context_key = "temp"
+    default = 0
+
+    [fields.city]
+    context_key = "location.city"
+    default = "Unknown"
+
+**CLI Usage with Split Files**
+
+.. code-block:: bash
+
+    # Use --formatters and --fields flags
+    viewtext --config layouts.toml \\
+             --formatters formatters.toml \\
+             --fields fields.toml \\
+             list
+
+    viewtext -c layouts.toml -f formatters.toml -F fields.toml render weather
+
+**Benefits of Split Files**
+
+1. **Modularity**: Separate concerns into different files
+2. **Reusability**: Share formatters and fields across multiple layout files
+3. **Team Collaboration**: Different team members can work on different files
+4. **Maintainability**: Easier to find and update specific configurations
+
+**Merging Behavior**
+
+When multiple files are provided:
+
+- Fields from ``fields.toml`` are merged into the base configuration
+- Formatters from ``formatters.toml`` are merged into the base configuration
+- If the same key exists in multiple files, values from separate files take precedence
+- All separate files are optional
+
 Getting Formatter Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -1,0 +1,27 @@
+[formatters.price_usd]
+type = "price"
+symbol = "$"
+decimals = 2
+symbol_position = "prefix"
+
+[formatters.price_eur]
+type = "price"
+symbol = "€"
+decimals = 2
+symbol_position = "suffix"
+
+[formatters.number_with_commas]
+type = "number"
+decimals = 2
+thousands_sep = ","
+
+[formatters.datetime_short]
+type = "datetime"
+format = "%Y-%m-%d %H:%M"
+
+[formatters.datetime_long]
+type = "datetime"
+format = "%A, %B %d, %Y at %I:%M %p"
+
+[formatters.uppercase_text]
+type = "text_uppercase"

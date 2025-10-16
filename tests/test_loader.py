@@ -293,3 +293,219 @@ index = 0
             assert layout["name"] == "Test Layout"
         finally:
             os.unlink(tmp_path)
+
+    def test_load_from_separate_formatters_file(self):
+        layouts_content = """
+[layouts.test_layout]
+name = "Test Layout"
+
+[[layouts.test_layout.lines]]
+field = "field1"
+index = 0
+formatter = "price_usd"
+"""
+        formatters_content = """
+[formatters.price_usd]
+type = "price"
+symbol = "$"
+decimals = 2
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_layouts:
+            tmp_layouts.write(layouts_content)
+            layouts_path = tmp_layouts.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_formatters:
+            tmp_formatters.write(formatters_content)
+            formatters_path = tmp_formatters.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            config = loader.load()
+
+            assert config.formatters is not None
+            assert "price_usd" in config.formatters
+            assert config.formatters["price_usd"].symbol == "$"
+        finally:
+            os.unlink(layouts_path)
+            os.unlink(formatters_path)
+
+    def test_load_from_separate_fields_file(self):
+        layouts_content = """
+[layouts.test_layout]
+name = "Test Layout"
+
+[[layouts.test_layout.lines]]
+field = "temperature"
+index = 0
+"""
+        fields_content = """
+[fields.temperature]
+context_key = "temp"
+default = 0
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_layouts:
+            tmp_layouts.write(layouts_content)
+            layouts_path = tmp_layouts.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_fields:
+            tmp_fields.write(fields_content)
+            fields_path = tmp_fields.name
+
+        try:
+            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            config = loader.load()
+
+            assert config.fields is not None
+            assert "temperature" in config.fields
+            assert config.fields["temperature"].context_key == "temp"
+        finally:
+            os.unlink(layouts_path)
+            os.unlink(fields_path)
+
+    def test_load_from_all_separate_files(self):
+        layouts_content = """
+[layouts.test_layout]
+name = "Test Layout"
+
+[[layouts.test_layout.lines]]
+field = "temperature"
+index = 0
+formatter = "number_fmt"
+"""
+        formatters_content = """
+[formatters.number_fmt]
+type = "number"
+decimals = 1
+"""
+        fields_content = """
+[fields.temperature]
+context_key = "temp"
+default = 0
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_layouts:
+            tmp_layouts.write(layouts_content)
+            layouts_path = tmp_layouts.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_formatters:
+            tmp_formatters.write(formatters_content)
+            formatters_path = tmp_formatters.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_fields:
+            tmp_fields.write(fields_content)
+            fields_path = tmp_fields.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path,
+                formatters_path=formatters_path,
+                fields_path=fields_path,
+            )
+            config = loader.load()
+
+            assert config.formatters is not None
+            assert "number_fmt" in config.formatters
+            assert config.fields is not None
+            assert "temperature" in config.fields
+            assert "test_layout" in config.layouts
+        finally:
+            os.unlink(layouts_path)
+            os.unlink(formatters_path)
+            os.unlink(fields_path)
+
+    def test_load_from_files_static_method(self):
+        layouts_content = """
+[layouts.test_layout]
+name = "Test Layout"
+
+[[layouts.test_layout.lines]]
+field = "field1"
+index = 0
+"""
+        formatters_content = """
+[formatters.price_usd]
+type = "price"
+symbol = "$"
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_layouts:
+            tmp_layouts.write(layouts_content)
+            layouts_path = tmp_layouts.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_formatters:
+            tmp_formatters.write(formatters_content)
+            formatters_path = tmp_formatters.name
+
+        try:
+            config = LayoutLoader.load_from_files(
+                layouts_path=layouts_path, formatters_path=formatters_path
+            )
+
+            assert "test_layout" in config.layouts
+            assert config.formatters is not None
+            assert "price_usd" in config.formatters
+        finally:
+            os.unlink(layouts_path)
+            os.unlink(formatters_path)
+
+    def test_separate_file_overrides_base_config(self):
+        layouts_content = """
+[formatters.price_usd]
+type = "price"
+symbol = "£"
+
+[layouts.test_layout]
+name = "Test Layout"
+
+[[layouts.test_layout.lines]]
+field = "field1"
+index = 0
+"""
+        formatters_content = """
+[formatters.price_usd]
+type = "price"
+symbol = "$"
+decimals = 2
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_layouts:
+            tmp_layouts.write(layouts_content)
+            layouts_path = tmp_layouts.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as tmp_formatters:
+            tmp_formatters.write(formatters_content)
+            formatters_path = tmp_formatters.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            config = loader.load()
+
+            assert config.formatters is not None
+            assert config.formatters["price_usd"].symbol == "$"
+            assert config.formatters["price_usd"].decimals == 2
+        finally:
+            os.unlink(layouts_path)
+            os.unlink(formatters_path)
