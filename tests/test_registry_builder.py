@@ -340,6 +340,126 @@ class TestComputedFields(unittest.TestCase):
         with self.assertRaises(ValueError):
             RegistryBuilder._create_operation_getter(mapping)
 
+    def test_ceil_operation(self):
+        mapping = FieldMapping(operation="ceil", sources=["value"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 3.2}
+        self.assertEqual(getter(context), 4)
+
+    def test_ceil_operation_negative(self):
+        mapping = FieldMapping(operation="ceil", sources=["value"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": -3.7}
+        self.assertEqual(getter(context), -3)
+
+    def test_floor_operation(self):
+        mapping = FieldMapping(operation="floor", sources=["value"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 3.8}
+        self.assertEqual(getter(context), 3)
+
+    def test_floor_operation_negative(self):
+        mapping = FieldMapping(operation="floor", sources=["value"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": -3.2}
+        self.assertEqual(getter(context), -4)
+
+    def test_modulo_operation(self):
+        mapping = FieldMapping(
+            operation="modulo", sources=["value", "divisor"], default=0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 17, "divisor": 5}
+        self.assertEqual(getter(context), 2)
+
+    def test_modulo_by_zero_returns_default(self):
+        mapping = FieldMapping(
+            operation="modulo", sources=["value", "divisor"], default=999
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 17, "divisor": 0}
+        self.assertEqual(getter(context), 999)
+
+    def test_concat_operation(self):
+        mapping = FieldMapping(
+            operation="concat", sources=["first", "last"], separator=" ", default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"first": "John", "last": "Doe"}
+        self.assertEqual(getter(context), "John Doe")
+
+    def test_concat_operation_no_separator(self):
+        mapping = FieldMapping(
+            operation="concat", sources=["part1", "part2"], default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"part1": "Hello", "part2": "World"}
+        self.assertEqual(getter(context), "HelloWorld")
+
+    def test_concat_missing_source_returns_default(self):
+        mapping = FieldMapping(
+            operation="concat", sources=["first", "last"], separator=" ", default="N/A"
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"first": "John"}
+        self.assertEqual(getter(context), "N/A")
+
+    def test_split_operation(self):
+        mapping = FieldMapping(
+            operation="split", sources=["text"], separator=" ", default=[]
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"text": "Hello World Test"}
+        self.assertEqual(getter(context), ["Hello", "World", "Test"])
+
+    def test_split_operation_comma(self):
+        mapping = FieldMapping(
+            operation="split", sources=["csv"], separator=",", default=[]
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"csv": "apple,banana,cherry"}
+        self.assertEqual(getter(context), ["apple", "banana", "cherry"])
+
+    def test_split_missing_source_returns_default(self):
+        mapping = FieldMapping(
+            operation="split", sources=["text"], separator=" ", default=["error"]
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {}
+        self.assertEqual(getter(context), ["error"])
+
+    def test_substring_operation(self):
+        mapping = FieldMapping(
+            operation="substring", sources=["text"], start=0, end=5, default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"text": "Hello World"}
+        self.assertEqual(getter(context), "Hello")
+
+    def test_substring_operation_no_end(self):
+        mapping = FieldMapping(
+            operation="substring", sources=["text"], start=6, default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"text": "Hello World"}
+        self.assertEqual(getter(context), "World")
+
+    def test_substring_operation_negative_start(self):
+        mapping = FieldMapping(
+            operation="substring", sources=["text"], start=-5, default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"text": "Hello World"}
+        self.assertEqual(getter(context), "World")
+
+    def test_substring_missing_source_returns_default(self):
+        mapping = FieldMapping(
+            operation="substring", sources=["text"], start=0, end=5, default="N/A"
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {}
+        self.assertEqual(getter(context), "N/A")
+
 
 if __name__ == "__main__":
     unittest.main()

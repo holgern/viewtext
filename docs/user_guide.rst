@@ -308,6 +308,7 @@ Available Operations
 - ``divide`` - Divide two values (safe with divide-by-zero handling)
 - ``add`` - Sum multiple values
 - ``subtract`` - Subtract two values
+- ``modulo`` - Modulo operation (remainder after division)
 
 **Aggregate Operations**
 
@@ -318,8 +319,16 @@ Available Operations
 **Mathematical Operations**
 
 - ``abs`` - Absolute value
-- ``round`` - Round to nearest integer
+- ``round`` - Round to nearest integer (optionally specify decimals)
+- ``ceil`` - Round up to nearest integer
+- ``floor`` - Round down to nearest integer
 - ``linear_transform`` - Apply formula: ``(value * multiply / divide) + add``
+
+**String Operations**
+
+- ``concat`` - Join multiple strings with a separator
+- ``split`` - Split a string by separator and take a specific index
+- ``substring`` - Extract substring from start to end position
 
 Defining Computed Fields
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -389,14 +398,81 @@ Formula: ``(value * multiply / divide) + add``
     add = 5.0
     default = 0.0
 
+**Round Operations**
+
+.. code-block:: toml
+
+    # Scale mempool size and round up
+    [fields.vsize_scaled]
+    operation = "linear_transform"
+    context_key = "mempool.vsize"
+    divide = 1000000
+    default = 0
+
+    [fields.vsize_mb]
+    operation = "ceil"
+    sources = ["vsize_scaled"]
+    default = 0
+
+**String Operations Parameters**
+
+- ``separator`` - Separator for concat/split operations (default: empty string for concat, space for split)
+- ``index`` - Index for split operation (which part to extract)
+- ``start`` - Start position for substring operation
+- ``end`` - End position for substring operation (optional)
+
+.. code-block:: toml
+
+    # Concatenate first and last name
+    [fields.full_name]
+    operation = "concat"
+    sources = ["first_name", "last_name"]
+    separator = " "
+    default = ""
+
+    # Extract domain from email
+    [fields.domain]
+    operation = "split"
+    sources = ["email"]
+    separator = "@"
+    index = 1
+    default = ""
+
+    # Extract year from date string
+    [fields.year]
+    operation = "substring"
+    sources = ["date"]
+    start = 0
+    end = 4
+    default = ""
+
+    # Get last 3 characters
+    [fields.suffix]
+    operation = "substring"
+    sources = ["text"]
+    start = -3
+    default = ""
+
+**Modulo Operation**
+
+.. code-block:: toml
+
+    # Check if number is even/odd (result will be 0 or 1)
+    [fields.remainder]
+    operation = "modulo"
+    sources = ["number", "divisor"]
+    default = 0
+
 Error Handling
 ~~~~~~~~~~~~~~
 
 Computed fields include automatic error handling:
 
 - Missing source values return the default
-- Non-numeric values return the default
+- Non-numeric values return the default (for numeric operations)
 - Division by zero returns the default
+- Modulo by zero returns the default
+- Out-of-bounds string indices return the default
 - Invalid operations raise ``ValueError`` at configuration load time
 
 Example Use Cases

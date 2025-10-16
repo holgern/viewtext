@@ -116,6 +116,12 @@ class FieldMapping(BaseModel):
         Addend for linear transform operations
     divide : float, optional
         Divisor for division operations
+    start : int, optional
+        Start index for substring operation
+    end : int, optional
+        End index for substring operation
+    separator : str, optional
+        Separator string for concat and split operations
     """
 
     context_key: Optional[str] = None
@@ -126,6 +132,9 @@ class FieldMapping(BaseModel):
     multiply: Optional[float] = None
     add: Optional[float] = None
     divide: Optional[float] = None
+    start: Optional[int] = None
+    end: Optional[int] = None
+    separator: Optional[str] = None
 
 
 class LayoutsConfig(BaseModel):

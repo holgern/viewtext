@@ -57,6 +57,41 @@ operation = "round"
 sources = ["price"]
 default = 0.0
 
+[fields.price_ceiled]
+operation = "ceil"
+sources = ["price"]
+default = 0.0
+
+[fields.price_floored]
+operation = "floor"
+sources = ["price"]
+default = 0.0
+
+[fields.remainder]
+operation = "modulo"
+sources = ["number", "divisor"]
+default = 0
+
+[fields.full_name]
+operation = "concat"
+sources = ["first_name", "last_name"]
+separator = " "
+default = ""
+
+[fields.domain]
+operation = "split"
+sources = ["email"]
+separator = "@"
+index = 1
+default = ""
+
+[fields.year]
+operation = "substring"
+sources = ["date"]
+start = 0
+end = 4
+default = ""
+
 [formatters.temperature]
 type = "number"
 decimals = 1

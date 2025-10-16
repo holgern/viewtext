@@ -37,6 +37,7 @@ python examples/demo_computed_fields.py
 - `divide` - Divide two values (safe with divide-by-zero handling)
 - `add` - Sum multiple values
 - `subtract` - Subtract two values
+- `modulo` - Modulo operation (remainder after division)
 
 ### Aggregate Operations
 
@@ -47,8 +48,16 @@ python examples/demo_computed_fields.py
 ### Mathematical Operations
 
 - `abs` - Absolute value
-- `round` - Round to nearest integer
+- `round` - Round to nearest integer (optionally specify decimals)
+- `ceil` - Round up to nearest integer
+- `floor` - Round down to nearest integer
 - `linear_transform` - Apply formula: `(value * multiply / divide) + add`
+
+### String Operations
+
+- `concat` - Join multiple strings with a separator
+- `split` - Split a string by separator and take a specific index
+- `substring` - Extract substring from start to end position
 
 ## Example Usage
 
@@ -109,6 +118,75 @@ default = 0.0
 
 This field converts kilometers per hour to miles per hour.
 
+### Rounding Values
+
+```toml
+[fields.vsize_scaled]
+operation = "linear_transform"
+context_key = "mempool.vsize"
+divide = 1000000
+default = 0
+
+[fields.vsize_mb]
+operation = "ceil"
+sources = ["vsize_scaled"]
+default = 0
+```
+
+This field scales a value and then rounds up to the nearest integer using `ceil`.
+
+### Modulo Operation
+
+```toml
+[fields.even_or_odd]
+operation = "modulo"
+sources = ["number", "divisor"]
+default = 0
+```
+
+This field calculates the remainder when dividing `number` by `divisor` (e.g., for
+checking odd/even).
+
+### Concatenating Strings
+
+```toml
+[fields.full_name]
+operation = "concat"
+sources = ["first_name", "last_name"]
+separator = " "
+default = ""
+```
+
+This field joins first and last names with a space.
+
+### Splitting Strings
+
+```toml
+[fields.domain]
+operation = "split"
+sources = ["email"]
+separator = "@"
+index = 1
+default = ""
+```
+
+This field extracts the domain from an email address by splitting on "@" and taking
+index 1.
+
+### Extracting Substrings
+
+```toml
+[fields.year]
+operation = "substring"
+sources = ["date"]
+start = 0
+end = 4
+default = ""
+```
+
+This field extracts the year from a date string like "2024-01-15" by taking characters
+0-4.
+
 ## Key Concepts
 
 1. **Sources** - List of field names from the context to use as inputs
@@ -118,14 +196,20 @@ This field converts kilometers per hour to miles per hour.
    - `multiply` - Multiplier for linear transformations
    - `divide` - Divisor for linear transformations
    - `add` - Addend for linear transformations
+   - `separator` - Separator for concat/split operations
+   - `index` - Index for split operation
+   - `start` - Start position for substring operation
+   - `end` - End position for substring operation
 
 ## Error Handling
 
 Computed fields include automatic error handling:
 
 - Missing source values return the default
-- Non-numeric values return the default
+- Non-numeric values return the default (for numeric operations)
 - Division by zero returns the default
+- Modulo by zero returns the default
+- Out-of-bounds string indices return the default
 - Invalid operations raise `ValueError` at configuration time
 
 ## Benefits

@@ -6,6 +6,7 @@ configuration files, including support for complex context key parsing
 with attribute access and method calls.
 """
 
+import math
 import re
 from typing import Any, Callable, Optional, Union, cast
 
@@ -183,6 +184,9 @@ class RegistryBuilder:
         "max": lambda *sources: max(sources) if sources else None,
         "abs": lambda v: abs(v),
         "round": lambda v, decimals=0: round(v, int(decimals)),
+        "ceil": lambda v: math.ceil(v),
+        "floor": lambda v: math.floor(v),
+        "modulo": lambda a, b: a % b if b != 0 else None,
     }
 
     @staticmethod
@@ -433,6 +437,80 @@ class RegistryBuilder:
         return op_func(value)
 
     @staticmethod
+    def _get_string_value(context: dict[str, Any], key: str, default: Any) -> Any:
+        """Get string value from context."""
+        value = context.get(key)
+        if value is None:
+            return default
+        return str(value)
+
+    @staticmethod
+    def _handle_concat_operation(
+        context: dict[str, Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle concat operation for joining strings."""
+        sources = params.get("sources", [])
+        separator = params.get("separator")
+        if separator is None:
+            separator = ""
+        default = params.get("default", "")
+
+        values = []
+        for source in sources:
+            val = RegistryBuilder._get_string_value(context, source, None)
+            if val is None:
+                return default
+            values.append(val)
+
+        return separator.join(values)
+
+    @staticmethod
+    def _handle_split_operation(
+        context: dict[str, Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle split operation for splitting strings."""
+        context_key = params.get("context_key")
+        sources = params.get("sources")
+        separator = params.get("separator", " ")
+        default = params.get("default", [])
+
+        source_key = sources[0] if sources else context_key
+        if source_key is None:
+            return default
+
+        value = RegistryBuilder._get_string_value(context, source_key, None)
+        if value is None:
+            return default
+
+        return value.split(separator)
+
+    @staticmethod
+    def _handle_substring_operation(
+        context: dict[str, Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle substring operation for extracting substrings."""
+        context_key = params.get("context_key")
+        sources = params.get("sources")
+        start = params.get("start", 0)
+        end = params.get("end")
+        default = params.get("default", "")
+
+        source_key = sources[0] if sources else context_key
+        if source_key is None:
+            return default
+
+        value = RegistryBuilder._get_string_value(context, source_key, None)
+        if value is None:
+            return default
+
+        if end is None:
+            return value[start:]
+        return value[start:end]
+
+    @staticmethod
     def _create_operation_getter(
         mapping: FieldMapping,
     ) -> Callable[[dict[str, Any]], Any]:
@@ -461,9 +539,11 @@ class RegistryBuilder:
         32.0
         """
         operation = mapping.operation
+        string_operations = ["concat", "split", "substring"]
         if (
             operation not in RegistryBuilder.OPERATIONS
             and operation != "linear_transform"
+            and operation not in string_operations
         ):
             raise ValueError(f"Unknown operation: {operation}")
 
@@ -474,12 +554,24 @@ class RegistryBuilder:
             "multiply": mapping.multiply,
             "add": mapping.add,
             "divide": mapping.divide,
+            "start": mapping.start,
+            "end": mapping.end,
+            "separator": mapping.separator,
         }
 
         def getter(context: dict[str, Any]) -> Any:
             try:
                 if operation == "linear_transform":
                     return RegistryBuilder._handle_linear_transform(context, params)
+
+                if operation == "concat":
+                    return RegistryBuilder._handle_concat_operation(context, params)
+
+                if operation == "split":
+                    return RegistryBuilder._handle_split_operation(context, params)
+
+                if operation == "substring":
+                    return RegistryBuilder._handle_substring_operation(context, params)
 
                 op_func = RegistryBuilder.OPERATIONS.get(operation)
                 if op_func is None:
@@ -497,7 +589,7 @@ class RegistryBuilder:
                     )
                 return params["default"]
 
-            except (TypeError, ValueError, ZeroDivisionError, KeyError):
+            except (TypeError, ValueError, ZeroDivisionError, KeyError, IndexError):
                 return params["default"]
 
         return getter

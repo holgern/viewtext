@@ -55,6 +55,7 @@ Contents
 
    quickstart
    user_guide
+   computed_fields_reference
    testing
    api_reference
    examples
