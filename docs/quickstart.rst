@@ -14,26 +14,29 @@ Basic Concepts
 
 ViewText works with three main components:
 
-1. **Field Registry**: Registers functions that extract data from context
+1. **Field Mappings**: Define how fields map to context data (can be in TOML or Python)
 2. **Layout Configuration**: TOML files that define how fields map to grid positions
 3. **Layout Engine**: Builds formatted text output from layouts and context data
 
 Simple Example
 --------------
 
-Step 1: Create a Field Registry
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Step 1: Create Field Mappings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: python
+Create a file named ``fields.toml``:
 
-    from viewtext import BaseFieldRegistry
+.. code-block:: toml
 
-    registry = BaseFieldRegistry()
+    [fields.temperature]
+    context_key = "temp"
 
-    # Register simple field getters
-    registry.register("temperature", lambda ctx: ctx["temp"])
-    registry.register("humidity", lambda ctx: ctx["humidity"])
-    registry.register("location", lambda ctx: ctx.get("city", "Unknown"))
+    [fields.humidity]
+    context_key = "humidity"
+
+    [fields.location]
+    context_key = "city"
+    default = "Unknown"
 
 Step 2: Create a Layout Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,12 +78,13 @@ Step 3: Build the Layout
 
     from viewtext import LayoutEngine, LayoutLoader
 
-    # Load the layout
-    loader = LayoutLoader("layouts.toml")
+    # Load the layout and field mappings
+    loader = LayoutLoader("layouts.toml", fields_path="fields.toml")
+    config = loader.load()
     layout = loader.get_layout("weather")
 
-    # Create the engine
-    engine = LayoutEngine(field_registry=registry)
+    # Create the engine with field mappings from config
+    engine = LayoutEngine(field_mappings=config.fields)
 
     # Build the output
     context = {
@@ -131,6 +135,26 @@ Date/Time Formatters
 
     # datetime - Format timestamps and datetime objects
     # relative_time - Format as relative time (e.g., "5m ago")
+
+Using Python Field Registry (Advanced)
+---------------------------------------
+
+For more complex field logic, you can use Python's ``BaseFieldRegistry`` instead of TOML:
+
+.. code-block:: python
+
+    from viewtext import BaseFieldRegistry
+
+    registry = BaseFieldRegistry()
+
+    # Register custom field getters with complex logic
+    registry.register("temperature", lambda ctx: ctx["temp"])
+    registry.register("status", lambda ctx: "Hot" if ctx["temp"] > 80 else "Cool")
+
+    # Use the registry with the engine
+    engine = LayoutEngine(field_registry=registry)
+
+See the :doc:`user_guide` for more details on when to use each approach.
 
 Next Steps
 ----------
