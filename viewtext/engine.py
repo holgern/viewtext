@@ -1,11 +1,11 @@
-from typing import Any
+from typing import Any, Optional
 
 from .formatters import get_formatter_registry
 from .registry import BaseFieldRegistry
 
 
 class LayoutEngine:
-    def __init__(self, field_registry: BaseFieldRegistry | None = None):
+    def __init__(self, field_registry: Optional[BaseFieldRegistry] = None):
         self.field_registry = field_registry
         self.formatter_registry = get_formatter_registry()
 
@@ -61,10 +61,12 @@ class LayoutEngine:
         return formatter(value, **formatter_params)
 
 
-_global_layout_engine: LayoutEngine | None = None
+_global_layout_engine: Optional[LayoutEngine] = None
 
 
-def get_layout_engine(field_registry: BaseFieldRegistry | None = None) -> LayoutEngine:
+def get_layout_engine(
+    field_registry: Optional[BaseFieldRegistry] = None,
+) -> LayoutEngine:
     global _global_layout_engine
     if _global_layout_engine is None and field_registry is not None:
         _global_layout_engine = LayoutEngine(field_registry)

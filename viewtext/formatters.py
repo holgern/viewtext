@@ -3,19 +3,20 @@ from typing import Any, Callable
 
 
 class FormatterRegistry:
-    def __init__(self):
+    def __init__(self) -> None:
         self._formatters: dict[str, Callable] = {}
         self._register_builtin_formatters()
 
-    def _register_builtin_formatters(self):
+    def _register_builtin_formatters(self) -> None:
         self.register("text", self._format_text)
         self.register("text_uppercase", self._format_text_uppercase)
         self.register("price", self._format_price)
         self.register("number", self._format_number)
         self.register("datetime", self._format_datetime)
         self.register("relative_time", self._format_relative_time)
+        self.register("template", self._format_template)
 
-    def register(self, name: str, formatter: Callable):
+    def register(self, name: str, formatter: Callable) -> None:
         self._formatters[name] = formatter
 
     def get(self, name: str) -> Callable:
@@ -24,17 +25,17 @@ class FormatterRegistry:
         return self._formatters[name]
 
     @staticmethod
-    def _format_text(value: Any, **kwargs) -> str:
+    def _format_text(value: Any, **kwargs: Any) -> str:
         prefix = kwargs.get("prefix", "")
         suffix = kwargs.get("suffix", "")
         return f"{prefix}{str(value)}{suffix}"
 
     @staticmethod
-    def _format_text_uppercase(value: Any, **kwargs) -> str:
+    def _format_text_uppercase(value: Any, **kwargs: Any) -> str:
         return str(value).upper()
 
     @staticmethod
-    def _format_price(value: Any, **kwargs) -> str:
+    def _format_price(value: Any, **kwargs: Any) -> str:
         symbol = kwargs.get("symbol", "")
         decimals = kwargs.get("decimals", 2)
         thousands_sep = kwargs.get("thousands_sep", "")
@@ -62,7 +63,7 @@ class FormatterRegistry:
         return formatted
 
     @staticmethod
-    def _format_number(value: Any, **kwargs) -> str:
+    def _format_number(value: Any, **kwargs: Any) -> str:
         prefix = kwargs.get("prefix", "")
         suffix = kwargs.get("suffix", "")
         decimals = kwargs.get("decimals", 0)
@@ -84,7 +85,7 @@ class FormatterRegistry:
         return f"{prefix}{formatted}{suffix}"
 
     @staticmethod
-    def _format_datetime(value: Any, **kwargs) -> str:
+    def _format_datetime(value: Any, **kwargs: Any) -> str:
         format_str = kwargs.get("format", "%Y-%m-%d %H:%M:%S")
 
         if value is None:
@@ -100,7 +101,7 @@ class FormatterRegistry:
         return str(value)
 
     @staticmethod
-    def _format_relative_time(value: Any, **kwargs) -> str:
+    def _format_relative_time(value: Any, **kwargs: Any) -> str:
         format_type = kwargs.get("format", "short")
 
         if value is None:
@@ -130,6 +131,34 @@ class FormatterRegistry:
         else:
             days = seconds // 86400
             return f"{days}d ago" if format_type == "short" else f"{days} days ago"
+
+    @staticmethod
+    def _format_template(value: Any, **kwargs: Any) -> str:
+        template = str(kwargs.get("template", "{}"))
+        fields = kwargs.get("fields", [])
+
+        if not isinstance(value, dict):
+            return str(value)
+
+        field_values: dict[str, Any] = {}
+        for field_path in fields:
+            val: Any = value
+            for key in field_path.split("."):
+                if isinstance(val, dict):
+                    val = val.get(key)
+                    if val is None:
+                        break
+                else:
+                    val = None
+                    break
+
+            field_name = field_path.replace(".", "_")
+            field_values[field_name] = val if val is not None else ""
+
+        try:
+            return str(template.format(**field_values))
+        except (KeyError, ValueError) as e:
+            return f"Template error: {e}"
 
 
 _global_formatter_registry = FormatterRegistry()

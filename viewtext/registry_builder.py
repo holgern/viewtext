@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, Callable, Optional, Union
 
 from .loader import LayoutLoader
 from .registry import BaseFieldRegistry
@@ -34,7 +34,7 @@ class MethodCallParser:
                  ('method', 'get_ticker', ['BTC']),
                  ('method', 'get_current_price', ['fiat'])]
         """
-        operations = []
+        operations: list[tuple[str, str, list[Any]]] = []
         remaining = context_key
         first = True
 
@@ -68,12 +68,12 @@ class MethodCallParser:
         return operations
 
     @staticmethod
-    def _parse_args(args_str: str) -> list[Any]:
+    def _parse_args(args_str: str) -> list[Union[str, int, float, bool, None]]:
         """Parse argument string into Python values."""
         if not args_str.strip():
             return []
 
-        args = []
+        args: list[Union[str, int, float, bool, None]] = []
         for arg in args_str.split(","):
             arg = arg.strip()
 
@@ -101,7 +101,7 @@ class MethodCallParser:
 class RegistryBuilder:
     @staticmethod
     def build_from_config(
-        config_path: str | None = None, loader: LayoutLoader | None = None
+        config_path: Optional[str] = None, loader: Optional[LayoutLoader] = None
     ) -> BaseFieldRegistry:
         if loader is None:
             loader = LayoutLoader(config_path)
@@ -121,8 +121,8 @@ class RegistryBuilder:
 
     @staticmethod
     def _create_getter(
-        context_key: str, default: Any = None, transform: str | None = None
-    ):
+        context_key: str, default: Any = None, transform: Optional[str] = None
+    ) -> Callable[[dict[str, Any]], Any]:
         def getter(context: dict[str, Any]) -> Any:
             operations = MethodCallParser.parse(context_key)
 
@@ -172,6 +172,6 @@ class RegistryBuilder:
 
 
 def get_registry_from_config(
-    config_path: str | None = None, loader: LayoutLoader | None = None
+    config_path: Optional[str] = None, loader: Optional[LayoutLoader] = None
 ) -> BaseFieldRegistry:
     return RegistryBuilder.build_from_config(config_path, loader)

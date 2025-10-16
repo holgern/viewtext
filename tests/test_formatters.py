@@ -254,3 +254,74 @@ class TestRelativeTimeFormatter:
         formatter = registry.get("relative_time")
 
         assert formatter("invalid") == "invalid"
+
+
+class TestTemplateFormatter:
+    def test_format_template_basic(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        context = {"price": 100, "currency": "USD"}
+        result = formatter(
+            context, template="{price} {currency}", fields=["price", "currency"]
+        )
+        assert result == "100 USD"
+
+    def test_format_template_with_nested_fields(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        context = {"current_price": {"fiat": "€95,000", "usd": 100000, "sat_usd": 1000}}
+        template = (
+            "{current_price_fiat} - ${current_price_usd} - "
+            "{current_price_sat_usd:.0f} /$"
+        )
+        result = formatter(
+            context,
+            template=template,
+            fields=["current_price.fiat", "current_price.usd", "current_price.sat_usd"],
+        )
+        assert result == "€95,000 - $100000 - 1000 /$"
+
+    def test_format_template_with_formatting_specs(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        context = {"value": 123.456}
+        result = formatter(context, template="{value:.2f}", fields=["value"])
+        assert result == "123.46"
+
+    def test_format_template_missing_field(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        context = {"price": 100}
+        result = formatter(
+            context, template="{price} {currency}", fields=["price", "currency"]
+        )
+        assert result == "100 "
+
+    def test_format_template_non_dict_value(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        result = formatter("not a dict", template="{price}", fields=["price"])
+        assert result == "not a dict"
+
+    def test_format_template_no_fields(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        context = {"price": 100}
+        result = formatter(context, template="Static text")
+        assert result == "Static text"
+
+    def test_format_template_deeply_nested_fields(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("template")
+
+        context = {"level1": {"level2": {"level3": "deep value"}}}
+        result = formatter(
+            context, template="{level1_level2_level3}", fields=["level1.level2.level3"]
+        )
+        assert result == "deep value"

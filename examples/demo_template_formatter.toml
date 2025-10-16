@@ -1,0 +1,14 @@
+[fields.current_price]
+context_key = "current_price"
+
+[layouts.crypto_composite_price]
+name = "Cryptocurrency Composite Price Display"
+
+[[layouts.crypto_composite_price.lines]]
+field = "current_price"
+index = 0
+formatter = "template"
+
+[layouts.crypto_composite_price.lines.formatter_params]
+template = "{current_price_fiat} - ${current_price_usd} - {current_price_sat_usd:.0f} /$"
+fields = ["current_price.fiat", "current_price.usd", "current_price.sat_usd"]

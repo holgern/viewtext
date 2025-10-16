@@ -66,7 +66,7 @@ Basic text formatting with optional prefix and suffix:
 
 Converts text to uppercase:
 
-.. code-block:: python
+.. code-block:: text
 
     "hello" → "HELLO"
 
@@ -74,7 +74,7 @@ Converts text to uppercase:
 
 Format numbers with precision and separators:
 
-.. code-block:: python
+.. code-block:: yaml
 
     formatter_params:
         decimals: 2
@@ -82,13 +82,15 @@ Format numbers with precision and separators:
         prefix: "$"
         suffix: " USD"
 
+.. code-block:: text
+
     1234.567 → "$1,234.57 USD"
 
 **price**
 
 Specialized price formatting:
 
-.. code-block:: python
+.. code-block:: yaml
 
     formatter_params:
         symbol: "$"
@@ -96,16 +98,20 @@ Specialized price formatting:
         decimals: 2
         thousands_sep: ","
 
+.. code-block:: text
+
     1234.50 → "$1,234.50"
 
 **datetime**
 
 Format timestamps and datetime objects:
 
-.. code-block:: python
+.. code-block:: yaml
 
     formatter_params:
         format: "%Y-%m-%d %H:%M:%S"
+
+.. code-block:: text
 
     1234567890 → "2009-02-13 23:31:30"
 
@@ -113,10 +119,12 @@ Format timestamps and datetime objects:
 
 Format time differences in human-readable format:
 
-.. code-block:: python
+.. code-block:: yaml
 
     formatter_params:
         format: "short"  # or "long"
+
+.. code-block:: text
 
     300 → "5m ago"  # short format
     300 → "5 minutes ago"  # long format

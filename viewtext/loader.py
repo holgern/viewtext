@@ -1,6 +1,10 @@
 import os
-import sys
-from typing import Any
+from typing import Any, Optional
+
+try:
+    import tomllib  # type: ignore[import-not-found]
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 from pydantic import BaseModel, Field
 
@@ -8,7 +12,7 @@ from pydantic import BaseModel, Field
 class LineConfig(BaseModel):
     field: str
     index: int
-    formatter: str | None = None
+    formatter: Optional[str] = None
     formatter_params: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -19,69 +23,45 @@ class LayoutConfig(BaseModel):
 
 class FormatterConfigParams(BaseModel):
     type: str
-    symbol: str | None = None
-    decimals: int | None = None
-    thousands_sep: str | None = None
-    prefix: str | None = None
-    suffix: str | None = None
-    format: str | None = None
-    symbol_position: str | None = None
+    symbol: Optional[str] = None
+    decimals: Optional[int] = None
+    thousands_sep: Optional[str] = None
+    prefix: Optional[str] = None
+    suffix: Optional[str] = None
+    format: Optional[str] = None
+    symbol_position: Optional[str] = None
+    template: Optional[str] = None
+    fields: Optional[list[str]] = None
 
 
 class FieldMapping(BaseModel):
     context_key: str
-    default: Any | None = None
-    transform: str | None = None
+    default: Optional[Any] = None
+    transform: Optional[str] = None
 
 
 class LayoutsConfig(BaseModel):
     layouts: dict[str, LayoutConfig]
-    formatters: dict[str, FormatterConfigParams] | None = None
-    fields: dict[str, FieldMapping] | None = None
-    context_provider: str | None = None
+    formatters: Optional[dict[str, FormatterConfigParams]] = None
+    fields: Optional[dict[str, FieldMapping]] = None
+    context_provider: Optional[str] = None
 
 
 class LayoutLoader:
-    def __init__(self, config_path: str | None = None):
+    def __init__(self, config_path: Optional[str] = None):
         if config_path is None:
             config_path = self._get_default_config_path()
         self.config_path = config_path
-        self._layouts_config: LayoutsConfig | None = None
+        self._layouts_config: Optional[LayoutsConfig] = None
 
     @staticmethod
     def _get_default_config_path() -> str:
         base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         return os.path.join(base_dir, "layouts.toml")
 
-    def _import_toml_libs(self) -> tuple[Any, Any]:
-        """Import TOML libraries with fallback handling."""
-        tomllib = None
-        tomli_w = None
-
-        try:
-            if sys.version_info >= (3, 11):
-                tomllib = __import__("tomllib")
-            else:
-                tomllib = __import__("tomli")
-        except ImportError:
-            pass
-
-        try:
-            tomli_w = __import__("tomli_w")
-        except ImportError:
-            pass
-
-        return tomllib, tomli_w
-
     def load(self) -> LayoutsConfig:
         if not os.path.exists(self.config_path):
             raise FileNotFoundError(f"Layout config not found: {self.config_path}")
-
-        tomllib, _ = self._import_toml_libs()
-        if tomllib is None:
-            raise ImportError(
-                "TOML support not available. Install with: pip install tomli tomli-w"
-            )
 
         with open(self.config_path, "rb") as f:
             data = tomllib.load(f)
@@ -129,7 +109,7 @@ class LayoutLoader:
 
         return self._layouts_config.fields
 
-    def get_context_provider(self) -> str | None:
+    def get_context_provider(self) -> Optional[str]:
         if self._layouts_config is None:
             self.load()
 
@@ -138,10 +118,10 @@ class LayoutLoader:
         return self._layouts_config.context_provider
 
 
-_global_layout_loader: LayoutLoader | None = None
+_global_layout_loader: Optional[LayoutLoader] = None
 
 
-def get_layout_loader(config_path: str | None = None) -> LayoutLoader:
+def get_layout_loader(config_path: Optional[str] = None) -> LayoutLoader:
     global _global_layout_loader
     if _global_layout_loader is None:
         _global_layout_loader = LayoutLoader(config_path)

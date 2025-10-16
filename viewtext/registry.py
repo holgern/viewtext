@@ -2,10 +2,10 @@ from typing import Callable
 
 
 class BaseFieldRegistry:
-    def __init__(self):
+    def __init__(self) -> None:
         self._fields: dict[str, Callable] = {}
 
-    def register(self, name: str, getter: Callable):
+    def register(self, name: str, getter: Callable) -> None:
         self._fields[name] = getter
 
     def get(self, name: str) -> Callable:
