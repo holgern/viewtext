@@ -1,3 +1,6 @@
+[![PyPI - Version](https://img.shields.io/pypi/v/viewtext)](https://pypi.org/project/viewtext/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/viewtext)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/viewtext)
 [![codecov](https://codecov.io/gh/holgern/viewtext/graph/badge.svg?token=AtcFpVooWk)](https://codecov.io/gh/holgern/viewtext)
 
 # ViewText
