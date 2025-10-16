@@ -7,9 +7,9 @@ with attribute access and method calls.
 """
 
 import re
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, cast
 
-from .loader import LayoutLoader
+from .loader import FieldMapping, LayoutLoader
 from .registry import BaseFieldRegistry
 
 
@@ -167,6 +167,24 @@ class RegistryBuilder:
     25
     """
 
+    OPERATIONS = {
+        "celsius_to_fahrenheit": lambda v: v * 9 / 5 + 32,
+        "fahrenheit_to_celsius": lambda v: (v - 32) * 5 / 9,
+        "multiply": lambda *sources: (
+            sources[0] * sources[1]
+            if len(sources) >= 2
+            else (sources[0] if sources else 0)
+        ),
+        "divide": lambda a, b: a / b if b != 0 else None,
+        "add": lambda *sources: sum(sources),
+        "subtract": lambda a, b: a - b if len([a, b]) == 2 else 0,
+        "average": lambda *sources: sum(sources) / len(sources) if sources else 0,
+        "min": lambda *sources: min(sources) if sources else None,
+        "max": lambda *sources: max(sources) if sources else None,
+        "abs": lambda v: abs(v),
+        "round": lambda v, decimals=0: round(v, int(decimals)),
+    }
+
     @staticmethod
     def build_from_config(
         config_path: Optional[str] = None, loader: Optional[LayoutLoader] = None
@@ -199,25 +217,29 @@ class RegistryBuilder:
         registry = BaseFieldRegistry()
 
         for field_name, mapping in field_mappings.items():
-            context_key = mapping.context_key
-            default = mapping.default
-            transform = mapping.transform
-
-            getter = RegistryBuilder._create_getter(context_key, default, transform)
+            if mapping.operation:
+                getter = RegistryBuilder._create_operation_getter(mapping)
+            else:
+                context_key = mapping.context_key or field_name
+                getter = RegistryBuilder._create_getter(
+                    context_key, mapping.default, mapping.transform
+                )
             registry.register(field_name, getter)
 
         return registry
 
     @staticmethod
     def _create_getter(
-        context_key: str, default: Any = None, transform: Optional[str] = None
+        context_key: Optional[str] = None,
+        default: Any = None,
+        transform: Optional[str] = None,
     ) -> Callable[[dict[str, Any]], Any]:
         """
         Create a getter function for a field.
 
         Parameters
         ----------
-        context_key : str
+        context_key : str, optional
             Context key string with optional attribute/method access
         default : Any, optional
             Default value if field is not found
@@ -239,6 +261,9 @@ class RegistryBuilder:
         """
 
         def getter(context: dict[str, Any]) -> Any:
+            if context_key is None:
+                return default
+
             operations = MethodCallParser.parse(context_key)
 
             try:
@@ -308,6 +333,174 @@ class RegistryBuilder:
             return bool(value)
         else:
             return value
+
+    @staticmethod
+    def _get_numeric_value(
+        context: dict[str, Any], key: str, default: Any
+    ) -> Optional[float]:
+        """Get numeric value from context with validation."""
+        value = context.get(key)
+        if value is None or not isinstance(value, (int, float)):
+            return None
+        return float(value)
+
+    @staticmethod
+    def _apply_linear_transform(
+        value: float,
+        multiply: Optional[float],
+        divide: Optional[float],
+        add: Optional[float],
+        default: Any,
+    ) -> Any:
+        """Apply linear transformation (multiply/divide/add) to a value."""
+        m = multiply if multiply is not None else 1
+        d = divide if divide is not None else 1
+        a = add if add is not None else 0
+        if d == 0:
+            return default
+        return (value * m / d) + a
+
+    @staticmethod
+    def _handle_linear_transform(
+        context: dict[str, Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle linear_transform operation."""
+        sources = params.get("sources")
+        context_key = params.get("context_key")
+        default = params.get("default")
+        multiply = params.get("multiply")
+        divide = params.get("divide")
+        add = params.get("add")
+
+        source_key = sources[0] if sources else context_key
+        if source_key is None or not isinstance(source_key, str):
+            return default
+        value = RegistryBuilder._get_numeric_value(context, source_key, default)
+        if value is None:
+            return default
+        return RegistryBuilder._apply_linear_transform(
+            value, multiply, divide, add, default
+        )
+
+    @staticmethod
+    def _handle_sources_operation(
+        context: dict[str, Any],
+        operation: str,
+        op_func: Callable[..., Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle operations with multiple source values."""
+        sources = params.get("sources", [])
+        multiply = params.get("multiply")
+        default = params.get("default")
+
+        values = []
+        for source in sources:
+            val = RegistryBuilder._get_numeric_value(context, source, default)
+            if val is None:
+                return default
+            values.append(val)
+
+        if operation == "round" and len(values) == 1:
+            decimals = int(multiply) if multiply is not None else 0
+            return op_func(values[0], decimals)
+        result = op_func(*values)
+        return result if result is not None else default
+
+    @staticmethod
+    def _handle_context_key_operation(
+        context: dict[str, Any],
+        operation: str,
+        op_func: Callable[..., Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle operations with single context key."""
+        context_key = params.get("context_key")
+        multiply = params.get("multiply")
+        default = params.get("default")
+
+        if context_key is None:
+            return default
+
+        value = RegistryBuilder._get_numeric_value(context, context_key, default)
+        if value is None:
+            return default
+
+        if operation == "round":
+            decimals = int(multiply) if multiply is not None else 0
+            return op_func(value, decimals)
+        return op_func(value)
+
+    @staticmethod
+    def _create_operation_getter(
+        mapping: FieldMapping,
+    ) -> Callable[[dict[str, Any]], Any]:
+        """
+        Create a getter function for computed fields with operations.
+
+        Parameters
+        ----------
+        mapping : FieldMapping
+            Field mapping configuration containing operation and parameters
+
+        Returns
+        -------
+        Callable[[dict[str, Any]], Any]
+            Getter function that computes the field value
+
+        Examples
+        --------
+        >>> from viewtext.loader import FieldMapping
+        >>> mapping = FieldMapping(
+        ...     operation="celsius_to_fahrenheit",
+        ...     context_key="temp_c"
+        ... )
+        >>> getter = RegistryBuilder._create_operation_getter(mapping)
+        >>> getter({"temp_c": 0})
+        32.0
+        """
+        operation = mapping.operation
+        if (
+            operation not in RegistryBuilder.OPERATIONS
+            and operation != "linear_transform"
+        ):
+            raise ValueError(f"Unknown operation: {operation}")
+
+        params = {
+            "sources": mapping.sources,
+            "context_key": mapping.context_key,
+            "default": mapping.default,
+            "multiply": mapping.multiply,
+            "add": mapping.add,
+            "divide": mapping.divide,
+        }
+
+        def getter(context: dict[str, Any]) -> Any:
+            try:
+                if operation == "linear_transform":
+                    return RegistryBuilder._handle_linear_transform(context, params)
+
+                op_func = RegistryBuilder.OPERATIONS.get(operation)
+                if op_func is None:
+                    return params["default"]
+
+                op_func_typed = cast(Callable[..., Any], op_func)
+
+                if params["sources"]:
+                    return RegistryBuilder._handle_sources_operation(
+                        context, operation, op_func_typed, params
+                    )
+                elif params["context_key"]:
+                    return RegistryBuilder._handle_context_key_operation(
+                        context, operation, op_func_typed, params
+                    )
+                return params["default"]
+
+            except (TypeError, ValueError, ZeroDivisionError, KeyError):
+                return params["default"]
+
+        return getter
 
 
 def get_registry_from_config(

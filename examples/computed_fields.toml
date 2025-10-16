@@ -1,0 +1,184 @@
+[fields]
+
+[fields.temp_f]
+operation = "celsius_to_fahrenheit"
+sources = ["temp_c"]
+default = 0.0
+
+[fields.temp_c_from_f]
+operation = "fahrenheit_to_celsius"
+sources = ["temp_f_raw"]
+default = 0.0
+
+[fields.total_price]
+operation = "multiply"
+sources = ["price", "quantity"]
+default = 0.0
+
+[fields.discount_price]
+operation = "linear_transform"
+sources = ["price"]
+multiply = 0.8
+default = 0.0
+
+[fields.average_score]
+operation = "average"
+sources = ["score1", "score2", "score3"]
+default = 0.0
+
+[fields.min_temp]
+operation = "min"
+sources = ["temp_morning", "temp_noon", "temp_evening"]
+default = 0.0
+
+[fields.max_temp]
+operation = "max"
+sources = ["temp_morning", "temp_noon", "temp_evening"]
+default = 0.0
+
+[fields.bmi]
+operation = "divide"
+sources = ["weight_kg", "height_m_sq"]
+default = 0.0
+
+[fields.speed_mph]
+operation = "linear_transform"
+sources = ["speed_kmh"]
+multiply = 0.621371
+default = 0.0
+
+[fields.abs_change]
+operation = "abs"
+sources = ["price_change"]
+default = 0.0
+
+[fields.rounded_price]
+operation = "round"
+sources = ["price"]
+default = 0.0
+
+[formatters.temperature]
+type = "number"
+decimals = 1
+suffix = "°F"
+
+[formatters.price_fmt]
+type = "price"
+symbol = "$"
+decimals = 2
+
+[formatters.score_fmt]
+type = "number"
+decimals = 1
+
+[formatters.speed_fmt]
+type = "number"
+decimals = 1
+suffix = " mph"
+
+[layouts.temperature]
+name = "Temperature Conversion"
+
+[[layouts.temperature.lines]]
+index = 0
+field = "temp_c"
+formatter = "number"
+formatter_params = { decimals = 1, suffix = "°C" }
+
+[[layouts.temperature.lines]]
+index = 10
+field = "temp_f"
+formatter = "temperature"
+
+[layouts.shopping]
+name = "Shopping Cart"
+
+[[layouts.shopping.lines]]
+index = 0
+field = "product"
+formatter = "text"
+
+[[layouts.shopping.lines]]
+index = 15
+field = "quantity"
+formatter = "number"
+formatter_params = { suffix = "x" }
+
+[[layouts.shopping.lines]]
+index = 20
+field = "price"
+formatter = "price_fmt"
+
+[[layouts.shopping.lines]]
+index = 30
+field = "total_price"
+formatter = "price_fmt"
+
+[[layouts.shopping.lines]]
+index = 45
+field = "discount_price"
+formatter = "price_fmt"
+formatter_params = { prefix = "SALE: " }
+
+[layouts.scores]
+name = "Student Scores"
+
+[[layouts.scores.lines]]
+index = 0
+field = "student"
+formatter = "text"
+
+[[layouts.scores.lines]]
+index = 15
+field = "score1"
+formatter = "score_fmt"
+
+[[layouts.scores.lines]]
+index = 25
+field = "score2"
+formatter = "score_fmt"
+
+[[layouts.scores.lines]]
+index = 35
+field = "score3"
+formatter = "score_fmt"
+
+[[layouts.scores.lines]]
+index = 45
+field = "average_score"
+formatter = "score_fmt"
+formatter_params = { prefix = "Avg: " }
+
+[layouts.weather]
+name = "Weather Report"
+
+[[layouts.weather.lines]]
+index = 0
+field = "location"
+formatter = "text"
+
+[[layouts.weather.lines]]
+index = 15
+field = "min_temp"
+formatter = "temperature"
+formatter_params = { prefix = "Min: " }
+
+[[layouts.weather.lines]]
+index = 30
+field = "max_temp"
+formatter = "temperature"
+formatter_params = { prefix = "Max: " }
+
+[layouts.speed]
+name = "Speed Conversion"
+
+[[layouts.speed.lines]]
+index = 0
+field = "speed_kmh"
+formatter = "number"
+formatter_params = { decimals = 1, suffix = " km/h" }
+
+[[layouts.speed.lines]]
+index = 20
+field = "speed_mph"
+formatter = "speed_fmt"

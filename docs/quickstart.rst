@@ -107,6 +107,76 @@ Output:
     72.5°F
     65%
 
+Computed Fields
+---------------
+
+You can perform calculations on your data directly in TOML configuration:
+
+.. code-block:: toml
+
+    [fields.temperature_f]
+    operation = "celsius_to_fahrenheit"
+    sources = ["temp_c"]
+    default = 0.0
+
+    [fields.total_price]
+    operation = "multiply"
+    sources = ["price", "quantity"]
+    default = 0.0
+
+    [fields.average_score]
+    operation = "average"
+    sources = ["score1", "score2", "score3"]
+
+Available Operations
+~~~~~~~~~~~~~~~~~~~~
+
+- **Temperature**: ``celsius_to_fahrenheit``, ``fahrenheit_to_celsius``
+- **Arithmetic**: ``multiply``, ``divide``, ``add``, ``subtract``
+- **Aggregates**: ``average``, ``min``, ``max``
+- **Transforms**: ``abs``, ``round``, ``linear_transform``
+
+Example with Layout
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: toml
+
+    # fields.toml
+    [fields.temp_f]
+    operation = "celsius_to_fahrenheit"
+    sources = ["temp_c"]
+    default = 32.0
+
+    # layouts.toml
+    [layouts.weather]
+    name = "Weather"
+
+    [[layouts.weather.lines]]
+    field = "temp_f"
+    index = 0
+    formatter = "number"
+
+    [layouts.weather.lines.formatter_params]
+    decimals = 1
+    suffix = "°F"
+
+.. code-block:: python
+
+    from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
+
+    loader = LayoutLoader("layouts.toml", fields_path="fields.toml")
+    layout = loader.get_layout("weather")
+
+    registry = RegistryBuilder.build_from_config(loader=loader)
+    engine = LayoutEngine(field_registry=registry)
+
+    lines = engine.build_line_str(layout, {"temp_c": 25})
+    print(lines[0])
+
+Output: ``77.0°F``
+
+See ``examples/computed_fields.toml`` and ``examples/README_computed_fields.md`` for more examples.
+
 Using Built-in Formatters
 --------------------------
 

@@ -1,5 +1,6 @@
 import unittest
 
+from viewtext.loader import FieldMapping
 from viewtext.registry_builder import MethodCallParser, RegistryBuilder
 
 
@@ -169,6 +170,175 @@ class TestRegistryBuilder(unittest.TestCase):
         getter = RegistryBuilder._create_getter("obj.name", default="default")
         context = {}
         self.assertEqual(getter(context), "default")
+
+
+class TestComputedFields(unittest.TestCase):
+    def test_celsius_to_fahrenheit(self):
+        mapping = FieldMapping(
+            operation="celsius_to_fahrenheit", sources=["temp_c"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"temp_c": 0}
+        self.assertEqual(getter(context), 32.0)
+
+        context = {"temp_c": 100}
+        self.assertEqual(getter(context), 212.0)
+
+        context = {"temp_c": -40}
+        self.assertEqual(getter(context), -40.0)
+
+    def test_fahrenheit_to_celsius(self):
+        mapping = FieldMapping(
+            operation="fahrenheit_to_celsius", sources=["temp_f"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"temp_f": 32}
+        self.assertAlmostEqual(getter(context), 0.0, places=5)
+
+        context = {"temp_f": 212}
+        self.assertAlmostEqual(getter(context), 100.0, places=5)
+
+        context = {"temp_f": -40}
+        self.assertEqual(getter(context), -40.0)
+
+    def test_multiply_operation(self):
+        mapping = FieldMapping(
+            operation="multiply", sources=["price", "quantity"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"price": 10.5, "quantity": 3}
+        self.assertEqual(getter(context), 31.5)
+
+    def test_divide_operation(self):
+        mapping = FieldMapping(
+            operation="divide", sources=["total", "count"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"total": 100, "count": 4}
+        self.assertEqual(getter(context), 25.0)
+
+    def test_divide_by_zero_returns_default(self):
+        mapping = FieldMapping(
+            operation="divide", sources=["total", "count"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"total": 100, "count": 0}
+        self.assertEqual(getter(context), 0.0)
+
+    def test_add_operation(self):
+        mapping = FieldMapping(operation="add", sources=["a", "b"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"a": 10, "b": 5}
+        self.assertEqual(getter(context), 15)
+
+    def test_subtract_operation(self):
+        mapping = FieldMapping(operation="subtract", sources=["a", "b"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"a": 10, "b": 3}
+        self.assertEqual(getter(context), 7)
+
+    def test_average_operation(self):
+        mapping = FieldMapping(
+            operation="average", sources=["a", "b", "c"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"a": 10, "b": 20, "c": 30}
+        self.assertEqual(getter(context), 20.0)
+
+    def test_min_operation(self):
+        mapping = FieldMapping(operation="min", sources=["a", "b", "c"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"a": 10, "b": 5, "c": 15}
+        self.assertEqual(getter(context), 5)
+
+    def test_max_operation(self):
+        mapping = FieldMapping(operation="max", sources=["a", "b", "c"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"a": 10, "b": 25, "c": 15}
+        self.assertEqual(getter(context), 25)
+
+    def test_abs_operation(self):
+        mapping = FieldMapping(operation="abs", sources=["value"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": -42}
+        self.assertEqual(getter(context), 42)
+
+        context = {"value": 42}
+        self.assertEqual(getter(context), 42)
+
+    def test_round_operation(self):
+        mapping = FieldMapping(operation="round", sources=["value"], default=0.0)
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 3.14159}
+        self.assertEqual(getter(context), 3)
+
+        context = {"value": 3.7}
+        self.assertEqual(getter(context), 4)
+
+    def test_linear_transform_operation(self):
+        mapping = FieldMapping(
+            operation="linear_transform",
+            sources=["value"],
+            multiply=2.5,
+            add=10,
+            default=0.0,
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 4}
+        self.assertEqual(getter(context), 20.0)
+
+    def test_linear_transform_multiply_only(self):
+        mapping = FieldMapping(
+            operation="linear_transform", sources=["value"], multiply=3, default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 5}
+        self.assertEqual(getter(context), 15.0)
+
+    def test_linear_transform_add_only(self):
+        mapping = FieldMapping(
+            operation="linear_transform", sources=["value"], add=100, default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 25}
+        self.assertEqual(getter(context), 125.0)
+
+    def test_linear_transform_divide_only(self):
+        mapping = FieldMapping(
+            operation="linear_transform", sources=["value"], divide=4, default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 20}
+        self.assertEqual(getter(context), 5.0)
+
+    def test_linear_transform_divide_by_zero_returns_default(self):
+        mapping = FieldMapping(
+            operation="linear_transform", sources=["value"], divide=0, default=999.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 20}
+        self.assertEqual(getter(context), 999.0)
+
+    def test_missing_source_returns_default(self):
+        mapping = FieldMapping(
+            operation="multiply", sources=["price", "quantity"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"price": 10.5}
+        self.assertEqual(getter(context), 0.0)
+
+    def test_non_numeric_source_returns_default(self):
+        mapping = FieldMapping(
+            operation="multiply", sources=["price", "quantity"], default=0.0
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"price": "not_a_number", "quantity": 3}
+        self.assertEqual(getter(context), 0.0)
+
+    def test_invalid_operation_raises_error(self):
+        mapping = FieldMapping(operation="invalid_op", sources=["value"], default=0.0)
+        with self.assertRaises(ValueError):
+            RegistryBuilder._create_operation_getter(mapping)
 
 
 if __name__ == "__main__":

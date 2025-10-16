@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/holgern/viewtext/graph/badge.svg?token=AtcFpVooWk)](https://codecov.io/gh/holgern/viewtext)
+
 # ViewText
 
 **Declarative text grid layouts from structured data**
@@ -9,6 +11,8 @@ through a flexible registry and layout system.
 ## Features
 
 - **Field Registry**: Register data getters that extract values from context objects
+- **Computed Fields**: Perform calculations on data (unit conversions, arithmetic,
+  aggregates)
 - **Formatter System**: Built-in formatters for text, numbers, prices, dates, and
   relative times
 - **Layout Engine**: TOML-based layout definitions that map fields to grid positions
@@ -38,6 +42,32 @@ layout = loader.get_layout("weather")
 engine = LayoutEngine()
 lines = engine.build_line_str(layout, {"temp": 72})
 ```
+
+### Computed Fields
+
+Perform calculations on your data directly in TOML configuration:
+
+```toml
+[fields.temperature_f]
+operation = "celsius_to_fahrenheit"
+sources = ["temp_c"]
+default = 0.0
+
+[fields.total_price]
+operation = "multiply"
+sources = ["price", "quantity"]
+default = 0.0
+
+[fields.average_score]
+operation = "average"
+sources = ["score1", "score2", "score3"]
+```
+
+Available operations: `celsius_to_fahrenheit`, `fahrenheit_to_celsius`, `multiply`,
+`divide`, `add`, `subtract`, `average`, `min`, `max`, `abs`, `round`, `linear_transform`
+
+See `examples/computed_fields.toml` and `examples/README_computed_fields.md` for more
+details.
 
 ## Installation
 

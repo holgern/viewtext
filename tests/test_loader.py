@@ -520,3 +520,128 @@ decimals = 2
         finally:
             os.unlink(layouts_path)
             os.unlink(formatters_path)
+
+    def test_load_computed_field_celsius_to_fahrenheit(self):
+        config_content = """
+[layouts.test]
+name = "Test"
+
+[[layouts.test.lines]]
+field = "field1"
+index = 0
+
+[fields.temp_f]
+operation = "celsius_to_fahrenheit"
+sources = ["temp_c"]
+default = 0.0
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(config_content)
+            tmp_path = tmp.name
+
+        try:
+            loader = LayoutLoader(config_path=tmp_path)
+            mappings = loader.get_field_mappings()
+
+            assert "temp_f" in mappings
+            assert mappings["temp_f"].operation == "celsius_to_fahrenheit"
+            assert mappings["temp_f"].sources == ["temp_c"]
+            assert mappings["temp_f"].default == 0.0
+        finally:
+            os.unlink(tmp_path)
+
+    def test_load_computed_field_multiply(self):
+        config_content = """
+[layouts.test]
+name = "Test"
+
+[[layouts.test.lines]]
+field = "field1"
+index = 0
+
+[fields.total_price]
+operation = "multiply"
+sources = ["price", "quantity"]
+default = 0.0
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(config_content)
+            tmp_path = tmp.name
+
+        try:
+            loader = LayoutLoader(config_path=tmp_path)
+            mappings = loader.get_field_mappings()
+
+            assert "total_price" in mappings
+            assert mappings["total_price"].operation == "multiply"
+            assert mappings["total_price"].sources == ["price", "quantity"]
+        finally:
+            os.unlink(tmp_path)
+
+    def test_load_computed_field_average(self):
+        config_content = """
+[layouts.test]
+name = "Test"
+
+[[layouts.test.lines]]
+field = "field1"
+index = 0
+
+[fields.avg_score]
+operation = "average"
+sources = ["score1", "score2", "score3"]
+default = 0.0
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(config_content)
+            tmp_path = tmp.name
+
+        try:
+            loader = LayoutLoader(config_path=tmp_path)
+            mappings = loader.get_field_mappings()
+
+            assert "avg_score" in mappings
+            assert mappings["avg_score"].operation == "average"
+            assert mappings["avg_score"].sources == ["score1", "score2", "score3"]
+        finally:
+            os.unlink(tmp_path)
+
+    def test_load_computed_field_linear_transform(self):
+        config_content = """
+[layouts.test]
+name = "Test"
+
+[[layouts.test.lines]]
+field = "field1"
+index = 0
+
+[fields.scaled_value]
+operation = "linear_transform"
+sources = ["value"]
+multiply = 2.5
+add = 10
+default = 0.0
+"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(config_content)
+            tmp_path = tmp.name
+
+        try:
+            loader = LayoutLoader(config_path=tmp_path)
+            mappings = loader.get_field_mappings()
+
+            assert "scaled_value" in mappings
+            assert mappings["scaled_value"].operation == "linear_transform"
+            assert mappings["scaled_value"].sources == ["value"]
+            assert mappings["scaled_value"].multiply == 2.5
+            assert mappings["scaled_value"].add == 10
+        finally:
+            os.unlink(tmp_path)

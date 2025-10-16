@@ -100,17 +100,32 @@ class FieldMapping(BaseModel):
 
     Attributes
     ----------
-    context_key : str
+    context_key : str, optional
         Key to look up in the context dictionary
     default : Any, optional
         Default value if the field is not found
     transform : str, optional
         Transform to apply (upper, lower, title, strip, int, float, str, bool)
+    operation : str, optional
+        Named operation to apply (celsius_to_fahrenheit, multiply, add, etc.)
+    sources : list[str], optional
+        List of field names to use as sources for operations
+    multiply : float, optional
+        Multiplier for linear transform operations
+    add : float, optional
+        Addend for linear transform operations
+    divide : float, optional
+        Divisor for division operations
     """
 
-    context_key: str
+    context_key: Optional[str] = None
     default: Optional[Any] = None
     transform: Optional[str] = None
+    operation: Optional[str] = None
+    sources: Optional[list[str]] = None
+    multiply: Optional[float] = None
+    add: Optional[float] = None
+    divide: Optional[float] = None
 
 
 class LayoutsConfig(BaseModel):

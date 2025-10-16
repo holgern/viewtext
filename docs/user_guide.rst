@@ -288,6 +288,183 @@ The engine resolves fields in this order:
 
 This allows mixing registered fields with direct context values.
 
+Computed Fields
+---------------
+
+Computed fields allow you to perform calculations on source data without writing Python code.
+All operations are defined in TOML configuration files and are compiled at load time.
+
+Available Operations
+~~~~~~~~~~~~~~~~~~~~
+
+**Temperature Conversions**
+
+- ``celsius_to_fahrenheit`` - Convert Celsius to Fahrenheit
+- ``fahrenheit_to_celsius`` - Convert Fahrenheit to Celsius
+
+**Arithmetic Operations**
+
+- ``multiply`` - Multiply two or more values
+- ``divide`` - Divide two values (safe with divide-by-zero handling)
+- ``add`` - Sum multiple values
+- ``subtract`` - Subtract two values
+
+**Aggregate Operations**
+
+- ``average`` - Calculate average of multiple values
+- ``min`` - Find minimum of multiple values
+- ``max`` - Find maximum of multiple values
+
+**Mathematical Operations**
+
+- ``abs`` - Absolute value
+- ``round`` - Round to nearest integer
+- ``linear_transform`` - Apply formula: ``(value * multiply / divide) + add``
+
+Defining Computed Fields
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Computed fields are defined in the ``[fields]`` section of your TOML configuration:
+
+.. code-block:: toml
+
+    # Temperature conversion
+    [fields.temp_f]
+    operation = "celsius_to_fahrenheit"
+    sources = ["temp_c"]
+    default = 0.0
+
+    # Price calculation
+    [fields.total_price]
+    operation = "multiply"
+    sources = ["price", "quantity"]
+    default = 0.0
+
+    # Discount calculation
+    [fields.discount_price]
+    operation = "linear_transform"
+    sources = ["price"]
+    multiply = 0.8
+    default = 0.0
+
+    # Average score
+    [fields.average_score]
+    operation = "average"
+    sources = ["score1", "score2", "score3"]
+    default = 0.0
+
+Operation Parameters
+~~~~~~~~~~~~~~~~~~~~
+
+Each computed field requires:
+
+- ``operation`` - Name of the operation to perform
+- ``sources`` - List of field names from context to use as inputs
+- ``default`` - Value to return if operation fails or sources are missing
+
+Some operations support additional parameters:
+
+**Linear Transform Parameters**
+
+- ``multiply`` - Multiplier for the value (default: 1)
+- ``divide`` - Divisor for the value (default: 1)
+- ``add`` - Addend for the value (default: 0)
+
+Formula: ``(value * multiply / divide) + add``
+
+.. code-block:: toml
+
+    # Convert km/h to mph
+    [fields.speed_mph]
+    operation = "linear_transform"
+    sources = ["speed_kmh"]
+    multiply = 0.621371
+    default = 0.0
+
+    # Apply 20% discount and add $5 handling fee
+    [fields.discounted_price]
+    operation = "linear_transform"
+    sources = ["price"]
+    multiply = 0.8
+    add = 5.0
+    default = 0.0
+
+Error Handling
+~~~~~~~~~~~~~~
+
+Computed fields include automatic error handling:
+
+- Missing source values return the default
+- Non-numeric values return the default
+- Division by zero returns the default
+- Invalid operations raise ``ValueError`` at configuration load time
+
+Example Use Cases
+~~~~~~~~~~~~~~~~~
+
+**Unit Conversions**
+
+.. code-block:: toml
+
+    [fields.temp_f]
+    operation = "celsius_to_fahrenheit"
+    sources = ["temp_c"]
+    default = 0.0
+
+    [fields.meters_to_feet]
+    operation = "linear_transform"
+    sources = ["meters"]
+    multiply = 3.28084
+    default = 0.0
+
+**E-commerce Calculations**
+
+.. code-block:: toml
+
+    # Line item total
+    [fields.line_total]
+    operation = "multiply"
+    sources = ["price", "quantity"]
+    default = 0.0
+
+    # Discounted price
+    [fields.sale_price]
+    operation = "linear_transform"
+    sources = ["price"]
+    multiply = 0.85
+    default = 0.0
+
+**Data Aggregation**
+
+.. code-block:: toml
+
+    # Daily temperature range
+    [fields.temp_min]
+    operation = "min"
+    sources = ["temp_morning", "temp_noon", "temp_evening"]
+    default = 0.0
+
+    [fields.temp_max]
+    operation = "max"
+    sources = ["temp_morning", "temp_noon", "temp_evening"]
+    default = 0.0
+
+    [fields.temp_avg]
+    operation = "average"
+    sources = ["temp_morning", "temp_noon", "temp_evening"]
+    default = 0.0
+
+Benefits
+~~~~~~~~
+
+1. **Declarative** - Define calculations in configuration, not code
+2. **Reusable** - Same operations work across different layouts
+3. **Safe** - Built-in error handling prevents crashes
+4. **Maintainable** - Easy to understand and modify
+5. **Fast** - Compiled at configuration load time
+
+See ``examples/computed_fields.toml`` and ``examples/demo_computed_fields.py`` for complete examples.
+
 Layout Loader
 -------------
 
