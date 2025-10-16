@@ -125,6 +125,12 @@ class FieldMapping(BaseModel):
         End index for substring operation
     separator : str, optional
         Separator string for concat and split operations
+    prefix : str, optional
+        Prefix string for concat operation
+    suffix : str, optional
+        Suffix string for concat operation
+    skip_empty : bool, optional
+        Skip None/missing sources in concat operation instead of returning default
     thousands_sep : str, optional
         Thousands separator for format_number operation
     decimal_sep : str, optional
@@ -144,6 +150,9 @@ class FieldMapping(BaseModel):
     start: Optional[int] = None
     end: Optional[int] = None
     separator: Optional[str] = None
+    prefix: Optional[str] = None
+    suffix: Optional[str] = None
+    skip_empty: Optional[bool] = None
     index: Optional[int] = None
     condition: Optional[dict[str, Any]] = None
     if_true: Optional[str] = None

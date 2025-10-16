@@ -404,6 +404,97 @@ class TestComputedFields(unittest.TestCase):
         context = {"first": "John"}
         self.assertEqual(getter(context), "N/A")
 
+    def test_concat_with_prefix(self):
+        mapping = FieldMapping(
+            operation="concat", sources=["price"], prefix="$", default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"price": "99.99"}
+        self.assertEqual(getter(context), "$99.99")
+
+    def test_concat_with_suffix(self):
+        mapping = FieldMapping(
+            operation="concat", sources=["temp"], suffix="°C", default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"temp": "25"}
+        self.assertEqual(getter(context), "25°C")
+
+    def test_concat_with_prefix_and_suffix(self):
+        mapping = FieldMapping(
+            operation="concat",
+            sources=["value"],
+            prefix="[",
+            suffix="]",
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": "test"}
+        self.assertEqual(getter(context), "[test]")
+
+    def test_concat_with_separator_prefix_suffix(self):
+        mapping = FieldMapping(
+            operation="concat",
+            sources=["first", "last"],
+            separator=" ",
+            prefix="Name: ",
+            suffix="!",
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"first": "John", "last": "Doe"}
+        self.assertEqual(getter(context), "Name: John Doe!")
+
+    def test_concat_with_skip_empty(self):
+        mapping = FieldMapping(
+            operation="concat",
+            sources=["first", "middle", "last"],
+            separator=" ",
+            skip_empty=True,
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"first": "John", "last": "Doe"}
+        self.assertEqual(getter(context), "John Doe")
+
+    def test_concat_with_skip_empty_all_missing(self):
+        mapping = FieldMapping(
+            operation="concat",
+            sources=["first", "last"],
+            separator=" ",
+            skip_empty=True,
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {}
+        self.assertEqual(getter(context), "")
+
+    def test_concat_without_skip_empty_returns_default(self):
+        mapping = FieldMapping(
+            operation="concat",
+            sources=["first", "middle", "last"],
+            separator=" ",
+            skip_empty=False,
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"first": "John", "last": "Doe"}
+        self.assertEqual(getter(context), "N/A")
+
+    def test_concat_skip_empty_with_prefix_suffix(self):
+        mapping = FieldMapping(
+            operation="concat",
+            sources=["city", "state", "country"],
+            separator=", ",
+            prefix="Location: ",
+            suffix=".",
+            skip_empty=True,
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"city": "San Francisco", "country": "USA"}
+        self.assertEqual(getter(context), "Location: San Francisco, USA.")
+
     def test_split_operation(self):
         mapping = FieldMapping(
             operation="split", sources=["text"], separator=" ", default=[]

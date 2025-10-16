@@ -451,19 +451,26 @@ class RegistryBuilder:
     ) -> Any:
         """Handle concat operation for joining strings."""
         sources = params.get("sources", [])
-        separator = params.get("separator")
-        if separator is None:
-            separator = ""
-        default = params.get("default", "")
+        separator = params.get("separator") or ""
+        prefix = params.get("prefix") or ""
+        suffix = params.get("suffix") or ""
+        skip_empty = params.get("skip_empty") or False
+        default = params.get("default") or ""
 
         values = []
         for source in sources:
             val = RegistryBuilder._get_string_value(context, source, None)
             if val is None:
+                if skip_empty:
+                    continue
                 return default
             values.append(val)
 
-        return separator.join(values)
+        if not values and not skip_empty:
+            return default
+
+        result = separator.join(values)
+        return f"{prefix}{result}{suffix}"
 
     @staticmethod
     def _handle_split_operation(
@@ -667,6 +674,9 @@ class RegistryBuilder:
             "thousands_sep": mapping.thousands_sep,
             "decimal_sep": mapping.decimal_sep,
             "decimals_param": mapping.decimals_param,
+            "prefix": mapping.prefix,
+            "suffix": mapping.suffix,
+            "skip_empty": mapping.skip_empty,
         }
 
         def getter(context: dict[str, Any]) -> Any:

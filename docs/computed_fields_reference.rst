@@ -378,6 +378,9 @@ Join multiple strings with a separator.
 
 - ``sources`` - List of field names containing strings to join
 - ``separator`` - String to insert between values (optional, default: empty string)
+- ``prefix`` - String to prepend to result (optional, default: empty string)
+- ``suffix`` - String to append to result (optional, default: empty string)
+- ``skip_empty`` - Skip None/missing sources instead of returning default (optional, default: false)
 - ``default`` - Value to return on error
 
 **Examples:**
@@ -403,6 +406,38 @@ Join multiple strings with a separator.
     operation = "concat"
     sources = ["prefix", "number", "suffix"]
     default = ""
+
+    # Add prefix (e.g., currency symbol)
+    [fields.display_price]
+    operation = "concat"
+    sources = ["price"]
+    prefix = "$"
+    default = "Unknown"
+
+    # Add suffix (e.g., unit)
+    [fields.display_temp]
+    operation = "concat"
+    sources = ["temp"]
+    suffix = "°C"
+    default = "Unknown"
+
+    # Skip missing fields
+    [fields.display_name]
+    operation = "concat"
+    sources = ["first_name", "middle_name", "last_name"]
+    separator = " "
+    skip_empty = true
+    default = "Unknown"
+
+    # Complete example with all parameters
+    [fields.location]
+    operation = "concat"
+    sources = ["city", "state", "country"]
+    separator = ", "
+    prefix = "Location: "
+    suffix = "."
+    skip_empty = true
+    default = "Unknown"
 
 split
 ~~~~~

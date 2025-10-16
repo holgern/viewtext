@@ -96,7 +96,7 @@ sources = ["score1", "score2", "score3"]
 
 **String Operations:**
 
-- `concat` - Concatenate strings with separator
+- `concat` - Concatenate strings with separator, prefix, suffix, and skip_empty options
 - `split` - Split string by separator and get index
 - `substring` - Extract substring with start/end indices
 
