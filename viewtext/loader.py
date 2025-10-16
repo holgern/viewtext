@@ -1,7 +1,7 @@
 import os
+import sys
 from typing import Any
 
-import tomli
 from pydantic import BaseModel, Field
 
 
@@ -53,12 +53,38 @@ class LayoutLoader:
         base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         return os.path.join(base_dir, "layouts.toml")
 
+    def _import_toml_libs(self) -> tuple[Any, Any]:
+        """Import TOML libraries with fallback handling."""
+        tomllib = None
+        tomli_w = None
+
+        try:
+            if sys.version_info >= (3, 11):
+                tomllib = __import__("tomllib")
+            else:
+                tomllib = __import__("tomli")
+        except ImportError:
+            pass
+
+        try:
+            tomli_w = __import__("tomli_w")
+        except ImportError:
+            pass
+
+        return tomllib, tomli_w
+
     def load(self) -> LayoutsConfig:
         if not os.path.exists(self.config_path):
             raise FileNotFoundError(f"Layout config not found: {self.config_path}")
 
+        tomllib, _ = self._import_toml_libs()
+        if tomllib is None:
+            raise ImportError(
+                "TOML support not available. Install with: pip install tomli tomli-w"
+            )
+
         with open(self.config_path, "rb") as f:
-            data = tomli.load(f)
+            data = tomllib.load(f)
 
         self._layouts_config = LayoutsConfig(**data)
         return self._layouts_config
