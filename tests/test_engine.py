@@ -625,3 +625,79 @@ formatter = "text"
         finally:
             os.unlink(fields_path)
             os.unlink(layouts_path)
+
+    def test_format_number_operation_integration(self):
+        fields_content = """
+[fields.formatted_comma]
+operation = "format_number"
+sources = ["value1"]
+thousands_sep = ","
+decimals_param = 0
+default = "N/A"
+
+[fields.formatted_european]
+operation = "format_number"
+sources = ["value2"]
+thousands_sep = "."
+decimal_sep = ","
+decimals_param = 2
+default = "N/A"
+
+[fields.formatted_space]
+operation = "format_number"
+sources = ["value3"]
+thousands_sep = " "
+decimals_param = 0
+default = "N/A"
+"""
+        layouts_content = """
+[layouts.numbers]
+name = "Number Display"
+
+[[layouts.numbers.lines]]
+field = "formatted_comma"
+index = 0
+formatter = "text"
+
+[[layouts.numbers.lines]]
+field = "formatted_european"
+index = 1
+formatter = "text"
+
+[[layouts.numbers.lines]]
+field = "formatted_space"
+index = 2
+formatter = "text"
+"""
+        tmp_fields = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_fields.write(fields_content)
+        tmp_fields.close()
+        fields_path = tmp_fields.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            layout = loader.get_layout("numbers")
+
+            registry = RegistryBuilder.build_from_config(loader=loader)
+
+            engine = LayoutEngine(field_registry=registry)
+
+            context = {"value1": 100000, "value2": 1234567.89, "value3": 9876543}
+            result = engine.build_line_str(layout, context)
+            assert result == ["100,000", "1.234.567,89", "9 876 543"]
+
+            context_missing = {"value1": 50000}
+            result_missing = engine.build_line_str(layout, context_missing)
+            assert result_missing == ["50,000", "N/A", "N/A"]
+        finally:
+            os.unlink(fields_path)
+            os.unlink(layouts_path)

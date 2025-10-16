@@ -68,6 +68,8 @@ class FormatterConfigParams(BaseModel):
         Number of decimal places
     thousands_sep : str, optional
         Thousands separator character
+    decimal_sep : str, optional
+        Decimal separator character
     prefix : str, optional
         String to prepend to the value
     suffix : str, optional
@@ -86,6 +88,7 @@ class FormatterConfigParams(BaseModel):
     symbol: Optional[str] = None
     decimals: Optional[int] = None
     thousands_sep: Optional[str] = None
+    decimal_sep: Optional[str] = None
     prefix: Optional[str] = None
     suffix: Optional[str] = None
     format: Optional[str] = None
@@ -122,6 +125,12 @@ class FieldMapping(BaseModel):
         End index for substring operation
     separator : str, optional
         Separator string for concat and split operations
+    thousands_sep : str, optional
+        Thousands separator for format_number operation
+    decimal_sep : str, optional
+        Decimal separator for format_number operation
+    decimals_param : int, optional
+        Decimal places for format_number operation
     """
 
     context_key: Optional[str] = None
@@ -139,6 +148,9 @@ class FieldMapping(BaseModel):
     condition: Optional[dict[str, Any]] = None
     if_true: Optional[str] = None
     if_false: Optional[str] = None
+    decimal_sep: Optional[str] = None
+    thousands_sep: Optional[str] = None
+    decimals_param: Optional[int] = None
 
 
 class LayoutsConfig(BaseModel):

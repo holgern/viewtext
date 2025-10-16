@@ -105,6 +105,27 @@ class TestPriceFormatter:
         assert formatter(1234.56, thousands_sep=",") == "1,234.56"
         assert formatter(1234567.89, thousands_sep=",") == "1,234,567.89"
 
+    def test_format_price_with_custom_thousands_separator(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("price")
+
+        assert formatter(1234.56, thousands_sep=".") == "1.234.56"
+        assert formatter(1234567.89, thousands_sep=".") == "1.234.567.89"
+        assert formatter(1234567.89, thousands_sep=" ") == "1 234 567.89"
+
+    def test_format_price_with_european_format(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("price")
+
+        assert (
+            formatter(1234567.89, thousands_sep=".", decimal_sep=",") == "1.234.567,89"
+        )
+        assert formatter(1234.56, thousands_sep=".", decimal_sep=",") == "1.234,56"
+        assert formatter(100.5, thousands_sep=".", decimal_sep=",") == "100,50"
+        assert (
+            formatter(1234567.89, thousands_sep=" ", decimal_sep=",") == "1 234 567,89"
+        )
+
     def test_format_price_none_value(self):
         registry = FormatterRegistry()
         formatter = registry.get("price")
@@ -151,6 +172,35 @@ class TestNumberFormatter:
 
         assert formatter(1234, thousands_sep=",") == "1,234"
         assert formatter(1234567, thousands_sep=",") == "1,234,567"
+
+    def test_format_number_with_custom_thousands_separator(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("number")
+
+        assert formatter(1234, thousands_sep=".") == "1.234"
+        assert formatter(1234567, thousands_sep=".") == "1.234.567"
+        assert formatter(100000, thousands_sep=".") == "100.000"
+        assert formatter(1234567, thousands_sep=" ") == "1 234 567"
+
+    def test_format_number_with_european_format(self):
+        registry = FormatterRegistry()
+        formatter = registry.get("number")
+
+        assert (
+            formatter(1234567.89, decimals=2, thousands_sep=".", decimal_sep=",")
+            == "1.234.567,89"
+        )
+        assert (
+            formatter(1234.56, decimals=2, thousands_sep=".", decimal_sep=",")
+            == "1.234,56"
+        )
+        assert (
+            formatter(100.5, decimals=1, thousands_sep=".", decimal_sep=",") == "100,5"
+        )
+        assert (
+            formatter(1234567, decimals=0, thousands_sep=".", decimal_sep=",")
+            == "1.234.567"
+        )
 
     def test_format_number_none_value(self):
         registry = FormatterRegistry()

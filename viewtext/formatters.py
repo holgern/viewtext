@@ -164,6 +164,8 @@ class FormatterRegistry:
                 Number of decimal places (default: 2)
             thousands_sep : str, optional
                 Thousands separator (default: "")
+            decimal_sep : str, optional
+                Decimal separator (default: ".")
             symbol_position : str, optional
                 "prefix" or "suffix" (default: "prefix")
 
@@ -179,10 +181,14 @@ class FormatterRegistry:
         >>> FormatterRegistry._format_price(1234.56, symbol="€", decimals=2,
         ...                                  symbol_position="suffix")
         '1234.56€'
+        >>> FormatterRegistry._format_price(1234567.89, symbol="€", decimals=2,
+        ...                                  thousands_sep=".", decimal_sep=",")
+        '€1.234.567,89'
         """
         symbol = kwargs.get("symbol", "")
         decimals = kwargs.get("decimals", 2)
         thousands_sep = kwargs.get("thousands_sep", "")
+        decimal_sep = kwargs.get("decimal_sep", ".")
 
         if value is None:
             return ""
@@ -192,8 +198,16 @@ class FormatterRegistry:
         except (ValueError, TypeError):
             return str(value)
 
-        if thousands_sep:
+        if thousands_sep or decimal_sep != ".":
             formatted = f"{num_val:,.{decimals}f}"
+            if decimal_sep != ".":
+                formatted = formatted.replace(".", "\x00")
+            if thousands_sep:
+                formatted = formatted.replace(",", thousands_sep)
+            else:
+                formatted = formatted.replace(",", "")
+            if decimal_sep != ".":
+                formatted = formatted.replace("\x00", decimal_sep)
         else:
             formatted = f"{num_val:.{decimals}f}"
 
@@ -224,6 +238,8 @@ class FormatterRegistry:
                 Number of decimal places (default: 0)
             thousands_sep : str, optional
                 Thousands separator (default: "")
+            decimal_sep : str, optional
+                Decimal separator (default: ".")
 
         Returns
         -------
@@ -236,11 +252,15 @@ class FormatterRegistry:
         '1,234,567'
         >>> FormatterRegistry._format_number(23.456, decimals=1, suffix="°C")
         '23.5°C'
+        >>> FormatterRegistry._format_number(1234567.89, decimals=2,
+        ...                                   thousands_sep=".", decimal_sep=",")
+        '1.234.567,89'
         """
         prefix = kwargs.get("prefix", "")
         suffix = kwargs.get("suffix", "")
         decimals = kwargs.get("decimals", 0)
         thousands_sep = kwargs.get("thousands_sep", "")
+        decimal_sep = kwargs.get("decimal_sep", ".")
 
         if value is None:
             return ""
@@ -250,8 +270,16 @@ class FormatterRegistry:
         except (ValueError, TypeError):
             return str(value)
 
-        if thousands_sep:
+        if thousands_sep or decimal_sep != ".":
             formatted = f"{num_val:,.{decimals}f}"
+            if decimal_sep != ".":
+                formatted = formatted.replace(".", "\x00")
+            if thousands_sep:
+                formatted = formatted.replace(",", thousands_sep)
+            else:
+                formatted = formatted.replace(",", "")
+            if decimal_sep != ".":
+                formatted = formatted.replace("\x00", decimal_sep)
         else:
             formatted = f"{num_val:.{decimals}f}"
 

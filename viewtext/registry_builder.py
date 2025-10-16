@@ -551,13 +551,48 @@ class RegistryBuilder:
         return result
 
     @staticmethod
+    def _handle_format_number_operation(
+        context: dict[str, Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle format_number operation for formatting numbers with separators."""
+        context_key = params.get("context_key")
+        sources = params.get("sources")
+        thousands_sep = params.get("thousands_sep") or ""
+        decimal_sep = params.get("decimal_sep") or "."
+        decimals_param = params.get("decimals_param") or 0
+        default = params.get("default") or ""
+
+        source_key = sources[0] if sources else context_key
+        if source_key is None:
+            return default
+
+        value = RegistryBuilder._get_numeric_value(context, source_key, None)
+        if value is None:
+            return default
+
+        try:
+            if thousands_sep or decimal_sep != ".":
+                formatted = f"{value:,.{decimals_param}f}"
+                if decimal_sep != ".":
+                    formatted = formatted.replace(".", "\x00")
+                if thousands_sep:
+                    formatted = formatted.replace(",", thousands_sep)
+                else:
+                    formatted = formatted.replace(",", "")
+                if decimal_sep != ".":
+                    formatted = formatted.replace("\x00", decimal_sep)
+            else:
+                formatted = f"{value:.{decimals_param}f}"
+            return formatted
+        except (ValueError, TypeError):
+            return default
+
+    @staticmethod
     def _resolve_field_references(
         template: str, context: dict[str, Any], default: Any
     ) -> str:
         """Resolve ~field_name~ references in a template string."""
-        if not isinstance(template, str):
-            return str(template)
-
         import re
 
         pattern = r"~([^~]+)~"
@@ -601,7 +636,13 @@ class RegistryBuilder:
         32.0
         """
         operation = mapping.operation
-        string_operations = ["concat", "split", "substring", "conditional"]
+        string_operations = [
+            "concat",
+            "split",
+            "substring",
+            "conditional",
+            "format_number",
+        ]
         if (
             operation not in RegistryBuilder.OPERATIONS
             and operation != "linear_transform"
@@ -623,6 +664,9 @@ class RegistryBuilder:
             "condition": mapping.condition,
             "if_true": mapping.if_true,
             "if_false": mapping.if_false,
+            "thousands_sep": mapping.thousands_sep,
+            "decimal_sep": mapping.decimal_sep,
+            "decimals_param": mapping.decimals_param,
         }
 
         def getter(context: dict[str, Any]) -> Any:
@@ -641,6 +685,11 @@ class RegistryBuilder:
 
                 if operation == "conditional":
                     return RegistryBuilder._handle_conditional_operation(
+                        context, params
+                    )
+
+                if operation == "format_number":
+                    return RegistryBuilder._handle_format_number_operation(
                         context, params
                     )
 

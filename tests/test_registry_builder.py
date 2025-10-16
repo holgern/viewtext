@@ -548,6 +548,128 @@ class TestComputedFields(unittest.TestCase):
         context = {"currency": "usd"}
         self.assertEqual(getter(context), "")
 
+    def test_format_number_operation_comma_separator(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            thousands_sep=",",
+            decimals_param=0,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 100000}
+        self.assertEqual(getter(context), "100,000")
+
+    def test_format_number_operation_dot_separator(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            thousands_sep=".",
+            decimals_param=0,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 100000}
+        self.assertEqual(getter(context), "100.000")
+
+    def test_format_number_operation_space_separator(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            thousands_sep=" ",
+            decimals_param=0,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 1234567}
+        self.assertEqual(getter(context), "1 234 567")
+
+    def test_format_number_operation_with_decimals(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            thousands_sep=",",
+            decimals_param=2,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 1234.567}
+        self.assertEqual(getter(context), "1,234.57")
+
+    def test_format_number_operation_no_separator(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            thousands_sep="",
+            decimals_param=0,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 100000}
+        self.assertEqual(getter(context), "100000")
+
+    def test_format_number_operation_missing_value(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            thousands_sep=",",
+            decimals_param=0,
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {}
+        self.assertEqual(getter(context), "N/A")
+
+    def test_format_number_operation_context_key(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            context_key="value",
+            thousands_sep=".",
+            decimals_param=2,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 1234567.89}
+        self.assertEqual(getter(context), "1.234.567.89")
+
+    def test_format_number_operation_european_format(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["amount"],
+            thousands_sep=".",
+            decimal_sep=",",
+            decimals_param=2,
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"amount": 1234567.89}
+        self.assertEqual(getter(context), "1.234.567,89")
+
+    def test_format_number_operation_swiss_format(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["price"],
+            thousands_sep="'",
+            decimal_sep=".",
+            decimals_param=2,
+            default="0.00",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"price": 1234567.89}
+        self.assertEqual(getter(context), "1'234'567.89")
+
+    def test_format_number_operation_decimal_sep_only(self):
+        mapping = FieldMapping(
+            operation="format_number",
+            sources=["value"],
+            decimal_sep=",",
+            decimals_param=2,
+            default="0,00",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"value": 1234.56}
+        self.assertEqual(getter(context), "1234,56")
+
 
 if __name__ == "__main__":
     unittest.main()

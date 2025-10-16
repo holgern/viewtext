@@ -496,7 +496,7 @@ Conditional Operations
 conditional
 ~~~~~~~~~~~
 
-Conditionally return different values based on field equality check. Useful for if/else logic.
+Returns different values based on a condition. Supports template syntax with field references.
 
 **Parameters:**
 
@@ -548,6 +548,88 @@ Both ``if_true`` and ``if_false`` support field references using ``~field_name~`
 - If the condition field itself is missing, returns the default value
 - Multiple field references can be used in a single template
 
+format_number
+~~~~~~~~~~~~~
+
+Formats a numeric value with custom thousands and decimal separators.
+
+**Parameters:**
+
+- ``sources`` or ``context_key`` - Field(s) to format
+- ``thousands_sep`` - Thousands separator character (e.g., ``,``, ``.``, ``" "``, ``"'"``)
+- ``decimal_sep`` - Decimal separator character (default: ``"."``)
+- ``decimals_param`` - Number of decimal places (default: 0)
+- ``default`` - Value to return if source is missing or invalid
+
+**Examples:**
+
+.. code-block:: toml
+
+    # Format with comma separator (US/UK style)
+    [fields.formatted_comma]
+    operation = "format_number"
+    sources = ["population"]
+    thousands_sep = ","
+    decimals_param = 0
+    default = "N/A"
+    # Input: 100000 → Output: "100,000"
+
+.. code-block:: toml
+
+    # Format European style (dot thousands, comma decimal)
+    [fields.formatted_european]
+    operation = "format_number"
+    sources = ["price"]
+    thousands_sep = "."
+    decimal_sep = ","
+    decimals_param = 2
+    default = "N/A"
+    # Input: 1234567.89 → Output: "1.234.567,89"
+
+.. code-block:: toml
+
+    # Format with space separator (international style)
+    [fields.formatted_space]
+    operation = "format_number"
+    sources = ["distance"]
+    thousands_sep = " "
+    decimal_sep = ","
+    decimals_param = 2
+    default = ""
+    # Input: 9876543.21 → Output: "9 876 543,21"
+
+.. code-block:: toml
+
+    # Swiss style (apostrophe thousands, dot decimal)
+    [fields.formatted_swiss]
+    operation = "format_number"
+    sources = ["amount"]
+    thousands_sep = "'"
+    decimal_sep = "."
+    decimals_param = 2
+    default = "0.00"
+    # Input: 1234567.89 → Output: "1'234'567.89"
+
+.. code-block:: toml
+
+    # No separator (just decimal formatting)
+    [fields.formatted_plain]
+    operation = "format_number"
+    context_key = "value"
+    thousands_sep = ""
+    decimals_param = 2
+    default = "0.00"
+    # Input: 1234.567 → Output: "1234.57"
+
+**Notes:**
+
+- Returns the formatted number as a string
+- Non-numeric values return the default
+- Thousands separator can be any string (commonly ``,``, ``.``, ``" "``, or ``'``)
+- Decimal separator can be any string (commonly ``.`` or ``,``)
+- Default decimal separator is ``.`` (if not specified)
+- Different from formatters (which are for display), this operation transforms the data itself
+
 Error Handling
 --------------
 
@@ -571,6 +653,12 @@ All computed field operations include automatic error handling:
 - Missing condition field returns the default
 - Missing referenced fields in templates resolve to empty string (if default is None) or default value
 - Condition performs exact string equality match
+
+**Formatting Operations** (format_number):
+
+- Missing source values return the default
+- Non-numeric source values return the default
+- Invalid format parameters use safe defaults
 
 **Configuration Errors:**
 
