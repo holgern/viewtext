@@ -1,3 +1,11 @@
+"""
+Registry builder for creating field registries from TOML configuration.
+
+This module provides classes for building field registries from TOML
+configuration files, including support for complex context key parsing
+with attribute access and method calls.
+"""
+
 import re
 from typing import Any, Callable, Optional, Union
 
@@ -6,33 +14,60 @@ from .registry import BaseFieldRegistry
 
 
 class MethodCallParser:
-    """Parse context_key strings for attribute access and method calls."""
+    """
+    Parser for context_key strings with attribute access and method calls.
+
+    The MethodCallParser enables complex field extraction patterns like
+    dictionary lookups, attribute access, and method calls with arguments.
+
+    Examples
+    --------
+    >>> operations = MethodCallParser.parse("ticker.name")
+    >>> operations
+    [('key', 'ticker', []), ('attr', 'name', [])]
+
+    >>> operations = MethodCallParser.parse("ticker.get_price('fiat')")
+    >>> operations
+    [('key', 'ticker', []), ('method', 'get_price', ['fiat'])]
+    """
 
     @staticmethod
     def parse(context_key: str) -> list[tuple[str, str, list[Any]]]:
         """
         Parse context_key into a chain of operations.
 
-        Returns:
+        Parameters
+        ----------
+        context_key : str
+            The context key string to parse
+
+        Returns
+        -------
+        list[tuple[str, str, list[Any]]]
             List of (type, name, args) tuples where:
-            - type: 'key' (dict lookup), 'attr' (attribute),
-              or 'method' (method call)
+            - type: 'key' (dict lookup), 'attr' (attribute), or 'method' (call)
             - name: key/attribute/method name
             - args: list of arguments (empty for key/attr)
 
-        Examples:
-            "ticker" -> [('key', 'ticker', [])]
-            "ticker.name" ->
-                [('key', 'ticker', []), ('attr', 'name', [])]
-            "ticker.get_price()" ->
-                [('key', 'ticker', []), ('method', 'get_price', [])]
-            "ticker.get_price('fiat')" ->
-                [('key', 'ticker', []),
-                 ('method', 'get_price', ['fiat'])]
-            "portfolio.get_ticker('BTC').get_current_price('fiat')" ->
-                [('key', 'portfolio', []),
-                 ('method', 'get_ticker', ['BTC']),
-                 ('method', 'get_current_price', ['fiat'])]
+        Examples
+        --------
+        >>> MethodCallParser.parse("ticker")
+        [('key', 'ticker', [])]
+
+        >>> MethodCallParser.parse("ticker.name")
+        [('key', 'ticker', []), ('attr', 'name', [])]
+
+        >>> MethodCallParser.parse("ticker.get_price()")
+        [('key', 'ticker', []), ('method', 'get_price', [])]
+
+        >>> MethodCallParser.parse("ticker.get_price('fiat')")
+        [('key', 'ticker', []), ('method', 'get_price', ['fiat'])]
+
+        >>> MethodCallParser.parse(
+        ...     "portfolio.get_ticker('BTC').get_current_price('fiat')"
+        ... )
+        [('key', 'portfolio', []), ('method', 'get_ticker', ['BTC']), \
+('method', 'get_current_price', ['fiat'])]
         """
         operations: list[tuple[str, str, list[Any]]] = []
         remaining = context_key
@@ -69,7 +104,24 @@ class MethodCallParser:
 
     @staticmethod
     def _parse_args(args_str: str) -> list[Union[str, int, float, bool, None]]:
-        """Parse argument string into Python values."""
+        """
+        Parse argument string into Python values.
+
+        Parameters
+        ----------
+        args_str : str
+            Comma-separated argument string
+
+        Returns
+        -------
+        list[Union[str, int, float, bool, None]]
+            List of parsed argument values
+
+        Examples
+        --------
+        >>> MethodCallParser._parse_args("'hello', 42, 3.14, True, None")
+        ['hello', 42, 3.14, True, None]
+        """
         if not args_str.strip():
             return []
 
@@ -99,10 +151,47 @@ class MethodCallParser:
 
 
 class RegistryBuilder:
+    """
+    Builder for creating field registries from TOML configuration.
+
+    The RegistryBuilder reads field mappings from TOML configuration files
+    and creates a BaseFieldRegistry with getter functions that support
+    complex field extraction patterns.
+
+    Examples
+    --------
+    >>> from viewtext import RegistryBuilder
+    >>> registry = RegistryBuilder.build_from_config("layouts.toml")
+    >>> getter = registry.get("temperature")
+    >>> getter({"temp": 25})
+    25
+    """
+
     @staticmethod
     def build_from_config(
         config_path: Optional[str] = None, loader: Optional[LayoutLoader] = None
     ) -> BaseFieldRegistry:
+        """
+        Build a field registry from TOML configuration.
+
+        Parameters
+        ----------
+        config_path : str, optional
+            Path to the TOML configuration file
+        loader : LayoutLoader, optional
+            Pre-configured layout loader to use
+
+        Returns
+        -------
+        BaseFieldRegistry
+            Populated field registry
+
+        Examples
+        --------
+        >>> registry = RegistryBuilder.build_from_config("layouts.toml")
+        >>> registry.has_field("temperature")
+        True
+        """
         if loader is None:
             loader = LayoutLoader(config_path)
         field_mappings = loader.get_field_mappings()
@@ -123,6 +212,32 @@ class RegistryBuilder:
     def _create_getter(
         context_key: str, default: Any = None, transform: Optional[str] = None
     ) -> Callable[[dict[str, Any]], Any]:
+        """
+        Create a getter function for a field.
+
+        Parameters
+        ----------
+        context_key : str
+            Context key string with optional attribute/method access
+        default : Any, optional
+            Default value if field is not found
+        transform : str, optional
+            Transform to apply (upper, lower, title, strip, int, float, str, bool)
+
+        Returns
+        -------
+        Callable[[dict[str, Any]], Any]
+            Getter function that extracts the field value from context
+
+        Examples
+        --------
+        >>> getter = RegistryBuilder._create_getter("temperature", default=0)
+        >>> getter({"temperature": 25})
+        25
+        >>> getter({})
+        0
+        """
+
         def getter(context: dict[str, Any]) -> Any:
             operations = MethodCallParser.parse(context_key)
 
@@ -151,6 +266,30 @@ class RegistryBuilder:
 
     @staticmethod
     def _apply_transform(value: Any, transform: str) -> Any:
+        """
+        Apply a transform to a value.
+
+        Parameters
+        ----------
+        value : Any
+            The value to transform
+        transform : str
+            Transform name (upper, lower, title, strip, int, float, str, bool)
+
+        Returns
+        -------
+        Any
+            Transformed value
+
+        Examples
+        --------
+        >>> RegistryBuilder._apply_transform("hello", "upper")
+        'HELLO'
+        >>> RegistryBuilder._apply_transform("  text  ", "strip")
+        'text'
+        >>> RegistryBuilder._apply_transform("123", "int")
+        123
+        """
         if transform == "upper":
             return str(value).upper()
         elif transform == "lower":
@@ -174,4 +313,27 @@ class RegistryBuilder:
 def get_registry_from_config(
     config_path: Optional[str] = None, loader: Optional[LayoutLoader] = None
 ) -> BaseFieldRegistry:
+    """
+    Get a field registry from TOML configuration.
+
+    Convenience function that calls RegistryBuilder.build_from_config.
+
+    Parameters
+    ----------
+    config_path : str, optional
+        Path to the TOML configuration file
+    loader : LayoutLoader, optional
+        Pre-configured layout loader to use
+
+    Returns
+    -------
+    BaseFieldRegistry
+        Populated field registry
+
+    Examples
+    --------
+    >>> from viewtext import get_registry_from_config
+    >>> registry = get_registry_from_config("layouts.toml")
+    >>> getter = registry.get("temperature")
+    """
     return RegistryBuilder.build_from_config(config_path, loader)
