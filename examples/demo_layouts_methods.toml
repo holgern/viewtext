@@ -1,0 +1,99 @@
+context_provider = "demo_ticker.create_demo_context"
+
+[fields.btc_symbol]
+context_key = "btc.symbol"
+default = "???"
+
+[fields.btc_name]
+context_key = "btc.name"
+default = "Unknown"
+
+[fields.btc_fiat_price]
+context_key = "btc.get_current_price('fiat')"
+default = 0.0
+
+[fields.btc_crypto_price]
+context_key = "btc.get_current_price('crypto')"
+default = 0.0
+
+[fields.eth_fiat_price]
+context_key = "eth.get_current_price('fiat')"
+default = 0.0
+
+[fields.btc_price_change]
+context_key = "btc.get_price_change()"
+default = 0.0
+
+[fields.btc_volume]
+context_key = "btc.get_volume()"
+default = 0
+
+[fields.btc_timestamp]
+context_key = "btc.get_timestamp()"
+default = 0
+
+[fields.btc_display]
+context_key = "btc.format_display_name()"
+default = "N/A"
+
+[fields.btc_symbol_upper]
+context_key = "btc.symbol"
+transform = "upper"
+
+[fields.portfolio_btc_ticker_price]
+context_key = "portfolio.get_ticker('BTC').get_current_price('fiat')"
+default = 0.0
+
+[fields.portfolio_balance_usd]
+context_key = "portfolio.get_balance('usd')"
+default = 0.0
+
+[fields.user_name]
+context_key = "user_name"
+default = "Guest"
+
+[fields.last_update]
+context_key = "last_update"
+
+[layouts.crypto_dashboard]
+name = "Cryptocurrency Dashboard"
+
+[[layouts.crypto_dashboard.lines]]
+field = "btc_display"
+index = 0
+formatter = "text"
+
+[[layouts.crypto_dashboard.lines]]
+field = "btc_fiat_price"
+index = 1
+formatter = "price"
+
+[[layouts.crypto_dashboard.lines]]
+field = "btc_price_change"
+index = 2
+formatter = "number"
+
+[[layouts.crypto_dashboard.lines]]
+field = "btc_volume"
+index = 3
+formatter = "number"
+
+[[layouts.crypto_dashboard.lines]]
+field = "eth_fiat_price"
+index = 4
+formatter = "price"
+
+[[layouts.crypto_dashboard.lines]]
+field = "portfolio_balance_usd"
+index = 5
+formatter = "price"
+
+[[layouts.crypto_dashboard.lines]]
+field = "user_name"
+index = 6
+formatter = "text"
+
+[[layouts.crypto_dashboard.lines]]
+field = "portfolio_btc_ticker_price"
+index = 7
+formatter = "price"

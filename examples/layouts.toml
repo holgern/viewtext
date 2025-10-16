@@ -1,0 +1,96 @@
+[fields.demo1]
+context_key = "demo1"
+
+[fields.demo2]
+context_key = "demo2"
+
+[fields.demo3]
+context_key = "demo3"
+
+[fields.demo4]
+context_key = "demo4"
+
+[fields.text_value]
+context_key = "text_value"
+
+[fields.text_upper]
+context_key = "text_value"
+transform = "upper"
+
+[fields.number_value]
+context_key = "number_value"
+
+[fields.price_value]
+context_key = "price_value"
+
+[fields.timestamp]
+context_key = "timestamp"
+
+[fields.missing_field]
+context_key = "nonexistent_key"
+default = "N/A"
+
+[fields.city]
+context_key = "city"
+default = "Unknown City"
+
+[layouts.demo]
+name = "Demo Display"
+
+[[layouts.demo.lines]]
+field = "demo1"
+index = 0
+formatter = "text"
+
+[[layouts.demo.lines]]
+field = "demo2"
+index = 1
+formatter = "text"
+
+[[layouts.demo.lines]]
+field = "demo3"
+index = 2
+formatter = "text"
+
+[[layouts.demo.lines]]
+field = "demo4"
+index = 3
+formatter = "text"
+
+[layouts.advanced]
+name = "Advanced Features Demo"
+
+[[layouts.advanced.lines]]
+field = "text_value"
+index = 0
+formatter = "text"
+
+[[layouts.advanced.lines]]
+field = "text_upper"
+index = 1
+formatter = "text"
+
+[[layouts.advanced.lines]]
+field = "number_value"
+index = 2
+formatter = "number"
+
+[[layouts.advanced.lines]]
+field = "price_value"
+index = 3
+formatter = "price"
+
+[[layouts.advanced.lines]]
+field = "timestamp"
+index = 4
+formatter = "datetime"
+
+[[layouts.advanced.lines]]
+field = "missing_field"
+index = 5
+formatter = "text"
+
+[[layouts.advanced.lines]]
+field = "city"
+index = 6
+formatter = "text"
