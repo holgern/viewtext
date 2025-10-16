@@ -63,8 +63,51 @@ operation = "average"
 sources = ["score1", "score2", "score3"]
 ```
 
-Available operations: `celsius_to_fahrenheit`, `fahrenheit_to_celsius`, `multiply`,
-`divide`, `add`, `subtract`, `average`, `min`, `max`, `abs`, `round`, `linear_transform`
+### Available Operations
+
+**Temperature Conversions:**
+
+- `celsius_to_fahrenheit` - Convert Celsius to Fahrenheit
+- `fahrenheit_to_celsius` - Convert Fahrenheit to Celsius
+
+**Arithmetic Operations:**
+
+- `multiply` - Multiply values
+- `divide` - Divide values
+- `add` - Add values
+- `subtract` - Subtract values
+- `modulo` - Modulo operation
+
+**Aggregate Operations:**
+
+- `average` - Calculate average of values
+- `min` - Find minimum value
+- `max` - Find maximum value
+
+**Math Operations:**
+
+- `abs` - Absolute value
+- `round` - Round to specified decimals
+- `floor` - Round down to nearest integer
+- `ceil` - Round up to nearest integer
+
+**String Operations:**
+
+- `concat` - Concatenate strings with separator
+- `split` - Split string by separator and get index
+- `substring` - Extract substring with start/end indices
+
+**Formatting Operations:**
+
+- `format_number` - Format numbers with thousands/decimal separators
+
+**Transform Operations:**
+
+- `linear_transform` - Apply linear transformation (multiply, divide, add)
+
+**Conditional Operations:**
+
+- `conditional` - If/else logic with field references
 
 See `examples/computed_fields.toml` and `examples/README_computed_fields.md` for more
 details.

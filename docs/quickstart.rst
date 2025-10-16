@@ -6,8 +6,11 @@ This guide will help you get started with ViewText quickly.
 Installation
 ------------
 
-Currently, ViewText is embedded within projects. In the future, it will be available as
-a standalone PyPI package.
+ViewText is available as a standalone PyPI package called ``viewtext``:
+
+.. code-block:: bash
+
+    pip install viewtext
 
 Basic Concepts
 --------------
