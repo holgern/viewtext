@@ -310,17 +310,19 @@ type = "price"
 symbol = "$"
 decimals = 2
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_layouts:
-            tmp_layouts.write(layouts_content)
-            layouts_path = tmp_layouts.name
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_formatters:
-            tmp_formatters.write(formatters_content)
-            formatters_path = tmp_formatters.name
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
 
         try:
             loader = LayoutLoader(
@@ -349,17 +351,19 @@ index = 0
 context_key = "temp"
 default = 0
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_layouts:
-            tmp_layouts.write(layouts_content)
-            layouts_path = tmp_layouts.name
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_fields:
-            tmp_fields.write(fields_content)
-            fields_path = tmp_fields.name
+        tmp_fields = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_fields.write(fields_content)
+        tmp_fields.close()
+        fields_path = tmp_fields.name
 
         try:
             loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
@@ -392,23 +396,26 @@ decimals = 1
 context_key = "temp"
 default = 0
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_layouts:
-            tmp_layouts.write(layouts_content)
-            layouts_path = tmp_layouts.name
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_formatters:
-            tmp_formatters.write(formatters_content)
-            formatters_path = tmp_formatters.name
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_fields:
-            tmp_fields.write(fields_content)
-            fields_path = tmp_fields.name
+        tmp_fields = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_fields.write(fields_content)
+        tmp_fields.close()
+        fields_path = tmp_fields.name
 
         try:
             loader = LayoutLoader(
@@ -442,17 +449,19 @@ index = 0
 type = "price"
 symbol = "$"
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_layouts:
-            tmp_layouts.write(layouts_content)
-            layouts_path = tmp_layouts.name
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_formatters:
-            tmp_formatters.write(formatters_content)
-            formatters_path = tmp_formatters.name
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
 
         try:
             config = LayoutLoader.load_from_files(
@@ -485,17 +494,19 @@ type = "price"
 symbol = "$"
 decimals = 2
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_layouts:
-            tmp_layouts.write(layouts_content)
-            layouts_path = tmp_layouts.name
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".toml", delete=False
-        ) as tmp_formatters:
-            tmp_formatters.write(formatters_content)
-            formatters_path = tmp_formatters.name
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
 
         try:
             loader = LayoutLoader(
