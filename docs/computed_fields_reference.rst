@@ -490,6 +490,64 @@ Extract substring from start position to end position.
     end = 7
     default = ""
 
+Conditional Operations
+----------------------
+
+conditional
+~~~~~~~~~~~
+
+Conditionally return different values based on field equality check. Useful for if/else logic.
+
+**Parameters:**
+
+- ``condition`` - Dictionary with ``field`` (field name to check) and ``equals`` (value to compare)
+- ``if_true`` - Template string to return if condition matches (supports ``~field_name~`` references)
+- ``if_false`` - Template string to return if condition doesn't match (supports ``~field_name~`` references)
+- ``default`` - Value to return if condition field is missing or referenced fields are missing
+
+**Template Syntax:**
+
+Both ``if_true`` and ``if_false`` support field references using ``~field_name~`` syntax. These references are resolved at runtime and replaced with the actual field values.
+
+**Examples:**
+
+.. code-block:: toml
+
+    # Show currency symbol only for USD
+    [fields.price_display]
+    operation = "conditional"
+    condition = { field = "currency", equals = "USD" }
+    if_true = "$~amount~"
+    if_false = "~amount~ ~currency~"
+    default = ""
+
+.. code-block:: toml
+
+    # Premium badge
+    [fields.user_badge]
+    operation = "conditional"
+    condition = { field = "membership", equals = "premium" }
+    if_true = "⭐ Premium Member"
+    if_false = "Standard Member"
+    default = "Guest"
+
+.. code-block:: toml
+
+    # Mix text and field references
+    [fields.greeting]
+    operation = "conditional"
+    condition = { field = "language", equals = "es" }
+    if_true = "Hola, ~name~!"
+    if_false = "Hello, ~name~!"
+    default = "Hello!"
+
+**Notes:**
+
+- Condition performs exact string equality match
+- Field references in templates resolve to empty string if field is missing and default is None
+- If the condition field itself is missing, returns the default value
+- Multiple field references can be used in a single template
+
 Error Handling
 --------------
 
@@ -507,6 +565,12 @@ All computed field operations include automatic error handling:
 - Missing source values return the default
 - Out-of-bounds indices return the default (split, substring)
 - Non-string values are converted to strings (concat, split, substring)
+
+**Conditional Operations** (conditional):
+
+- Missing condition field returns the default
+- Missing referenced fields in templates resolve to empty string (if default is None) or default value
+- Condition performs exact string equality match
 
 **Configuration Errors:**
 
@@ -675,3 +739,24 @@ Text Processing
     sources = ["first_initial", "last_initial"]
     separator = ""
     default = ""
+
+Conditional Logic
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: toml
+
+    # Display different field based on condition
+    [fields.display_currency]
+    operation = "conditional"
+    condition = { field = "currency", equals = "USD" }
+    if_true = "$~amount~"
+    if_false = "~amount~ ~currency~"
+    default = ""
+
+    # Show premium vs standard badge
+    [fields.badge]
+    operation = "conditional"
+    condition = { field = "is_premium", equals = "true" }
+    if_true = "⭐ Premium"
+    if_false = "Standard"
+    default = "Unknown"

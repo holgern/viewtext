@@ -135,6 +135,10 @@ class FieldMapping(BaseModel):
     start: Optional[int] = None
     end: Optional[int] = None
     separator: Optional[str] = None
+    index: Optional[int] = None
+    condition: Optional[dict[str, Any]] = None
+    if_true: Optional[str] = None
+    if_false: Optional[str] = None
 
 
 class LayoutsConfig(BaseModel):

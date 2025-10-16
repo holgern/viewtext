@@ -330,6 +330,10 @@ Available Operations
 - ``split`` - Split a string by separator and take a specific index
 - ``substring`` - Extract substring from start to end position
 
+**Conditional Operations**
+
+- ``conditional`` - Return different values based on field equality condition (``condition``, ``if_true``, ``if_false``)
+
 Defining Computed Fields
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -462,6 +466,20 @@ Formula: ``(value * multiply / divide) + add``
     operation = "modulo"
     sources = ["number", "divisor"]
     default = 0
+
+**Conditional Operations**
+
+.. code-block:: toml
+
+    # Display price with currency formatting
+    [fields.price_display]
+    operation = "conditional"
+    condition = { field = "currency", equals = "USD" }
+    if_true = "$~amount~"
+    if_false = "~amount~ ~currency~"
+    default = ""
+
+The ``~field_name~`` syntax in ``if_true`` and ``if_false`` allows embedding other field values.
 
 Error Handling
 ~~~~~~~~~~~~~~

@@ -550,3 +550,78 @@ decimals = 2
         finally:
             os.unlink(fields_path)
             os.unlink(layouts_path)
+
+    def test_conditional_operation_integration(self):
+        fields_content = """
+[fields.price_display]
+operation = "conditional"
+condition = { field = "currency", equals = "USD" }
+if_true = "$~amount~"
+if_false = "~amount~ ~currency~"
+default = "N/A"
+
+[fields.membership_badge]
+operation = "conditional"
+condition = { field = "is_premium", equals = "true" }
+if_true = "⭐ Premium"
+if_false = "Standard"
+default = "Guest"
+"""
+        layouts_content = """
+[layouts.pricing]
+name = "Pricing Display"
+
+[[layouts.pricing.lines]]
+field = "price_display"
+index = 0
+formatter = "text"
+
+[[layouts.pricing.lines]]
+field = "membership_badge"
+index = 1
+formatter = "text"
+"""
+        tmp_fields = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_fields.write(fields_content)
+        tmp_fields.close()
+        fields_path = tmp_fields.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            layout = loader.get_layout("pricing")
+
+            registry = RegistryBuilder.build_from_config(loader=loader)
+
+            engine = LayoutEngine(field_registry=registry)
+
+            context_usd = {
+                "currency": "USD",
+                "amount": "99.99",
+                "is_premium": "true",
+            }
+            result_usd = engine.build_line_str(layout, context_usd)
+            assert result_usd == ["$99.99", "⭐ Premium"]
+
+            context_eur = {
+                "currency": "EUR",
+                "amount": "89.99",
+                "is_premium": "false",
+            }
+            result_eur = engine.build_line_str(layout, context_eur)
+            assert result_eur == ["89.99 EUR", "Standard"]
+
+            context_missing = {"amount": "49.99", "is_premium": "true"}
+            result_missing = engine.build_line_str(layout, context_missing)
+            assert result_missing == ["N/A", "⭐ Premium"]
+        finally:
+            os.unlink(fields_path)
+            os.unlink(layouts_path)

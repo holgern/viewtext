@@ -59,6 +59,10 @@ python examples/demo_computed_fields.py
 - `split` - Split a string by separator and take a specific index
 - `substring` - Extract substring from start to end position
 
+### Conditional Operations
+
+- `conditional` - Return different values based on field equality condition
+
 ## Example Usage
 
 ### Temperature Conversion
@@ -187,6 +191,21 @@ default = ""
 This field extracts the year from a date string like "2024-01-15" by taking characters
 0-4.
 
+### Conditional Logic
+
+```toml
+[fields.price_display]
+operation = "conditional"
+condition = { field = "currency", equals = "USD" }
+if_true = "$~amount~"
+if_false = "~amount~ ~currency~"
+default = ""
+```
+
+This field checks if currency is "USD" and displays the price with "$" prefix if true,
+otherwise shows the amount with currency code. The `~field_name~` syntax allows
+embedding other field values in the output.
+
 ## Key Concepts
 
 1. **Sources** - List of field names from the context to use as inputs
@@ -200,6 +219,9 @@ This field extracts the year from a date string like "2024-01-15" by taking char
    - `index` - Index for split operation
    - `start` - Start position for substring operation
    - `end` - End position for substring operation
+   - `condition` - Dictionary with `field` and `equals` for conditional operations
+   - `if_true` - Template string to return when condition matches
+   - `if_false` - Template string to return when condition doesn't match
 
 ## Error Handling
 

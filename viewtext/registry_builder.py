@@ -474,7 +474,8 @@ class RegistryBuilder:
         context_key = params.get("context_key")
         sources = params.get("sources")
         separator = params.get("separator", " ")
-        default = params.get("default", [])
+        index = params.get("index")
+        default = params.get("default", "")
 
         source_key = sources[0] if sources else context_key
         if source_key is None:
@@ -484,7 +485,12 @@ class RegistryBuilder:
         if value is None:
             return default
 
-        return value.split(separator)
+        parts = value.split(separator)
+        if index is not None:
+            if -len(parts) <= index < len(parts):
+                return parts[index]
+            return default
+        return parts
 
     @staticmethod
     def _handle_substring_operation(
@@ -509,6 +515,62 @@ class RegistryBuilder:
         if end is None:
             return value[start:]
         return value[start:end]
+
+    @staticmethod
+    def _handle_conditional_operation(
+        context: dict[str, Any],
+        params: dict[str, Any],
+    ) -> Any:
+        """Handle conditional operation for if/else logic."""
+        condition = params.get("condition")
+        if_true = params.get("if_true")
+        if_false = params.get("if_false")
+        default = params.get("default", "")
+
+        if condition is None or if_true is None or if_false is None:
+            return default
+
+        field = condition.get("field")
+        equals = condition.get("equals")
+
+        if field is None:
+            return default
+
+        field_value = context.get(field)
+
+        if field_value is None:
+            return default
+
+        condition_met = field_value == equals
+
+        result_template = if_true if condition_met else if_false
+
+        result = RegistryBuilder._resolve_field_references(
+            result_template, context, default
+        )
+        return result
+
+    @staticmethod
+    def _resolve_field_references(
+        template: str, context: dict[str, Any], default: Any
+    ) -> str:
+        """Resolve ~field_name~ references in a template string."""
+        if not isinstance(template, str):
+            return str(template)
+
+        import re
+
+        pattern = r"~([^~]+)~"
+
+        def replace_field(match: re.Match[str]) -> str:
+            field_name = match.group(1)
+            value = context.get(field_name)
+            if value is None:
+                return str(default) if default is not None else ""
+            return str(value)
+
+        result = re.sub(pattern, replace_field, template)
+        return result
 
     @staticmethod
     def _create_operation_getter(
@@ -539,7 +601,7 @@ class RegistryBuilder:
         32.0
         """
         operation = mapping.operation
-        string_operations = ["concat", "split", "substring"]
+        string_operations = ["concat", "split", "substring", "conditional"]
         if (
             operation not in RegistryBuilder.OPERATIONS
             and operation != "linear_transform"
@@ -557,6 +619,10 @@ class RegistryBuilder:
             "start": mapping.start,
             "end": mapping.end,
             "separator": mapping.separator,
+            "index": mapping.index,
+            "condition": mapping.condition,
+            "if_true": mapping.if_true,
+            "if_false": mapping.if_false,
         }
 
         def getter(context: dict[str, Any]) -> Any:
@@ -572,6 +638,11 @@ class RegistryBuilder:
 
                 if operation == "substring":
                     return RegistryBuilder._handle_substring_operation(context, params)
+
+                if operation == "conditional":
+                    return RegistryBuilder._handle_conditional_operation(
+                        context, params
+                    )
 
                 op_func = RegistryBuilder.OPERATIONS.get(operation)
                 if op_func is None:

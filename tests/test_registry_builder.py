@@ -460,6 +460,94 @@ class TestComputedFields(unittest.TestCase):
         context = {}
         self.assertEqual(getter(context), "N/A")
 
+    def test_split_operation_with_index(self):
+        mapping = FieldMapping(
+            operation="split",
+            sources=["email"],
+            separator="@",
+            index=1,
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"email": "user@example.com"}
+        self.assertEqual(getter(context), "example.com")
+
+    def test_split_operation_with_negative_index(self):
+        mapping = FieldMapping(
+            operation="split", sources=["path"], separator="/", index=-1, default=""
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"path": "/home/user/file.txt"}
+        self.assertEqual(getter(context), "file.txt")
+
+    def test_split_operation_index_out_of_bounds(self):
+        mapping = FieldMapping(
+            operation="split", sources=["text"], separator=" ", index=10, default="N/A"
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"text": "hello world"}
+        self.assertEqual(getter(context), "N/A")
+
+    def test_conditional_operation_true(self):
+        mapping = FieldMapping(
+            operation="conditional",
+            condition={"field": "currency", "equals": "usd"},
+            if_true="~price_usd~",
+            if_false="~price_default~",
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"currency": "usd", "price_usd": "100", "price_default": "50"}
+        self.assertEqual(getter(context), "100")
+
+    def test_conditional_operation_false(self):
+        mapping = FieldMapping(
+            operation="conditional",
+            condition={"field": "currency", "equals": "usd"},
+            if_true="~price_usd~",
+            if_false="~price_default~",
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"currency": "eur", "price_usd": "100", "price_default": "50"}
+        self.assertEqual(getter(context), "50")
+
+    def test_conditional_operation_with_text(self):
+        mapping = FieldMapping(
+            operation="conditional",
+            condition={"field": "is_admin", "equals": True},
+            if_true="Admin: ~username~",
+            if_false="User: ~username~",
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"is_admin": True, "username": "alice"}
+        self.assertEqual(getter(context), "Admin: alice")
+
+    def test_conditional_operation_missing_field(self):
+        mapping = FieldMapping(
+            operation="conditional",
+            condition={"field": "status", "equals": "active"},
+            if_true="~active_message~",
+            if_false="~inactive_message~",
+            default="N/A",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {}
+        self.assertEqual(getter(context), "N/A")
+
+    def test_conditional_operation_missing_referenced_field(self):
+        mapping = FieldMapping(
+            operation="conditional",
+            condition={"field": "currency", "equals": "usd"},
+            if_true="~missing_field~",
+            if_false="default",
+            default="",
+        )
+        getter = RegistryBuilder._create_operation_getter(mapping)
+        context = {"currency": "usd"}
+        self.assertEqual(getter(context), "")
+
 
 if __name__ == "__main__":
     unittest.main()

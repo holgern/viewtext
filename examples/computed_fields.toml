@@ -92,6 +92,20 @@ start = 0
 end = 4
 default = ""
 
+[fields.price_display]
+operation = "conditional"
+condition = { field = "currency", equals = "USD" }
+if_true = "$~amount~"
+if_false = "~amount~ ~currency~"
+default = ""
+
+[fields.user_badge]
+operation = "conditional"
+condition = { field = "membership", equals = "premium" }
+if_true = "⭐ Premium"
+if_false = "Standard"
+default = "Guest"
+
 [formatters.temperature]
 type = "number"
 decimals = 1
