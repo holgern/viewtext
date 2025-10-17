@@ -1,0 +1,392 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/nahrstaedt/viewtext/schemas/viewtext.json",
+  "title": "ViewText Configuration",
+  "description": "Schema for ViewText TOML layout configuration files",
+  "type": "object",
+  "properties": {
+    "fields": {
+      "type": "object",
+      "description": "Field definitions that extract and transform data from context",
+      "additionalProperties": {
+        "$ref": "#/definitions/field"
+      }
+    },
+    "formatters": {
+      "type": "object",
+      "description": "Global formatter configurations",
+      "additionalProperties": {
+        "$ref": "#/definitions/formatter"
+      }
+    },
+    "layouts": {
+      "type": "object",
+      "description": "Layout definitions that map fields to output lines",
+      "additionalProperties": {
+        "$ref": "#/definitions/layout"
+      }
+    },
+    "context_provider": {
+      "type": "string",
+      "description": "Name of the context provider to use"
+    }
+  },
+  "definitions": {
+    "field": {
+      "type": "object",
+      "description": "Field definition for extracting and transforming context data",
+      "properties": {
+        "context_key": {
+          "type": "string",
+          "description": "Key to look up in the context dictionary (supports dot notation and method calls)"
+        },
+        "default": {
+          "description": "Default value if the field is not found or validation fails"
+        },
+        "transform": {
+          "type": "string",
+          "enum": ["upper", "lower", "title", "strip", "int", "float", "str", "bool"],
+          "description": "Simple transformation to apply to the value"
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "celsius_to_fahrenheit",
+            "fahrenheit_to_celsius",
+            "multiply",
+            "divide",
+            "add",
+            "subtract",
+            "average",
+            "min",
+            "max",
+            "abs",
+            "round",
+            "ceil",
+            "floor",
+            "modulo",
+            "linear_transform",
+            "concat",
+            "split",
+            "substring",
+            "conditional",
+            "format_number"
+          ],
+          "description": "Computed field operation to perform"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of field names to use as sources for operations"
+        },
+        "multiply": {
+          "type": "number",
+          "description": "Multiplier for linear_transform operation"
+        },
+        "divide": {
+          "type": "number",
+          "description": "Divisor for linear_transform or divide operation"
+        },
+        "add": {
+          "type": "number",
+          "description": "Addend for linear_transform operation"
+        },
+        "separator": {
+          "type": "string",
+          "description": "Separator string for concat and split operations"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Index for split operation"
+        },
+        "start": {
+          "type": "integer",
+          "description": "Start index for substring operation"
+        },
+        "end": {
+          "type": "integer",
+          "description": "End index for substring operation"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix string for concat operation"
+        },
+        "suffix": {
+          "type": "string",
+          "description": "Suffix string for concat operation"
+        },
+        "skip_empty": {
+          "type": "boolean",
+          "description": "Skip None/missing sources in concat operation"
+        },
+        "condition": {
+          "type": "object",
+          "description": "Condition for conditional operation",
+          "properties": {
+            "field": {
+              "type": "string",
+              "description": "Field name to check"
+            },
+            "equals": {
+              "description": "Value to compare against"
+            }
+          },
+          "required": ["field", "equals"]
+        },
+        "if_true": {
+          "type": "string",
+          "description": "Value to return if condition is true (supports ~field~ syntax)"
+        },
+        "if_false": {
+          "type": "string",
+          "description": "Value to return if condition is false (supports ~field~ syntax)"
+        },
+        "decimals_param": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Decimal places for format_number operation"
+        },
+        "decimal_sep": {
+          "type": "string",
+          "maxLength": 1,
+          "description": "Decimal separator for format_number operation"
+        },
+        "thousands_sep": {
+          "type": "string",
+          "maxLength": 1,
+          "description": "Thousands separator for format_number operation"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "str",
+            "string",
+            "int",
+            "integer",
+            "float",
+            "bool",
+            "boolean",
+            "list",
+            "array",
+            "dict",
+            "object",
+            "any"
+          ],
+          "description": "Expected type of the field value for validation"
+        },
+        "on_validation_error": {
+          "type": "string",
+          "enum": ["use_default", "raise", "skip", "coerce"],
+          "description": "Error handling strategy when validation fails"
+        },
+        "min_value": {
+          "type": "number",
+          "description": "Minimum value for numeric types"
+        },
+        "max_value": {
+          "type": "number",
+          "description": "Maximum value for numeric types"
+        },
+        "min_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum length for string types"
+        },
+        "max_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum length for string types"
+        },
+        "pattern": {
+          "type": "string",
+          "format": "regex",
+          "description": "Regex pattern for string validation"
+        },
+        "allowed_values": {
+          "type": "array",
+          "description": "List of allowed values (enum validation)"
+        },
+        "min_items": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum number of items for list/array types"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum number of items for list/array types"
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["context_key"],
+          "description": "Context field: extracts value from context dictionary"
+        },
+        {
+          "required": ["operation"],
+          "description": "Computed field: performs calculation on source data"
+        }
+      ]
+    },
+    "formatter": {
+      "type": "object",
+      "description": "Formatter configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "text_uppercase",
+            "number",
+            "price",
+            "datetime",
+            "relative_time",
+            "template"
+          ],
+          "description": "Formatter type"
+        },
+        "symbol": {
+          "type": "string",
+          "description": "Currency symbol for price formatter"
+        },
+        "symbol_position": {
+          "type": "string",
+          "enum": ["prefix", "suffix"],
+          "description": "Position of currency symbol"
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of decimal places"
+        },
+        "thousands_sep": {
+          "type": "string",
+          "maxLength": 1,
+          "description": "Thousands separator character"
+        },
+        "decimal_sep": {
+          "type": "string",
+          "maxLength": 1,
+          "description": "Decimal separator character"
+        },
+        "prefix": {
+          "type": "string",
+          "description": "String to prepend to the value"
+        },
+        "suffix": {
+          "type": "string",
+          "description": "String to append to the value"
+        },
+        "format": {
+          "type": "string",
+          "description": "Format string (e.g., datetime format like '%Y-%m-%d')"
+        },
+        "template": {
+          "type": "string",
+          "description": "Template string with {field_name} placeholders"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of field names for template substitution"
+        }
+      },
+      "required": ["type"]
+    },
+    "layout": {
+      "type": "object",
+      "description": "Layout definition",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the layout"
+        },
+        "lines": {
+          "type": "array",
+          "description": "List of line configurations",
+          "items": {
+            "$ref": "#/definitions/line"
+          }
+        }
+      },
+      "required": ["name", "lines"]
+    },
+    "line": {
+      "type": "object",
+      "description": "Line configuration in a layout",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Name of the field to display on this line"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Line index (0-based position in the layout)"
+        },
+        "formatter": {
+          "type": "string",
+          "description": "Name of the formatter to apply (built-in or custom)"
+        },
+        "formatter_params": {
+          "type": "object",
+          "description": "Parameters to pass to the formatter",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "Currency symbol for price formatter"
+            },
+            "symbol_position": {
+              "type": "string",
+              "enum": ["prefix", "suffix"],
+              "description": "Position of currency symbol"
+            },
+            "decimals": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of decimal places"
+            },
+            "thousands_sep": {
+              "type": "string",
+              "maxLength": 1,
+              "description": "Thousands separator character"
+            },
+            "decimal_sep": {
+              "type": "string",
+              "maxLength": 1,
+              "description": "Decimal separator character"
+            },
+            "prefix": {
+              "type": "string",
+              "description": "String to prepend to the value"
+            },
+            "suffix": {
+              "type": "string",
+              "description": "String to append to the value"
+            },
+            "format": {
+              "type": "string",
+              "description": "Format string (e.g., datetime format)"
+            },
+            "template": {
+              "type": "string",
+              "description": "Template string with {field_name} placeholders"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of field names for template substitution"
+            }
+          }
+        }
+      },
+      "required": ["field", "index"]
+    }
+  }
+}

@@ -12,6 +12,7 @@ from typing import Any, Callable, Optional, Union, cast
 
 from .loader import FieldMapping, LayoutLoader
 from .registry import BaseFieldRegistry
+from .validator import FieldValidator
 
 
 class MethodCallParser:
@@ -222,11 +223,11 @@ class RegistryBuilder:
 
         for field_name, mapping in field_mappings.items():
             if mapping.operation:
-                getter = RegistryBuilder._create_operation_getter(mapping)
+                getter = RegistryBuilder._create_operation_getter(field_name, mapping)
             else:
                 context_key = mapping.context_key or field_name
                 getter = RegistryBuilder._create_getter(
-                    context_key, mapping.default, mapping.transform
+                    field_name, context_key, mapping.default, mapping.transform, mapping
                 )
             registry.register(field_name, getter)
 
@@ -234,21 +235,27 @@ class RegistryBuilder:
 
     @staticmethod
     def _create_getter(
+        field_name: str,
         context_key: Optional[str] = None,
         default: Any = None,
         transform: Optional[str] = None,
+        mapping: Optional[FieldMapping] = None,
     ) -> Callable[[dict[str, Any]], Any]:
         """
         Create a getter function for a field.
 
         Parameters
         ----------
+        field_name : str
+            Name of the field
         context_key : str, optional
             Context key string with optional attribute/method access
         default : Any, optional
             Default value if field is not found
         transform : str, optional
             Transform to apply (upper, lower, title, strip, int, float, str, bool)
+        mapping : FieldMapping, optional
+            Complete field mapping with validation configuration
 
         Returns
         -------
@@ -257,12 +264,28 @@ class RegistryBuilder:
 
         Examples
         --------
-        >>> getter = RegistryBuilder._create_getter("temperature", default=0)
+        >>> getter = RegistryBuilder._create_getter("temp", "temperature", default=0)
         >>> getter({"temperature": 25})
         25
         >>> getter({})
         0
         """
+        validator = None
+        if mapping and mapping.type:
+            validator = FieldValidator(
+                field_name=field_name,
+                field_type=mapping.type,
+                on_validation_error=mapping.on_validation_error,
+                default=default,
+                min_value=mapping.min_value,
+                max_value=mapping.max_value,
+                min_length=mapping.min_length,
+                max_length=mapping.max_length,
+                pattern=mapping.pattern,
+                allowed_values=mapping.allowed_values,
+                min_items=mapping.min_items,
+                max_items=mapping.max_items,
+            )
 
         def getter(context: dict[str, Any]) -> Any:
             if context_key is None:
@@ -285,6 +308,9 @@ class RegistryBuilder:
 
             except (AttributeError, TypeError, KeyError):
                 return default
+
+            if validator:
+                value = validator.validate(value)
 
             if transform and value is not None:
                 value = RegistryBuilder._apply_transform(value, transform)
@@ -616,6 +642,7 @@ class RegistryBuilder:
 
     @staticmethod
     def _create_operation_getter(
+        field_name: str,
         mapping: FieldMapping,
     ) -> Callable[[dict[str, Any]], Any]:
         """
@@ -623,6 +650,8 @@ class RegistryBuilder:
 
         Parameters
         ----------
+        field_name : str
+            Name of the field
         mapping : FieldMapping
             Field mapping configuration containing operation and parameters
 
@@ -638,7 +667,7 @@ class RegistryBuilder:
         ...     operation="celsius_to_fahrenheit",
         ...     context_key="temp_c"
         ... )
-        >>> getter = RegistryBuilder._create_operation_getter(mapping)
+        >>> getter = RegistryBuilder._create_operation_getter("temp_f", mapping)
         >>> getter({"temp_c": 0})
         32.0
         """
@@ -656,6 +685,23 @@ class RegistryBuilder:
             and operation not in string_operations
         ):
             raise ValueError(f"Unknown operation: {operation}")
+
+        validator = None
+        if mapping.type:
+            validator = FieldValidator(
+                field_name=field_name,
+                field_type=mapping.type,
+                on_validation_error=mapping.on_validation_error,
+                default=mapping.default,
+                min_value=mapping.min_value,
+                max_value=mapping.max_value,
+                min_length=mapping.min_length,
+                max_length=mapping.max_length,
+                pattern=mapping.pattern,
+                allowed_values=mapping.allowed_values,
+                min_items=mapping.min_items,
+                max_items=mapping.max_items,
+            )
 
         params = {
             "sources": mapping.sources,
@@ -681,43 +727,53 @@ class RegistryBuilder:
 
         def getter(context: dict[str, Any]) -> Any:
             try:
+                result = None
                 if operation == "linear_transform":
-                    return RegistryBuilder._handle_linear_transform(context, params)
+                    result = RegistryBuilder._handle_linear_transform(context, params)
 
-                if operation == "concat":
-                    return RegistryBuilder._handle_concat_operation(context, params)
+                elif operation == "concat":
+                    result = RegistryBuilder._handle_concat_operation(context, params)
 
-                if operation == "split":
-                    return RegistryBuilder._handle_split_operation(context, params)
+                elif operation == "split":
+                    result = RegistryBuilder._handle_split_operation(context, params)
 
-                if operation == "substring":
-                    return RegistryBuilder._handle_substring_operation(context, params)
-
-                if operation == "conditional":
-                    return RegistryBuilder._handle_conditional_operation(
+                elif operation == "substring":
+                    result = RegistryBuilder._handle_substring_operation(
                         context, params
                     )
 
-                if operation == "format_number":
-                    return RegistryBuilder._handle_format_number_operation(
+                elif operation == "conditional":
+                    result = RegistryBuilder._handle_conditional_operation(
                         context, params
                     )
 
-                op_func = RegistryBuilder.OPERATIONS.get(operation)
-                if op_func is None:
-                    return params["default"]
-
-                op_func_typed = cast(Callable[..., Any], op_func)
-
-                if params["sources"]:
-                    return RegistryBuilder._handle_sources_operation(
-                        context, operation, op_func_typed, params
+                elif operation == "format_number":
+                    result = RegistryBuilder._handle_format_number_operation(
+                        context, params
                     )
-                elif params["context_key"]:
-                    return RegistryBuilder._handle_context_key_operation(
-                        context, operation, op_func_typed, params
-                    )
-                return params["default"]
+
+                else:
+                    op_func = RegistryBuilder.OPERATIONS.get(operation)
+                    if op_func is None:
+                        result = params["default"]
+                    else:
+                        op_func_typed = cast(Callable[..., Any], op_func)
+
+                        if params["sources"]:
+                            result = RegistryBuilder._handle_sources_operation(
+                                context, operation, op_func_typed, params
+                            )
+                        elif params["context_key"]:
+                            result = RegistryBuilder._handle_context_key_operation(
+                                context, operation, op_func_typed, params
+                            )
+                        else:
+                            result = params["default"]
+
+                if validator and result is not None:
+                    result = validator.validate(result)
+
+                return result
 
             except (TypeError, ValueError, ZeroDivisionError, KeyError, IndexError):
                 return params["default"]

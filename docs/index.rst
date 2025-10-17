@@ -55,7 +55,10 @@ Contents
 
    quickstart
    user_guide
+   fields_reference
+   validation_reference
    computed_fields_reference
+   formatters_reference
    testing
    api_reference
    examples

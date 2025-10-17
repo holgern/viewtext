@@ -160,11 +160,82 @@ viewtext --config examples/layouts.toml show weather
 - **render**: Render a layout with mock data
 - **formatters**: List all available formatters and their descriptions
 - **templates**: List all template formatters used in layouts
+- **test**: Test individual fields with custom context values and formatters
 - **info**: Show configuration file information and global formatters
+
+### Testing Fields
+
+The `test` command allows you to test individual fields with custom values:
+
+```bash
+# Test a computed field
+viewtext test total_price price=19.99 quantity=3
+
+# Test with a formatter
+viewtext test temp_f temp_c=25 --formatter temperature
+
+# Test template formatters (requires --layout option)
+viewtext test current_price \
+  'current_price={"fiat": "€1.234", "usd": 1.15, "sat_usd": 115000}' \
+  --formatter template --layout crypto_composite_price
+```
+
+### JSON Pipeline Support
+
+Pipe JSON data from external sources directly to ViewText:
+
+```bash
+# From API
+curl -s https://api.example.com/data | viewtext render layout --json
+
+# From Python
+python3 -c "import json; print(json.dumps({'field': 'value'}))" | viewtext render layout --json
+
+# From file with jq
+cat data.json | jq '.users[0]' | viewtext render layout --json
+
+# Live dashboard
+watch -n 5 'curl -s API_URL | viewtext -c config.toml render layout --json'
+```
+
+See `examples/json_pipeline_example.md` for detailed examples and use cases.
 
 ### Global Options
 
 - **--config, -c**: Path to layouts.toml file (can be placed before any command)
+
+## Editor Support
+
+ViewText provides a JSON Schema for TOML validation and autocomplete. Install the
+[Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml)
+extension in VS Code or use Taplo LSP in other editors for:
+
+- **Validation**: Catch errors in field definitions, formatters, and layouts
+- **Autocomplete**: Get intelligent suggestions for property names and values
+- **Hover Documentation**: View descriptions of all configuration options
+
+The schema is automatically configured in `.taplo.toml` for all layout files.
+
+## Documentation
+
+Full documentation is available at [Read the Docs](https://viewtext.readthedocs.io/):
+
+- [Quick Start Guide](https://viewtext.readthedocs.io/en/latest/quickstart.html) - Get
+  started quickly
+- [User Guide](https://viewtext.readthedocs.io/en/latest/user_guide.html) - Core
+  concepts and features
+- [Fields Reference](https://viewtext.readthedocs.io/en/latest/fields_reference.html) -
+  Complete field definition reference
+- [Validation Reference](https://viewtext.readthedocs.io/en/latest/validation_reference.html) -
+  Field validation and type checking
+- [Computed Fields Reference](https://viewtext.readthedocs.io/en/latest/computed_fields_reference.html) -
+  Complete list of data transformation operations
+- [Formatters Reference](https://viewtext.readthedocs.io/en/latest/formatters_reference.html) -
+  Complete list of display formatters with examples
+- [API Reference](https://viewtext.readthedocs.io/en/latest/api_reference.html) - Python
+  API documentation
+- [Examples](https://viewtext.readthedocs.io/en/latest/examples.html) - Real-world
+  examples and use cases
 
 ## License
 

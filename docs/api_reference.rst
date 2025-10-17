@@ -34,3 +34,19 @@ viewtext.loader
    :members:
    :undoc-members:
    :show-inheritance:
+
+viewtext.validator
+------------------
+
+.. automodule:: viewtext.validator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+viewtext.registry_builder
+--------------------------
+
+.. automodule:: viewtext.registry_builder
+   :members:
+   :undoc-members:
+   :show-inheritance:

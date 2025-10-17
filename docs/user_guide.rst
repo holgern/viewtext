@@ -46,109 +46,39 @@ Checking for Fields
 Formatter System
 ----------------
 
-Formatters transform raw values into formatted strings. ViewText includes several built-in
+Formatters transform raw values into formatted strings for display. ViewText includes several built-in
 formatters and supports custom formatters.
 
-Built-in Formatters
-~~~~~~~~~~~~~~~~~~~
+ViewText provides built-in formatters for:
 
-**text**
+- **text** - Basic text with prefix/suffix
+- **text_uppercase** - Convert to uppercase
+- **number** - Format numbers with separators and decimals
+- **price** - Currency formatting with symbols
+- **datetime** - Format timestamps and dates
+- **relative_time** - Human-readable time differences (e.g., "5m ago")
+- **template** - Combine multiple fields with Python format specifications
 
-Basic text formatting with optional prefix and suffix:
+Quick Example
+~~~~~~~~~~~~~
 
-.. code-block:: python
+.. code-block:: toml
 
-    formatter_params:
-        prefix: "Value: "
-        suffix: " units"
+    [[layouts.demo.lines]]
+    field = "price"
+    index = 0
+    formatter = "price"
 
-**text_uppercase**
-
-Converts text to uppercase:
-
-.. code-block:: text
-
-    "hello" → "HELLO"
-
-**number**
-
-Format numbers with precision and separators:
-
-.. code-block:: yaml
-
-    formatter_params:
-        decimals: 2
-        thousands_sep: ","
-        prefix: "$"
-        suffix: " USD"
+    [layouts.demo.lines.formatter_params]
+    symbol = "$"
+    decimals = 2
+    thousands_sep = ","
 
 .. code-block:: text
 
-    1234.567 → "$1,234.57 USD"
+    Input: 1234.50 → Output: "$1,234.50"
 
-**price**
-
-Specialized price formatting:
-
-.. code-block:: yaml
-
-    formatter_params:
-        symbol: "$"
-        symbol_position: "prefix"  # or "suffix"
-        decimals: 2
-        thousands_sep: ","
-
-.. code-block:: text
-
-    1234.50 → "$1,234.50"
-
-**datetime**
-
-Format timestamps and datetime objects:
-
-.. code-block:: yaml
-
-    formatter_params:
-        format: "%Y-%m-%d %H:%M:%S"
-
-.. code-block:: text
-
-    1234567890 → "2009-02-13 23:31:30"
-
-**relative_time**
-
-Format time differences in human-readable format:
-
-.. code-block:: yaml
-
-    formatter_params:
-        format: "short"  # or "long"
-
-.. code-block:: text
-
-    300 → "5m ago"  # short format
-    300 → "5 minutes ago"  # long format
-
-**template**
-
-Combine multiple fields using a template string with Python format specifications:
-
-.. code-block:: yaml
-
-    formatter_params:
-        template: "{symbol} - ${price:.2f} - {volume}/$"
-        fields: ["symbol", "price", "volume"]
-
-.. code-block:: text
-
-    # With context: {"symbol": "BTC", "price": 45234.567, "volume": "1.2M"}
-    "BTC - $45234.57 - 1.2M/$"
-
-The template formatter supports:
-
-- Nested field access via dot notation (e.g., ``current_price.usd``)
-- Python format specifications (e.g., ``.2f`` for 2 decimal places)
-- Multiple fields combined in a single line
+For complete documentation of all formatters, parameters, and examples, see :doc:`formatters_reference`.
 
 Custom Formatters
 ~~~~~~~~~~~~~~~~~
@@ -287,6 +217,46 @@ The engine resolves fields in this order:
 3. Return None if not found
 
 This allows mixing registered fields with direct context values.
+
+For detailed information on field types and definitions, see :doc:`fields_reference`.
+
+Field Validation
+----------------
+
+ViewText provides comprehensive field validation to ensure data quality and type safety.
+Validation rules are defined declaratively in TOML configuration files.
+
+Quick Example
+~~~~~~~~~~~~~
+
+.. code-block:: toml
+
+    [fields.user_age]
+    context_key = "age"
+    type = "int"
+    min_value = 0
+    max_value = 120
+    on_validation_error = "use_default"
+    default = 0
+
+This field definition ensures that ``user_age`` is:
+
+- An integer value
+- Between 0 and 120
+- Falls back to 0 if validation fails
+
+Validation Features
+~~~~~~~~~~~~~~~~~~~
+
+ViewText supports:
+
+- **Type Checking**: Ensure values are the correct type (str, int, float, bool, list, dict)
+- **Constraint Validation**: Enforce numeric ranges, string lengths, patterns, and allowed values
+- **Error Handling**: Control what happens when validation fails (use_default, raise, skip, coerce)
+- **Type Coercion**: Automatically convert compatible types
+
+For complete documentation of validation parameters, error handling strategies, and examples,
+see :doc:`validation_reference`.
 
 Computed Fields
 ---------------
@@ -881,3 +851,79 @@ Create reusable context builders:
 
     weather = WeatherContext(api_response)
     lines = engine.build_line_str(layout, weather.to_context())
+
+TOML Schema Validation
+-----------------------
+
+ViewText provides a JSON Schema for validating TOML configuration files with editor support.
+
+Editor Support
+~~~~~~~~~~~~~~
+
+The schema enables validation and autocomplete in editors that support Taplo:
+
+**VS Code**
+
+Install the `Even Better TOML <https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml>`_ extension for:
+
+- Syntax validation
+- Property autocomplete
+- Hover documentation
+- Format on save
+
+**Neovim**
+
+Use the `taplo LSP <https://github.com/tamasfe/taplo>`_ for validation and completion.
+
+**Other Editors**
+
+Any editor with Taplo LSP support will work.
+
+Schema Features
+~~~~~~~~~~~~~~~
+
+The schema validates:
+
+- **Field definitions** - Ensures proper structure with required properties
+- **Formatter configurations** - Validates types and parameters
+- **Layout definitions** - Validates layout structure
+- **Computed operations** - Validates operation names and parameters
+- **Validation rules** - Validates type constraints and error handling
+
+Example with autocomplete:
+
+.. code-block:: toml
+
+    [fields.user_age]
+    context_key = "age"
+    type = "int"                    # Autocomplete suggests: str, int, float, bool, list, dict
+    min_value = 0
+    max_value = 120
+    on_validation_error = "use_default"  # Autocomplete suggests: use_default, raise, skip, coerce
+
+    [fields.temp_f]
+    operation = "celsius_to_fahrenheit"  # Autocomplete suggests all operations
+
+Validation Command
+~~~~~~~~~~~~~~~~~~
+
+Check TOML files manually using the ``taplo`` command:
+
+.. code-block:: bash
+
+    # Check a single file
+    taplo check layouts.toml
+
+    # Format and check
+    taplo format layouts.toml
+
+Configuration
+~~~~~~~~~~~~~
+
+The schema is configured in ``.taplo.toml`` and automatically applies to:
+
+- ``**/layouts*.toml`` - Layout configuration files
+- ``**/fields.toml`` - Field-only configuration files
+- ``**/formatters.toml`` - Formatter-only configuration files
+
+See ``.taplo/README.md`` for more information on the schema.

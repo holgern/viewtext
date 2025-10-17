@@ -82,12 +82,12 @@ class TestMethodCallParser(unittest.TestCase):
 
 class TestRegistryBuilder(unittest.TestCase):
     def test_getter_with_simple_key(self):
-        getter = RegistryBuilder._create_getter("name", default="Unknown")
+        getter = RegistryBuilder._create_getter("name", "name", default="Unknown")
         context = {"name": "Alice"}
         self.assertEqual(getter(context), "Alice")
 
     def test_getter_with_missing_key_returns_default(self):
-        getter = RegistryBuilder._create_getter("name", default="Unknown")
+        getter = RegistryBuilder._create_getter("name", "name", default="Unknown")
         context = {}
         self.assertEqual(getter(context), "Unknown")
 
@@ -95,7 +95,9 @@ class TestRegistryBuilder(unittest.TestCase):
         class Obj:
             name = "Alice"
 
-        getter = RegistryBuilder._create_getter("obj.name", default="Unknown")
+        getter = RegistryBuilder._create_getter(
+            "obj_name", "obj.name", default="Unknown"
+        )
         context = {"obj": Obj()}
         self.assertEqual(getter(context), "Alice")
 
@@ -104,7 +106,9 @@ class TestRegistryBuilder(unittest.TestCase):
             def get_name(self):
                 return "Alice"
 
-        getter = RegistryBuilder._create_getter("obj.get_name()", default="Unknown")
+        getter = RegistryBuilder._create_getter(
+            "name", "obj.get_name()", default="Unknown"
+        )
         context = {"obj": Obj()}
         self.assertEqual(getter(context), "Alice")
 
@@ -113,7 +117,9 @@ class TestRegistryBuilder(unittest.TestCase):
             def get_value(self, key):
                 return {"name": "Alice", "age": 30}.get(key)
 
-        getter = RegistryBuilder._create_getter("obj.get_value('name')", default="???")
+        getter = RegistryBuilder._create_getter(
+            "name", "obj.get_value('name')", default="???"
+        )
         context = {"obj": Obj()}
         self.assertEqual(getter(context), "Alice")
 
@@ -130,21 +136,21 @@ class TestRegistryBuilder(unittest.TestCase):
                 return Ticker(50000.0)
 
         getter = RegistryBuilder._create_getter(
-            "portfolio.get_ticker('BTC').get_price()", default=0.0
+            "btc_price", "portfolio.get_ticker('BTC').get_price()", default=0.0
         )
         context = {"portfolio": Portfolio()}
         self.assertEqual(getter(context), 50000.0)
 
     def test_getter_with_transform_upper(self):
         getter = RegistryBuilder._create_getter(
-            "name", default="unknown", transform="upper"
+            "name", "name", default="unknown", transform="upper"
         )
         context = {"name": "alice"}
         self.assertEqual(getter(context), "ALICE")
 
     def test_getter_with_transform_lower(self):
         getter = RegistryBuilder._create_getter(
-            "name", default="UNKNOWN", transform="lower"
+            "name", "name", default="UNKNOWN", transform="lower"
         )
         context = {"name": "ALICE"}
         self.assertEqual(getter(context), "alice")
@@ -153,7 +159,9 @@ class TestRegistryBuilder(unittest.TestCase):
         class Obj:
             pass
 
-        getter = RegistryBuilder._create_getter("obj.missing", default="default")
+        getter = RegistryBuilder._create_getter(
+            "missing", "obj.missing", default="default"
+        )
         context = {"obj": Obj()}
         self.assertEqual(getter(context), "default")
 
@@ -162,12 +170,14 @@ class TestRegistryBuilder(unittest.TestCase):
             def get_value(self, key):
                 return {"name": "Alice"}.get(key)
 
-        getter = RegistryBuilder._create_getter("obj.get_value()", default="default")
+        getter = RegistryBuilder._create_getter(
+            "value", "obj.get_value()", default="default"
+        )
         context = {"obj": Obj()}
         self.assertEqual(getter(context), "default")
 
     def test_getter_with_missing_object_returns_default(self):
-        getter = RegistryBuilder._create_getter("obj.name", default="default")
+        getter = RegistryBuilder._create_getter("name", "obj.name", default="default")
         context = {}
         self.assertEqual(getter(context), "default")
 
@@ -177,7 +187,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="celsius_to_fahrenheit", sources=["temp_c"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("temp_f", mapping)
         context = {"temp_c": 0}
         self.assertEqual(getter(context), 32.0)
 
@@ -191,7 +201,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="fahrenheit_to_celsius", sources=["temp_f"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("temp_c", mapping)
         context = {"temp_f": 32}
         self.assertAlmostEqual(getter(context), 0.0, places=5)
 
@@ -205,7 +215,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="multiply", sources=["price", "quantity"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("total", mapping)
         context = {"price": 10.5, "quantity": 3}
         self.assertEqual(getter(context), 31.5)
 
@@ -213,7 +223,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="divide", sources=["total", "count"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("average", mapping)
         context = {"total": 100, "count": 4}
         self.assertEqual(getter(context), 25.0)
 
@@ -221,19 +231,19 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="divide", sources=["total", "count"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("result", mapping)
         context = {"total": 100, "count": 0}
         self.assertEqual(getter(context), 0.0)
 
     def test_add_operation(self):
         mapping = FieldMapping(operation="add", sources=["a", "b"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("sum", mapping)
         context = {"a": 10, "b": 5}
         self.assertEqual(getter(context), 15)
 
     def test_subtract_operation(self):
         mapping = FieldMapping(operation="subtract", sources=["a", "b"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("diff", mapping)
         context = {"a": 10, "b": 3}
         self.assertEqual(getter(context), 7)
 
@@ -241,25 +251,25 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="average", sources=["a", "b", "c"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("avg", mapping)
         context = {"a": 10, "b": 20, "c": 30}
         self.assertEqual(getter(context), 20.0)
 
     def test_min_operation(self):
         mapping = FieldMapping(operation="min", sources=["a", "b", "c"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("minimum", mapping)
         context = {"a": 10, "b": 5, "c": 15}
         self.assertEqual(getter(context), 5)
 
     def test_max_operation(self):
         mapping = FieldMapping(operation="max", sources=["a", "b", "c"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("maximum", mapping)
         context = {"a": 10, "b": 25, "c": 15}
         self.assertEqual(getter(context), 25)
 
     def test_abs_operation(self):
         mapping = FieldMapping(operation="abs", sources=["value"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("abs_value", mapping)
         context = {"value": -42}
         self.assertEqual(getter(context), 42)
 
@@ -268,7 +278,7 @@ class TestComputedFields(unittest.TestCase):
 
     def test_round_operation(self):
         mapping = FieldMapping(operation="round", sources=["value"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("rounded", mapping)
         context = {"value": 3.14159}
         self.assertEqual(getter(context), 3)
 
@@ -283,7 +293,7 @@ class TestComputedFields(unittest.TestCase):
             add=10,
             default=0.0,
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("transformed", mapping)
         context = {"value": 4}
         self.assertEqual(getter(context), 20.0)
 
@@ -291,7 +301,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="linear_transform", sources=["value"], multiply=3, default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("scaled", mapping)
         context = {"value": 5}
         self.assertEqual(getter(context), 15.0)
 
@@ -299,7 +309,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="linear_transform", sources=["value"], add=100, default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("offset", mapping)
         context = {"value": 25}
         self.assertEqual(getter(context), 125.0)
 
@@ -307,7 +317,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="linear_transform", sources=["value"], divide=4, default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("divided", mapping)
         context = {"value": 20}
         self.assertEqual(getter(context), 5.0)
 
@@ -315,7 +325,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="linear_transform", sources=["value"], divide=0, default=999.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("result", mapping)
         context = {"value": 20}
         self.assertEqual(getter(context), 999.0)
 
@@ -323,7 +333,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="multiply", sources=["price", "quantity"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("total", mapping)
         context = {"price": 10.5}
         self.assertEqual(getter(context), 0.0)
 
@@ -331,36 +341,36 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="multiply", sources=["price", "quantity"], default=0.0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("total", mapping)
         context = {"price": "not_a_number", "quantity": 3}
         self.assertEqual(getter(context), 0.0)
 
     def test_invalid_operation_raises_error(self):
         mapping = FieldMapping(operation="invalid_op", sources=["value"], default=0.0)
         with self.assertRaises(ValueError):
-            RegistryBuilder._create_operation_getter(mapping)
+            RegistryBuilder._create_operation_getter("result", mapping)
 
     def test_ceil_operation(self):
         mapping = FieldMapping(operation="ceil", sources=["value"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("ceiled", mapping)
         context = {"value": 3.2}
         self.assertEqual(getter(context), 4)
 
     def test_ceil_operation_negative(self):
         mapping = FieldMapping(operation="ceil", sources=["value"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("ceiled", mapping)
         context = {"value": -3.7}
         self.assertEqual(getter(context), -3)
 
     def test_floor_operation(self):
         mapping = FieldMapping(operation="floor", sources=["value"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("floored", mapping)
         context = {"value": 3.8}
         self.assertEqual(getter(context), 3)
 
     def test_floor_operation_negative(self):
         mapping = FieldMapping(operation="floor", sources=["value"], default=0.0)
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("floored", mapping)
         context = {"value": -3.2}
         self.assertEqual(getter(context), -4)
 
@@ -368,7 +378,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="modulo", sources=["value", "divisor"], default=0
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("remainder", mapping)
         context = {"value": 17, "divisor": 5}
         self.assertEqual(getter(context), 2)
 
@@ -376,7 +386,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="modulo", sources=["value", "divisor"], default=999
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("remainder", mapping)
         context = {"value": 17, "divisor": 0}
         self.assertEqual(getter(context), 999)
 
@@ -384,7 +394,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="concat", sources=["first", "last"], separator=" ", default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("full_name", mapping)
         context = {"first": "John", "last": "Doe"}
         self.assertEqual(getter(context), "John Doe")
 
@@ -392,7 +402,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="concat", sources=["part1", "part2"], default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("combined", mapping)
         context = {"part1": "Hello", "part2": "World"}
         self.assertEqual(getter(context), "HelloWorld")
 
@@ -400,7 +410,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="concat", sources=["first", "last"], separator=" ", default="N/A"
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("full_name", mapping)
         context = {"first": "John"}
         self.assertEqual(getter(context), "N/A")
 
@@ -408,7 +418,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="concat", sources=["price"], prefix="$", default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_price", mapping)
         context = {"price": "99.99"}
         self.assertEqual(getter(context), "$99.99")
 
@@ -416,7 +426,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="concat", sources=["temp"], suffix="°C", default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_temp", mapping)
         context = {"temp": "25"}
         self.assertEqual(getter(context), "25°C")
 
@@ -428,7 +438,7 @@ class TestComputedFields(unittest.TestCase):
             suffix="]",
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("wrapped", mapping)
         context = {"value": "test"}
         self.assertEqual(getter(context), "[test]")
 
@@ -441,7 +451,7 @@ class TestComputedFields(unittest.TestCase):
             suffix="!",
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("greeting", mapping)
         context = {"first": "John", "last": "Doe"}
         self.assertEqual(getter(context), "Name: John Doe!")
 
@@ -453,7 +463,7 @@ class TestComputedFields(unittest.TestCase):
             skip_empty=True,
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("full_name", mapping)
         context = {"first": "John", "last": "Doe"}
         self.assertEqual(getter(context), "John Doe")
 
@@ -465,7 +475,7 @@ class TestComputedFields(unittest.TestCase):
             skip_empty=True,
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("full_name", mapping)
         context = {}
         self.assertEqual(getter(context), "")
 
@@ -477,7 +487,7 @@ class TestComputedFields(unittest.TestCase):
             skip_empty=False,
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("full_name", mapping)
         context = {"first": "John", "last": "Doe"}
         self.assertEqual(getter(context), "N/A")
 
@@ -491,7 +501,7 @@ class TestComputedFields(unittest.TestCase):
             skip_empty=True,
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("location", mapping)
         context = {"city": "San Francisco", "country": "USA"}
         self.assertEqual(getter(context), "Location: San Francisco, USA.")
 
@@ -499,7 +509,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="split", sources=["text"], separator=" ", default=[]
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("words", mapping)
         context = {"text": "Hello World Test"}
         self.assertEqual(getter(context), ["Hello", "World", "Test"])
 
@@ -507,7 +517,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="split", sources=["csv"], separator=",", default=[]
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("items", mapping)
         context = {"csv": "apple,banana,cherry"}
         self.assertEqual(getter(context), ["apple", "banana", "cherry"])
 
@@ -515,7 +525,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="split", sources=["text"], separator=" ", default=["error"]
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("words", mapping)
         context = {}
         self.assertEqual(getter(context), ["error"])
 
@@ -523,7 +533,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="substring", sources=["text"], start=0, end=5, default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("substr", mapping)
         context = {"text": "Hello World"}
         self.assertEqual(getter(context), "Hello")
 
@@ -531,7 +541,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="substring", sources=["text"], start=6, default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("substr", mapping)
         context = {"text": "Hello World"}
         self.assertEqual(getter(context), "World")
 
@@ -539,7 +549,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="substring", sources=["text"], start=-5, default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("substr", mapping)
         context = {"text": "Hello World"}
         self.assertEqual(getter(context), "World")
 
@@ -547,7 +557,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="substring", sources=["text"], start=0, end=5, default="N/A"
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("substr", mapping)
         context = {}
         self.assertEqual(getter(context), "N/A")
 
@@ -559,7 +569,7 @@ class TestComputedFields(unittest.TestCase):
             index=1,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("domain", mapping)
         context = {"email": "user@example.com"}
         self.assertEqual(getter(context), "example.com")
 
@@ -567,7 +577,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="split", sources=["path"], separator="/", index=-1, default=""
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("filename", mapping)
         context = {"path": "/home/user/file.txt"}
         self.assertEqual(getter(context), "file.txt")
 
@@ -575,7 +585,7 @@ class TestComputedFields(unittest.TestCase):
         mapping = FieldMapping(
             operation="split", sources=["text"], separator=" ", index=10, default="N/A"
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("word", mapping)
         context = {"text": "hello world"}
         self.assertEqual(getter(context), "N/A")
 
@@ -587,7 +597,7 @@ class TestComputedFields(unittest.TestCase):
             if_false="~price_default~",
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("price", mapping)
         context = {"currency": "usd", "price_usd": "100", "price_default": "50"}
         self.assertEqual(getter(context), "100")
 
@@ -599,7 +609,7 @@ class TestComputedFields(unittest.TestCase):
             if_false="~price_default~",
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("price", mapping)
         context = {"currency": "eur", "price_usd": "100", "price_default": "50"}
         self.assertEqual(getter(context), "50")
 
@@ -611,7 +621,7 @@ class TestComputedFields(unittest.TestCase):
             if_false="User: ~username~",
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("user_label", mapping)
         context = {"is_admin": True, "username": "alice"}
         self.assertEqual(getter(context), "Admin: alice")
 
@@ -623,7 +633,7 @@ class TestComputedFields(unittest.TestCase):
             if_false="~inactive_message~",
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("message", mapping)
         context = {}
         self.assertEqual(getter(context), "N/A")
 
@@ -635,7 +645,7 @@ class TestComputedFields(unittest.TestCase):
             if_false="default",
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("price", mapping)
         context = {"currency": "usd"}
         self.assertEqual(getter(context), "")
 
@@ -647,7 +657,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=0,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 100000}
         self.assertEqual(getter(context), "100,000")
 
@@ -659,7 +669,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=0,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 100000}
         self.assertEqual(getter(context), "100.000")
 
@@ -671,7 +681,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=0,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 1234567}
         self.assertEqual(getter(context), "1 234 567")
 
@@ -683,7 +693,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=2,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 1234.567}
         self.assertEqual(getter(context), "1,234.57")
 
@@ -695,7 +705,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=0,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 100000}
         self.assertEqual(getter(context), "100000")
 
@@ -707,7 +717,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=0,
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {}
         self.assertEqual(getter(context), "N/A")
 
@@ -719,7 +729,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=2,
             default="",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 1234567.89}
         self.assertEqual(getter(context), "1.234.567.89")
 
@@ -732,7 +742,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=2,
             default="N/A",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"amount": 1234567.89}
         self.assertEqual(getter(context), "1.234.567,89")
 
@@ -745,7 +755,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=2,
             default="0.00",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"price": 1234567.89}
         self.assertEqual(getter(context), "1'234'567.89")
 
@@ -757,7 +767,7 @@ class TestComputedFields(unittest.TestCase):
             decimals_param=2,
             default="0,00",
         )
-        getter = RegistryBuilder._create_operation_getter(mapping)
+        getter = RegistryBuilder._create_operation_getter("formatted_value", mapping)
         context = {"value": 1234.56}
         self.assertEqual(getter(context), "1234,56")
 

@@ -75,6 +75,14 @@ types. These are enforced by pre-commit hooks.
 Run linting and formatting:
 `ruff check --fix --exit-non-zero-on-fix --config=.ruff.toml`
 
+### cli
+
+Do not use `python -m viewtext` to run the cli but `viewtext` directly!
+
+### pip
+
+Do not use `pip install` but `uv pip install`! viewtext is install with `-e .` .
+
 ## Project Structure
 
 The project is organized as follows:
@@ -138,15 +146,35 @@ requirements-test.txt      # Test dependencies
 
 ## Contribution Guidelines
 
+### TOML Schema
+
+The project includes a JSON Schema for TOML validation located at
+`.taplo/viewtext-schema.json`.
+
+When adding new fields or properties to TOML configurations:
+
+1. Update the schema in `.taplo/viewtext-schema.json`
+2. Add new properties, enums, or definitions as needed
+3. Test with `taplo check examples/*.toml`
+4. Update schema documentation in `.taplo/README.md`
+
+The schema provides:
+
+- Validation for field definitions, formatters, and layouts
+- Autocomplete in VS Code (with Even Better TOML extension)
+- Type checking for TOML configuration files
+
 ### Common Issues
 
 When working on the code, be aware of these common issues:
 
 1. TOML configuration parsing: Ensure layout configurations follow the expected schema
-   defined in `loader.py` Pydantic models
+   defined in `loader.py` Pydantic models and `.taplo/viewtext-schema.json`
 2. Field registry resolution: Fields are resolved first from the field registry, then
    from the context dictionary
 3. Formatter parameters: Formatters accept optional parameters that should be validated
    and have sensible defaults
 4. Type hints: Ensure proper typing for all functions, especially for context
    dictionaries and layout configurations
+5. Schema updates: When adding new operations, transforms, or validation types, update
+   the JSON schema

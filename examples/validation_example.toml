@@ -1,0 +1,87 @@
+[fields.user_age]
+context_key = "age"
+type = "int"
+min_value = 0
+max_value = 120
+on_validation_error = "use_default"
+default = 0
+
+[fields.username]
+context_key = "username"
+type = "str"
+min_length = 3
+max_length = 20
+on_validation_error = "raise"
+
+[fields.email]
+context_key = "email"
+type = "str"
+pattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+on_validation_error = "skip"
+
+[fields.membership]
+context_key = "membership"
+type = "str"
+allowed_values = ["free", "premium", "enterprise"]
+default = "free"
+on_validation_error = "use_default"
+
+[fields.score]
+context_key = "score"
+type = "float"
+min_value = 0.0
+max_value = 100.0
+on_validation_error = "coerce"
+default = 0.0
+
+[fields.tags]
+context_key = "tags"
+type = "list"
+min_items = 1
+max_items = 5
+on_validation_error = "use_default"
+default = []
+
+[fields.profile_complete]
+context_key = "profile_complete"
+type = "bool"
+default = false
+on_validation_error = "coerce"
+
+[layouts.user_info]
+name = "User Information"
+
+[[layouts.user_info.lines]]
+field = "username"
+index = 0
+formatter = "text"
+
+[[layouts.user_info.lines]]
+field = "user_age"
+index = 1
+formatter = "number"
+
+[[layouts.user_info.lines]]
+field = "email"
+index = 2
+formatter = "text"
+
+[[layouts.user_info.lines]]
+field = "membership"
+index = 3
+formatter = "text"
+
+[[layouts.user_info.lines]]
+field = "score"
+index = 4
+formatter = "number"
+
+[[layouts.user_info.lines]]
+field = "tags"
+index = 5
+formatter = "text"
+
+[[layouts.user_info.lines]]
+field = "profile_complete"
+index = 6
+formatter = "text"

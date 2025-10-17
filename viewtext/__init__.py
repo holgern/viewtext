@@ -29,6 +29,7 @@ from .formatters import FormatterRegistry, get_formatter_registry
 from .loader import LayoutLoader, get_layout_loader
 from .registry import BaseFieldRegistry
 from .registry_builder import RegistryBuilder, get_registry_from_config
+from .validator import FieldValidator, ValidationError
 
 
 __all__ = [
@@ -41,4 +42,6 @@ __all__ = [
     "BaseFieldRegistry",
     "RegistryBuilder",
     "get_registry_from_config",
+    "FieldValidator",
+    "ValidationError",
 ]

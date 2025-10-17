@@ -137,6 +137,26 @@ class FieldMapping(BaseModel):
         Decimal separator for format_number operation
     decimals_param : int, optional
         Decimal places for format_number operation
+    type : str, optional
+        Expected type of the field value (str, int, float, bool, dict, list, any)
+    on_validation_error : str, optional
+        Error handling strategy (use_default, raise, skip, coerce)
+    min_value : float, optional
+        Minimum value for numeric types
+    max_value : float, optional
+        Maximum value for numeric types
+    min_length : int, optional
+        Minimum length for string types
+    max_length : int, optional
+        Maximum length for string types
+    pattern : str, optional
+        Regex pattern for string validation
+    allowed_values : list[Any], optional
+        List of allowed values (enum validation)
+    min_items : int, optional
+        Minimum number of items for list/array types
+    max_items : int, optional
+        Maximum number of items for list/array types
     """
 
     context_key: Optional[str] = None
@@ -160,6 +180,16 @@ class FieldMapping(BaseModel):
     decimal_sep: Optional[str] = None
     thousands_sep: Optional[str] = None
     decimals_param: Optional[int] = None
+    type: Optional[str] = None
+    on_validation_error: Optional[str] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    min_length: Optional[int] = None
+    max_length: Optional[int] = None
+    pattern: Optional[str] = None
+    allowed_values: Optional[list[Any]] = None
+    min_items: Optional[int] = None
+    max_items: Optional[int] = None
 
 
 class LayoutsConfig(BaseModel):
