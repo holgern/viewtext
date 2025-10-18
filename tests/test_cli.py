@@ -1,5 +1,4 @@
 import json
-import os
 import tempfile
 from pathlib import Path
 
@@ -36,11 +35,13 @@ formatter = "text"
         config_path = Path(tmpdir) / "layouts.toml"
         config_path.write_text(config_content)
 
-        os.chdir(tmpdir)
-
         json_input = '{"demo1": "Line 1", "demo2": "Line 2"}'
 
-        result = runner.invoke(app, ["render", "demo", "--json"], input=json_input)
+        result = runner.invoke(
+            app,
+            ["--config", str(config_path), "render", "demo", "--json"],
+            input=json_input,
+        )
 
         assert result.exit_code == 0
 
@@ -82,13 +83,15 @@ formatter = "price"
         config_path = Path(tmpdir) / "layouts.toml"
         config_path.write_text(config_content)
 
-        os.chdir(tmpdir)
-
         json_input = (
             '{"text_value": "hello", "number_value": 1234.56, "price_value": 99.99}'
         )
 
-        result = runner.invoke(app, ["render", "advanced", "--json"], input=json_input)
+        result = runner.invoke(
+            app,
+            ["--config", str(config_path), "render", "advanced", "--json"],
+            input=json_input,
+        )
 
         assert result.exit_code == 0
 
@@ -117,11 +120,11 @@ formatter = "text"
         config_path = Path(tmpdir) / "layouts.toml"
         config_path.write_text(config_content)
 
-        os.chdir(tmpdir)
-
         json_input = '{"demo1": "Test Line"}'
 
-        result = runner.invoke(app, ["render", "demo"], input=json_input)
+        result = runner.invoke(
+            app, ["--config", str(config_path), "render", "demo"], input=json_input
+        )
 
         assert result.exit_code == 0
         assert "Test Line" in result.stdout
