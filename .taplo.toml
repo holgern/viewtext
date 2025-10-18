@@ -32,7 +32,7 @@ exclude = ["**/pyproject.toml"]
 
 # Use the ViewText schema for validation and completion
 [rule.schema]
-path = ".taplo/viewtext-schema.json"
+path = "schemas/viewtext.json"
 enabled = true
 
 [rule.formatting]
@@ -50,7 +50,7 @@ name = "viewtext-fields"
 include = ["**/fields.toml", "**/split/fields.toml"]
 
 [rule.schema]
-path = ".taplo/viewtext-schema.json"
+path = "schemas/viewtext.json"
 enabled = true
 
 [[rule]]
@@ -58,5 +58,5 @@ name = "viewtext-formatters"
 include = ["**/formatters.toml", "**/split/formatters.toml"]
 
 [rule.schema]
-path = ".taplo/viewtext-schema.json"
+path = "schemas/viewtext.json"
 enabled = true

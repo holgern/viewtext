@@ -40,9 +40,7 @@ formatter = "text"
 
         json_input = '{"demo1": "Line 1", "demo2": "Line 2"}'
 
-        result = runner.invoke(
-            app, ["render", "demo", "--json", "--json-output"], input=json_input
-        )
+        result = runner.invoke(app, ["render", "demo", "--json"], input=json_input)
 
         assert result.exit_code == 0
 
@@ -90,9 +88,7 @@ formatter = "price"
             '{"text_value": "hello", "number_value": 1234.56, "price_value": 99.99}'
         )
 
-        result = runner.invoke(
-            app, ["render", "advanced", "--json", "--json-output"], input=json_input
-        )
+        result = runner.invoke(app, ["render", "advanced", "--json"], input=json_input)
 
         assert result.exit_code == 0
 
@@ -125,8 +121,8 @@ formatter = "text"
 
         json_input = '{"demo1": "Test Line"}'
 
-        result = runner.invoke(app, ["render", "demo", "--json"], input=json_input)
+        result = runner.invoke(app, ["render", "demo"], input=json_input)
 
         assert result.exit_code == 0
         assert "Test Line" in result.stdout
-        assert "{" not in result.stdout or "layout" not in result.stdout
+        assert "[" not in result.stdout or "Rendered Output" in result.stdout

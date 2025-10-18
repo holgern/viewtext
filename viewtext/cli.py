@@ -148,11 +148,8 @@ def render(
     field_registry: Optional[str] = typer.Option(
         None, "--registry", "-r", help="Custom field registry module path"
     ),
-    json_input: bool = typer.Option(
-        False, "--json", "-j", help="Read context data from stdin as JSON"
-    ),
     json_output: bool = typer.Option(
-        False, "--json-output", "-J", help="Output rendered lines as JSON"
+        False, "--json", "-j", help="Output rendered lines as JSON"
     ),
 ) -> None:
     config = config_path
@@ -172,19 +169,37 @@ def render(
 
         engine = LayoutEngine(field_registry=registry)
 
-        if json_input:
-            if not sys.stdin.isatty():
-                try:
-                    json_data = sys.stdin.read()
+        has_stdin_data = not sys.stdin.isatty()
+
+        if has_stdin_data:
+            try:
+                json_data = sys.stdin.read()
+                if json_data.strip():
                     context = json.loads(json_data)
-                except json.JSONDecodeError as e:
-                    console.print(f"[red]Error parsing JSON:[/red] {e}")
-                    raise typer.Exit(code=1) from None
-            else:
-                console.print(
-                    "[red]Error:[/red] --json flag requires JSON data from stdin"
-                )
-                raise typer.Exit(code=1) from None
+                else:
+                    raise ValueError("Empty stdin")
+            except (json.JSONDecodeError, ValueError):
+                context_provider_path = loader.get_context_provider()
+                if context_provider_path:
+                    try:
+                        module_name, func_name = context_provider_path.rsplit(".", 1)
+                        module = importlib.import_module(module_name)
+                        context_func = getattr(module, func_name)
+                        context = context_func()
+                    except (ValueError, ImportError, AttributeError) as e:
+                        msg = (
+                            f"Error loading context provider '{context_provider_path}'"
+                        )
+                        console.print(f"[red]{msg}:[/red] {e}")
+                        raise typer.Exit(code=1) from None
+                    except Exception as e:
+                        msg = (
+                            f"Error calling context provider '{context_provider_path}'"
+                        )
+                        console.print(f"[red]{msg}:[/red] {e}")
+                        raise typer.Exit(code=1) from None
+                else:
+                    context = create_mock_context()
         else:
             context_provider_path = loader.get_context_provider()
             if context_provider_path:

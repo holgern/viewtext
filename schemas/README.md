@@ -5,7 +5,7 @@ files.
 
 ## What is this?
 
-The `viewtext-schema.json` file provides schema validation and autocomplete support for
+The `viewtext.json` file provides schema validation and autocomplete support for
 ViewText TOML files in editors that support [Taplo](https://taplo.tamasfe.dev/).
 
 ## Supported Editors

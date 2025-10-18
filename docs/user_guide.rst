@@ -730,14 +730,11 @@ Basic Commands
     # Render a layout with mock data
     viewtext render weather
 
-    # Render a layout with JSON input from stdin
+    # Render a layout with JSON input from stdin (autodetected)
+    echo '{"temp": 72.5}' | viewtext render weather
+
+    # Render a layout with JSON input and JSON output
     echo '{"temp": 72.5}' | viewtext render weather --json
-
-    # Render a layout and output as JSON
-    viewtext render weather --json-output
-
-    # Combine JSON input and JSON output (for pipelines)
-    echo '{"temp": 72.5}' | viewtext render weather --json --json-output
 
     # Show configuration info
     viewtext info
@@ -776,19 +773,23 @@ The CLI provides rich formatted output with tables and colors:
 
     Total layouts: 2
 
-**JSON Output**
+**JSON Input and Output**
 
-The ``render`` command supports the ``--json-output`` or ``-J`` flag to output rendered lines as a JSON array instead of formatted text. This is useful for pipelines and machine-readable output:
+The ``render`` command automatically detects JSON input from stdin and can output results as JSON arrays:
 
 .. code-block:: bash
 
-    $ echo '{"demo1": "Line 1", "demo2": "Line 2"}' | viewtext render demo --json --json-output
+    # JSON input is autodetected from stdin, output is rich formatted text
+    $ echo '{"demo1": "Line 1", "demo2": "Line 2"}' | viewtext render demo
+
+    # Use --json flag to output as JSON array instead of formatted text
+    $ echo '{"demo1": "Line 1", "demo2": "Line 2"}' | viewtext render demo --json
     [
       "Line 1",
       "Line 2"
     ]
 
-The JSON output is an array of rendered line strings.
+The ``--json`` flag controls the output format only. Input JSON is automatically detected when available on stdin.
 
 **Template Formatters Command**
 

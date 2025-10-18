@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/nahrstaedt/viewtext/schemas/viewtext.json",
+  "$id": "https://github.com/holgern/viewtext/schemas/viewtext.json",
   "title": "ViewText Configuration",
   "description": "Schema for ViewText TOML layout configuration files",
   "type": "object",

@@ -149,14 +149,14 @@ requirements-test.txt      # Test dependencies
 ### TOML Schema
 
 The project includes a JSON Schema for TOML validation located at
-`.taplo/viewtext-schema.json`.
+`schemas/viewtext.json`.
 
 When adding new fields or properties to TOML configurations:
 
-1. Update the schema in `.taplo/viewtext-schema.json`
+1. Update the schema in `schemas/viewtext.json`
 2. Add new properties, enums, or definitions as needed
 3. Test with `taplo check examples/*.toml`
-4. Update schema documentation in `.taplo/README.md`
+4. Update schema documentation in `schemas/README.md`
 
 The schema provides:
 
