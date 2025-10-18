@@ -151,6 +151,9 @@ def render(
     json_input: bool = typer.Option(
         False, "--json", "-j", help="Read context data from stdin as JSON"
     ),
+    json_output: bool = typer.Option(
+        False, "--json-output", "-J", help="Output rendered lines as JSON"
+    ),
 ) -> None:
     config = config_path
     formatters_path = ctx.obj.get("formatters")
@@ -210,13 +213,18 @@ def render(
 
         lines = engine.build_line_str(layout, context)
 
-        console.print(f"\n[bold green]Rendered Output:[/bold green] {layout_name}\n")
-        console.print("[dim]" + "─" * 80 + "[/dim]")
+        if json_output:
+            print(json.dumps(lines, indent=2))
+        else:
+            console.print(
+                f"\n[bold green]Rendered Output:[/bold green] {layout_name}\n"
+            )
+            console.print("[dim]" + "─" * 80 + "[/dim]")
 
-        for i, line in enumerate(lines):
-            console.print(f"[cyan]{i}:[/cyan] {line}")
+            for i, line in enumerate(lines):
+                console.print(f"[cyan]{i}:[/cyan] {line}")
 
-        console.print("[dim]" + "─" * 80 + "[/dim]\n")
+            console.print("[dim]" + "─" * 80 + "[/dim]\n")
 
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")

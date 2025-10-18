@@ -617,6 +617,10 @@ organization and maintainability:
     context_key = "location.city"
     default = "Unknown"
 
+    [fields.first_tag]
+    context_key = "tags.0"
+    default = ""
+
 **CLI Usage with Split Files**
 
 .. code-block:: bash
@@ -726,6 +730,15 @@ Basic Commands
     # Render a layout with mock data
     viewtext render weather
 
+    # Render a layout with JSON input from stdin
+    echo '{"temp": 72.5}' | viewtext render weather --json
+
+    # Render a layout and output as JSON
+    viewtext render weather --json-output
+
+    # Combine JSON input and JSON output (for pipelines)
+    echo '{"temp": 72.5}' | viewtext render weather --json --json-output
+
     # Show configuration info
     viewtext info
 
@@ -762,6 +775,20 @@ The CLI provides rich formatted output with tables and colors:
     └────────────────┴─────────────────────┴───────┘
 
     Total layouts: 2
+
+**JSON Output**
+
+The ``render`` command supports the ``--json-output`` or ``-J`` flag to output rendered lines as a JSON array instead of formatted text. This is useful for pipelines and machine-readable output:
+
+.. code-block:: bash
+
+    $ echo '{"demo1": "Line 1", "demo2": "Line 2"}' | viewtext render demo --json --json-output
+    [
+      "Line 1",
+      "Line 2"
+    ]
+
+The JSON output is an array of rendered line strings.
 
 **Template Formatters Command**
 

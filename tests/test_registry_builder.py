@@ -79,6 +79,38 @@ class TestMethodCallParser(unittest.TestCase):
         ]
         self.assertEqual(result, expected)
 
+    def test_parse_array_index(self):
+        result = MethodCallParser.parse("items.0")
+        expected = [("key", "items", []), ("index", "0", [])]
+        self.assertEqual(result, expected)
+
+    def test_parse_array_index_with_attribute(self):
+        result = MethodCallParser.parse("items.0.name")
+        expected = [
+            ("key", "items", []),
+            ("index", "0", []),
+            ("attr", "name", []),
+        ]
+        self.assertEqual(result, expected)
+
+    def test_parse_nested_array_indices(self):
+        result = MethodCallParser.parse("matrix.0.1")
+        expected = [
+            ("key", "matrix", []),
+            ("index", "0", []),
+            ("index", "1", []),
+        ]
+        self.assertEqual(result, expected)
+
+    def test_parse_array_with_method(self):
+        result = MethodCallParser.parse("items.0.get_value()")
+        expected = [
+            ("key", "items", []),
+            ("index", "0", []),
+            ("method", "get_value", []),
+        ]
+        self.assertEqual(result, expected)
+
 
 class TestRegistryBuilder(unittest.TestCase):
     def test_getter_with_simple_key(self):
@@ -180,6 +212,63 @@ class TestRegistryBuilder(unittest.TestCase):
         getter = RegistryBuilder._create_getter("name", "obj.name", default="default")
         context = {}
         self.assertEqual(getter(context), "default")
+
+    def test_getter_with_array_index(self):
+        getter = RegistryBuilder._create_getter(
+            "first_item", "items.0", default="default"
+        )
+        context = {"items": ["apple", "banana", "cherry"]}
+        self.assertEqual(getter(context), "apple")
+
+    def test_getter_with_array_index_and_attribute(self):
+        getter = RegistryBuilder._create_getter(
+            "first_name", "users.0.name", default="Unknown"
+        )
+        context = {"users": [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]}
+        self.assertEqual(getter(context), "Alice")
+
+    def test_getter_with_nested_array_indices(self):
+        getter = RegistryBuilder._create_getter("value", "matrix.0.1", default=0)
+        context = {"matrix": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}
+        self.assertEqual(getter(context), 2)
+
+    def test_getter_with_array_index_out_of_bounds(self):
+        getter = RegistryBuilder._create_getter("item", "items.10", default="default")
+        context = {"items": ["apple", "banana"]}
+        self.assertEqual(getter(context), "default")
+
+    def test_getter_with_array_index_on_non_list(self):
+        getter = RegistryBuilder._create_getter("value", "obj.0", default="default")
+        context = {"obj": "not_a_list"}
+        self.assertEqual(getter(context), "default")
+
+    def test_getter_with_nested_dict_access(self):
+        getter = RegistryBuilder._create_getter(
+            "fastest", "recommended_fees.fastestFee", default=None
+        )
+        context = {
+            "recommended_fees": {"fastestFee": 1, "halfHourFee": 2, "hourFee": 3}
+        }
+        self.assertEqual(getter(context), 1)
+
+    def test_getter_with_deeply_nested_dict_access(self):
+        getter = RegistryBuilder._create_getter(
+            "value", "level1.level2.level3", default="not_found"
+        )
+        context = {"level1": {"level2": {"level3": "found"}}}
+        self.assertEqual(getter(context), "found")
+
+    def test_getter_with_array_index_and_dict_access(self):
+        getter = RegistryBuilder._create_getter(
+            "median", "mempool_blocks_fee.0.medianFee", default=0.0
+        )
+        context = {
+            "mempool_blocks_fee": [
+                {"medianFee": 0.75, "totalFees": 1126162},
+                {"medianFee": 0.69, "totalFees": 705881},
+            ]
+        }
+        self.assertEqual(getter(context), 0.75)
 
 
 class TestComputedFields(unittest.TestCase):

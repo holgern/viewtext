@@ -419,6 +419,111 @@ Display product information for e-commerce.
     In Stock: 47
     Category: Electronics
 
+Array Indexing and Nested Data
+-------------------------------
+
+Access array elements and nested data structures using dot notation and numeric indices.
+
+**Field Mappings** (``fields.toml``)
+
+.. code-block:: toml
+
+    [fields.first_block_fee]
+    context_key = "mempool_blocks.0.medianFee"
+    default = 0
+
+    [fields.second_block_fee]
+    context_key = "mempool_blocks.1.medianFee"
+    default = 0
+
+    [fields.fastest_fee]
+    context_key = "recommended_fees.fastestFee"
+    default = 0
+
+**Layout Configuration** (``mempool.toml``)
+
+.. code-block:: toml
+
+    [layouts.mempool_fees]
+    name = "Mempool Fees"
+
+    [[layouts.mempool_fees.lines]]
+    field = "fastest_fee"
+    index = 0
+    formatter = "number"
+
+    [layouts.mempool_fees.lines.formatter_params]
+    prefix = "Fastest: "
+    suffix = " sat/vB"
+    decimals = 0
+
+    [[layouts.mempool_fees.lines]]
+    field = "first_block_fee"
+    index = 1
+    formatter = "number"
+
+    [layouts.mempool_fees.lines.formatter_params]
+    prefix = "Block 1: "
+    suffix = " sat/vB"
+    decimals = 0
+
+    [[layouts.mempool_fees.lines]]
+    field = "second_block_fee"
+    index = 2
+    formatter = "number"
+
+    [layouts.mempool_fees.lines.formatter_params]
+    prefix = "Block 2: "
+    suffix = " sat/vB"
+    decimals = 0
+
+**Usage**
+
+.. code-block:: python
+
+    from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
+
+    loader = LayoutLoader("mempool.toml", fields_path="fields.toml")
+    layout = loader.get_layout("mempool_fees")
+
+    registry = RegistryBuilder.build_from_config(loader=loader)
+    engine = LayoutEngine(field_registry=registry)
+
+    context = {
+        "recommended_fees": {
+            "fastestFee": 15,
+            "halfHourFee": 12,
+            "hourFee": 10
+        },
+        "mempool_blocks": [
+            {"medianFee": 14, "totalFees": 0.5},
+            {"medianFee": 12, "totalFees": 0.4},
+            {"medianFee": 10, "totalFees": 0.3}
+        ]
+    }
+
+    lines = engine.build_line_str(layout, context)
+
+    for line in lines:
+        print(line)
+
+**Output**
+
+.. code-block:: text
+
+    Fastest: 15 sat/vB
+    Block 1: 14 sat/vB
+    Block 2: 12 sat/vB
+
+**Array Indexing Syntax**
+
+- ``tags.0`` - Access first element of array
+- ``matrix.0.1`` - Access nested array element
+- ``users.0.name`` - Access property of array element
+- ``items.5.price.usd`` - Deep nesting with arrays and objects
+
+See ``examples/mempool_layouts.toml`` for a complete example.
+
 Custom Formatter Example
 -------------------------
 

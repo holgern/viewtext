@@ -47,9 +47,11 @@ class MethodCallParser:
         -------
         list[tuple[str, str, list[Any]]]
             List of (type, name, args) tuples where:
-            - type: 'key' (dict lookup), 'attr' (attribute), or 'method' (call)
-            - name: key/attribute/method name
-            - args: list of arguments (empty for key/attr)
+
+            - type: 'key' (dict lookup), 'attr' (attribute), 'index'
+              (array access), or 'method' (call)
+            - name: key/attribute/method name or index number as string
+            - args: list of arguments (empty for key/attr/index)
 
         Examples
         --------
@@ -59,6 +61,9 @@ class MethodCallParser:
         >>> MethodCallParser.parse("ticker.name")
         [('key', 'ticker', []), ('attr', 'name', [])]
 
+        >>> MethodCallParser.parse("items.0.name")
+        [('key', 'items', []), ('index', '0', []), ('attr', 'name', [])]
+
         >>> MethodCallParser.parse("ticker.get_price()")
         [('key', 'ticker', []), ('method', 'get_price', [])]
 
@@ -67,9 +72,9 @@ class MethodCallParser:
 
         >>> MethodCallParser.parse(
         ...     "portfolio.get_ticker('BTC').get_current_price('fiat')"
-        ... )
-        [('key', 'portfolio', []), ('method', 'get_ticker', ['BTC']), \
-('method', 'get_current_price', ['fiat'])]
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        [('key', 'portfolio', []), ('method', 'get_ticker', ['BTC']),
+         ('method', 'get_current_price', ['fiat'])]
         """
         operations: list[tuple[str, str, list[Any]]] = []
         remaining = context_key
@@ -94,13 +99,19 @@ class MethodCallParser:
                     operations.append(("method", method_name, args))
                     remaining = method_match.group(4) or ""
                 else:
-                    attr_match = re.match(r"^(\w+)(\.(.+))?$", remaining)
-                    if attr_match:
-                        attr_name = attr_match.group(1)
-                        operations.append(("attr", attr_name, []))
-                        remaining = attr_match.group(3) or ""
+                    index_match = re.match(r"^(\d+)(\.(.+))?$", remaining)
+                    if index_match:
+                        index = index_match.group(1)
+                        operations.append(("index", index, []))
+                        remaining = index_match.group(3) or ""
                     else:
-                        break
+                        attr_match = re.match(r"^(\w+)(\.(.+))?$", remaining)
+                        if attr_match:
+                            attr_name = attr_match.group(1)
+                            operations.append(("attr", attr_name, []))
+                            remaining = attr_match.group(3) or ""
+                        else:
+                            break
 
         return operations
 
@@ -301,12 +312,28 @@ class RegistryBuilder:
                         if value is None:
                             return default
                     elif op_type == "attr":
-                        value = getattr(value, name)
+                        if value is None:
+                            return default
+                        if isinstance(value, dict):
+                            value = value.get(name)
+                            if value is None:
+                                return default
+                        else:
+                            value = getattr(value, name)
+                    elif op_type == "index":
+                        if value is None:
+                            return default
+                        if not isinstance(value, (list, tuple)):
+                            return default
+                        idx = int(name)
+                        value = value[idx]
                     elif op_type == "method":
+                        if value is None:
+                            return default
                         method = getattr(value, name)
                         value = method(*args)
 
-            except (AttributeError, TypeError, KeyError):
+            except (AttributeError, TypeError, KeyError, IndexError, ValueError):
                 return default
 
             if validator:

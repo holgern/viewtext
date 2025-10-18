@@ -141,11 +141,13 @@ context_key
 The key path to extract from the context dictionary. Supports:
 
 - Simple keys: ``"temperature"``
-- Nested keys: ``"location.city"``
+- Nested dictionary keys: ``"location.city"``
 - Attribute access: ``"user.name"``
-- Method calls: ``"text.upper()``
-- Array indexing: ``"items.0"``
-- Chained operations: ``"text.strip().lower()``
+- Method calls: ``"text.upper()"``
+- Array indexing: ``"items.0"`` (lists and tuples only)
+- Nested arrays: ``"matrix.0.1"``
+- Array with dicts: ``"users.0.name"``
+- Chained operations: ``"text.strip().lower()"``
 
 **Examples:**
 
@@ -155,7 +157,7 @@ The key path to extract from the context dictionary. Supports:
     [fields.status]
     context_key = "status"
 
-    # Nested key
+    # Nested dictionary key
     [fields.city]
     context_key = "location.city"
 
@@ -166,6 +168,14 @@ The key path to extract from the context dictionary. Supports:
     # Array index
     [fields.first_tag]
     context_key = "tags.0"
+
+    # Nested array
+    [fields.matrix_value]
+    context_key = "matrix.0.1"
+
+    # Array with dictionary
+    [fields.first_user_email]
+    context_key = "users.0.email"
 
 default
 ~~~~~~~
@@ -633,7 +643,7 @@ Access object attributes:
 Array Indexing
 ~~~~~~~~~~~~~~
 
-Access list items by index:
+Access list and tuple items by numeric index using dot notation:
 
 .. code-block:: toml
 
@@ -648,14 +658,73 @@ Access list items by index:
 
 **Result:** ``"python"``
 
-**Negative indexing:**
+**Nested array access:**
+
+You can access nested arrays by chaining numeric indices:
 
 .. code-block:: toml
 
-    [fields.last_tag]
-    context_key = "tags.-1"
+    [fields.matrix_value]
+    context_key = "matrix.0.1"
 
-**Result:** ``"cli"``
+**Context:**
+
+.. code-block:: python
+
+    {"matrix": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]}
+
+**Result:** ``2``
+
+**Array with dictionary elements:**
+
+Combine array indexing with dictionary key access:
+
+.. code-block:: toml
+
+    [fields.first_user_name]
+    context_key = "users.0.name"
+
+**Context:**
+
+.. code-block:: python
+
+    {
+        "users": [
+            {"name": "Alice", "age": 30},
+            {"name": "Bob", "age": 25}
+        ]
+    }
+
+**Result:** ``"Alice"``
+
+**Complex nested structures:**
+
+Access deeply nested data structures:
+
+.. code-block:: toml
+
+    [fields.median_fee]
+    context_key = "mempool_blocks.0.fees.median"
+
+**Context:**
+
+.. code-block:: python
+
+    {
+        "mempool_blocks": [
+            {"fees": {"median": 0.75, "average": 0.82}},
+            {"fees": {"median": 0.69, "average": 0.71}}
+        ]
+    }
+
+**Result:** ``0.75``
+
+.. note::
+
+   - Array indexing only works with ``list`` and ``tuple`` types
+   - Out of bounds indices return the field's default value
+   - String indexing is not supported (e.g., ``"text.0"`` will return default)
+   - Numeric indices must be non-negative integers (negative indexing not currently supported)
 
 Chained Operations
 ~~~~~~~~~~~~~~~~~~

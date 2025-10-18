@@ -1,0 +1,239 @@
+# Mempool Layout Configuration
+# For use with: apiout run -c examples/apiout/mempool_apis.toml --json | viewtext -c examples/mempool_layouts.toml render layout --json
+
+[fields.block_tip_hash]
+context_key = "block_tip_hash"
+
+[fields.block_tip_height]
+context_key = "block_tip_height"
+
+[fields.recommended_fees]
+context_key = "recommended_fees"
+
+[fields.difficulty_adjustment]
+context_key = "difficulty_adjustment"
+
+[fields.mempool_blocks_fee]
+context_key = "mempool_blocks_fee"
+
+[fields.first_block_median_fee]
+context_key = "mempool_blocks_fee.0.medianFee"
+
+[fields.first_block_total_fees]
+context_key = "mempool_blocks_fee.0.totalFees"
+
+[fields.first_block_n_tx]
+context_key = "mempool_blocks_fee.0.nTx"
+
+[fields.second_block_median_fee]
+context_key = "mempool_blocks_fee.1.medianFee"
+
+[fields.fastest_fee]
+context_key = "recommended_fees.fastestFee"
+
+[fields.half_hour_fee]
+context_key = "recommended_fees.halfHourFee"
+
+[fields.hour_fee]
+context_key = "recommended_fees.hourFee"
+
+[fields.economy_fee]
+context_key = "recommended_fees.economyFee"
+
+[fields.progress_percent]
+context_key = "difficulty_adjustment.progressPercent"
+
+[fields.difficulty_change]
+context_key = "difficulty_adjustment.difficultyChange"
+
+[fields.remaining_blocks]
+context_key = "difficulty_adjustment.remainingBlocks"
+
+[layouts.mempool_summary]
+name = "Mempool Summary"
+
+[[layouts.mempool_summary.lines]]
+field = "block_tip_height"
+index = 0
+formatter = "text"
+params = { prefix = "Block Height: " }
+
+[[layouts.mempool_summary.lines]]
+field = "block_tip_hash"
+index = 1
+formatter = "text"
+params = { prefix = "Block Hash: " }
+
+[[layouts.mempool_summary.lines]]
+field = "fastest_fee"
+index = 2
+formatter = "text"
+params = { prefix = "⚡ Fastest: ", suffix = " sat/vB" }
+
+[[layouts.mempool_summary.lines]]
+field = "half_hour_fee"
+index = 3
+formatter = "text"
+params = { prefix = "🕐 Half Hour: ", suffix = " sat/vB" }
+
+[[layouts.mempool_summary.lines]]
+field = "hour_fee"
+index = 4
+formatter = "text"
+params = { prefix = "🕑 Hour: ", suffix = " sat/vB" }
+
+[[layouts.mempool_summary.lines]]
+field = "economy_fee"
+index = 5
+formatter = "text"
+params = { prefix = "💰 Economy: ", suffix = " sat/vB" }
+
+[[layouts.mempool_summary.lines]]
+field = "progress_percent"
+index = 6
+formatter = "text"
+params = { prefix = "Difficulty Progress: ", suffix = "%" }
+
+[[layouts.mempool_summary.lines]]
+field = "difficulty_change"
+index = 7
+formatter = "text"
+params = { prefix = "Difficulty Change: ", suffix = "%" }
+
+[[layouts.mempool_summary.lines]]
+field = "remaining_blocks"
+index = 8
+formatter = "text"
+params = { prefix = "Remaining Blocks: " }
+
+[[layouts.mempool_summary.lines]]
+field = "first_block_median_fee"
+index = 9
+formatter = "text"
+params = { prefix = "Next Block Median Fee: ", suffix = " sat/vB" }
+
+[[layouts.mempool_summary.lines]]
+field = "first_block_n_tx"
+index = 10
+formatter = "text"
+params = { prefix = "Next Block Transactions: " }
+
+[layouts.mempool_fees]
+name = "Mempool Fee Rates"
+
+[[layouts.mempool_fees.lines]]
+field = "recommended_fees"
+index = 0
+formatter = "template"
+params = { template = "⚡ Fastest: {fastestFee} sat/vB", fields = ["fastestFee"] }
+
+[[layouts.mempool_fees.lines]]
+field = "recommended_fees"
+index = 1
+formatter = "template"
+params = { template = "🕐 Half Hour: {halfHourFee} sat/vB", fields = ["halfHourFee"] }
+
+[[layouts.mempool_fees.lines]]
+field = "recommended_fees"
+index = 2
+formatter = "template"
+params = { template = "🕑 Hour: {hourFee} sat/vB", fields = ["hourFee"] }
+
+[[layouts.mempool_fees.lines]]
+field = "recommended_fees"
+index = 3
+formatter = "template"
+params = { template = "💰 Economy: {economyFee} sat/vB", fields = ["economyFee"] }
+
+[[layouts.mempool_fees.lines]]
+field = "recommended_fees"
+index = 4
+formatter = "template"
+params = { template = "Minimum: {minimumFee} sat/vB", fields = ["minimumFee"] }
+
+[layouts.difficulty]
+name = "Difficulty Adjustment"
+
+[[layouts.difficulty.lines]]
+field = "difficulty_adjustment"
+index = 0
+formatter = "template"
+params = { template = "Progress: {progressPercent}%", fields = ["progressPercent"] }
+
+[[layouts.difficulty.lines]]
+field = "difficulty_adjustment"
+index = 1
+formatter = "template"
+params = { template = "Difficulty Change: {difficultyChange}%", fields = ["difficultyChange"] }
+
+[[layouts.difficulty.lines]]
+field = "difficulty_adjustment"
+index = 2
+formatter = "template"
+params = { template = "Remaining Blocks: {remainingBlocks}", fields = ["remainingBlocks"] }
+
+[[layouts.difficulty.lines]]
+field = "difficulty_adjustment"
+index = 3
+formatter = "template"
+params = { template = "Next Retarget Height: {nextRetargetHeight}", fields = ["nextRetargetHeight"] }
+
+[[layouts.difficulty.lines]]
+field = "difficulty_adjustment"
+index = 4
+formatter = "template"
+params = { template = "Previous Retarget: {previousRetarget}%", fields = ["previousRetarget"] }
+
+[[layouts.difficulty.lines]]
+field = "difficulty_adjustment"
+index = 5
+formatter = "template"
+params = { template = "Expected Blocks: {expectedBlocks}", fields = ["expectedBlocks"] }
+
+[layouts.compact]
+name = "Compact Bitcoin Status"
+
+[[layouts.compact.lines]]
+field = "block_tip_height"
+index = 0
+formatter = "text"
+params = { prefix = "₿ Block: " }
+
+[[layouts.compact.lines]]
+field = "recommended_fees"
+index = 1
+formatter = "template"
+params = { template = "Fees: {fastestFee}/{halfHourFee}/{hourFee}/{economyFee}", fields = ["fastestFee", "halfHourFee", "hourFee", "economyFee"] }
+
+[[layouts.compact.lines]]
+field = "difficulty_adjustment"
+index = 2
+formatter = "template"
+params = { template = "Diff: {difficultyChange}% ({remainingBlocks} blocks)", fields = ["difficultyChange", "remainingBlocks"] }
+
+[layouts.mempool_blocks]
+name = "Mempool Blocks Details"
+
+[[layouts.mempool_blocks.lines]]
+field = "first_block_median_fee"
+index = 0
+formatter = "text"
+params = { prefix = "Block 0 - Median Fee: ", suffix = " sat/vB" }
+
+[[layouts.mempool_blocks.lines]]
+field = "first_block_total_fees"
+index = 1
+formatter = "text"
+params = { prefix = "Block 0 - Total Fees: ", suffix = " BTC" }
+
+[[layouts.mempool_blocks.lines]]
+field = "first_block_n_tx"
+index = 2
+formatter = "text"
+params = { prefix = "Block 0 - Transactions: " }
+
+[[layouts.mempool_blocks.lines]]
+field = "second_block_median_fee"
+index = 3
+formatter = "text"
+params = { prefix = "Block 1 - Median Fee: ", suffix = " sat/vB" }

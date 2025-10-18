@@ -38,7 +38,7 @@
       "properties": {
         "context_key": {
           "type": "string",
-          "description": "Key to look up in the context dictionary (supports dot notation and method calls)"
+          "description": "Key to look up in the context dictionary (supports dot notation, array indexing with numeric indices, and method calls). Examples: 'user.name', 'tags.0', 'items.0.price'"
         },
         "default": {
           "description": "Default value if the field is not found or validation fails"
