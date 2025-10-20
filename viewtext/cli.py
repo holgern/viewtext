@@ -904,6 +904,103 @@ def check(ctx: typer.Context) -> None:
         raise typer.Exit(code=1) from None
 
 
+@app.command(name="generate-fields")
+def generate_fields(
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Output file path (defaults to stdout)"
+    ),
+    prefix: str = typer.Option("", "--prefix", "-p", help="Prefix for field names"),
+) -> None:
+    try:
+        has_stdin_data = not sys.stdin.isatty()
+
+        if not has_stdin_data:
+            console.print(
+                "[red]Error:[/red] No stdin data provided. "
+                "Pipe JSON data to generate fields."
+            )
+            console.print(
+                "\n[yellow]Example:[/yellow] "
+                'echo \'{"name": "John", "age": 30}\' | viewtext generate-fields'
+            )
+            raise typer.Exit(code=1) from None
+
+        json_data = sys.stdin.read()
+        if not json_data.strip():
+            console.print("[red]Error:[/red] Empty stdin data")
+            raise typer.Exit(code=1) from None
+
+        try:
+            data = json.loads(json_data)
+        except json.JSONDecodeError as e:
+            console.print(f"[red]Error:[/red] Invalid JSON: {e}")
+            raise typer.Exit(code=1) from None
+
+        if not isinstance(data, dict):
+            console.print(
+                "[red]Error:[/red] JSON data must be an object/dictionary at root level"
+            )
+            raise typer.Exit(code=1) from None
+
+        toml_lines = _generate_field_definitions(data, prefix)
+
+        if output:
+            output_path = Path(output)
+            try:
+                with open(output_path, "w") as f:
+                    f.write(toml_lines)
+                console.print(
+                    f"\n[green]✓ Field definitions written to:[/green] {output_path}\n"
+                )
+            except OSError as e:
+                console.print(f"[red]Error writing to file:[/red] {e}")
+                raise typer.Exit(code=1) from None
+        else:
+            print(toml_lines)
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"\n[red]Unexpected error:[/red] {e}\n")
+        raise typer.Exit(code=1) from None
+
+
+def _generate_field_definitions(
+    data: dict[str, Any], prefix: str = "", path: str = ""
+) -> str:
+    lines = []
+
+    for key, value in data.items():
+        field_name = f"{prefix}{key}" if prefix else key
+        context_key = f"{path}.{key}" if path else key
+
+        if isinstance(value, dict):
+            nested_fields = _generate_field_definitions(
+                value, prefix=f"{field_name}_", path=context_key
+            )
+            lines.append(nested_fields)
+        else:
+            lines.append(f"[fields.{field_name}]")
+            lines.append(f'context_key = "{context_key}"')
+
+            if isinstance(value, bool):
+                lines.append('type = "bool"')
+            elif isinstance(value, int):
+                lines.append('type = "int"')
+            elif isinstance(value, float):
+                lines.append('type = "float"')
+            elif isinstance(value, str):
+                lines.append('type = "str"')
+            elif isinstance(value, list):
+                lines.append('type = "list"')
+            elif value is None:
+                lines.append('type = "any"')
+
+            lines.append("")
+
+    return "\n".join(lines)
+
+
 @app.command()
 def info(ctx: typer.Context) -> None:
     config = config_path

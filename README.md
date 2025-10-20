@@ -162,6 +162,7 @@ viewtext --config examples/layouts.toml show weather
 - **templates**: List all template formatters used in layouts
 - **test**: Test individual fields with custom context values and formatters
 - **info**: Show configuration file information and global formatters
+- **generate-fields**: Auto-generate field definitions from JSON data
 
 ### Testing Fields
 
@@ -199,6 +200,28 @@ watch -n 5 'curl -s API_URL | viewtext -c config.toml render layout --json'
 ```
 
 See `examples/json_pipeline_example.md` for detailed examples and use cases.
+
+### Auto-Generating Field Definitions
+
+ViewText can automatically generate field definitions from JSON data:
+
+```bash
+# Generate fields from API response
+curl -s https://api.example.com/data | viewtext generate-fields
+
+# Save to file
+echo '{"name": "John", "age": 30}' | viewtext generate-fields -o fields.toml
+
+# Add prefix to field names
+curl -s https://api.example.com/user | viewtext generate-fields --prefix "api_"
+
+# Nested JSON objects are flattened
+echo '{"user": {"name": "Alice", "age": 25}}' | viewtext generate-fields
+# Creates: user_name with context_key="user.name"
+```
+
+The command automatically infers types (`str`, `int`, `float`, `bool`, `list`, `dict`,
+`any`) and creates properly formatted TOML field definitions.
 
 ### Global Options
 

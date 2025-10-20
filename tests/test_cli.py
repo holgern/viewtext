@@ -129,3 +129,116 @@ formatter = "text"
         assert result.exit_code == 0
         assert "Test Line" in result.stdout
         assert "[" not in result.stdout or "Rendered Output" in result.stdout
+
+
+def test_generate_fields_simple():
+    json_input = '{"name": "John", "age": 30}'
+
+    result = runner.invoke(app, ["generate-fields"], input=json_input)
+
+    assert result.exit_code == 0
+    assert "[fields.name]" in result.stdout
+    assert 'context_key = "name"' in result.stdout
+    assert 'type = "str"' in result.stdout
+    assert "[fields.age]" in result.stdout
+    assert 'context_key = "age"' in result.stdout
+    assert 'type = "int"' in result.stdout
+
+
+def test_generate_fields_nested():
+    json_input = '{"user": {"name": "Alice", "age": 25}, "active": true}'
+
+    result = runner.invoke(app, ["generate-fields"], input=json_input)
+
+    assert result.exit_code == 0
+    assert "[fields.user_name]" in result.stdout
+    assert 'context_key = "user.name"' in result.stdout
+    assert 'type = "str"' in result.stdout
+    assert "[fields.user_age]" in result.stdout
+    assert 'context_key = "user.age"' in result.stdout
+    assert 'type = "int"' in result.stdout
+    assert "[fields.active]" in result.stdout
+    assert 'type = "bool"' in result.stdout
+
+
+def test_generate_fields_with_prefix():
+    json_input = '{"temp": 25.5, "city": "Berlin"}'
+
+    result = runner.invoke(
+        app, ["generate-fields", "--prefix", "api_"], input=json_input
+    )
+
+    assert result.exit_code == 0
+    assert "[fields.api_temp]" in result.stdout
+    assert 'context_key = "temp"' in result.stdout
+    assert 'type = "float"' in result.stdout
+    assert "[fields.api_city]" in result.stdout
+    assert 'context_key = "city"' in result.stdout
+
+
+def test_generate_fields_to_file():
+    json_input = '{"test": "value"}'
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_path = Path(tmpdir) / "fields.toml"
+
+        result = runner.invoke(
+            app, ["generate-fields", "--output", str(output_path)], input=json_input
+        )
+
+        assert result.exit_code == 0
+        assert output_path.exists()
+
+        content = output_path.read_text()
+        assert "[fields.test]" in content
+        assert 'context_key = "test"' in content
+        assert 'type = "str"' in content
+
+
+def test_generate_fields_no_stdin():
+    result = runner.invoke(app, ["generate-fields"])
+
+    assert result.exit_code == 1
+    assert "stdin data" in result.stdout.lower() or "empty" in result.stdout.lower()
+
+
+def test_generate_fields_empty_stdin():
+    result = runner.invoke(app, ["generate-fields"], input="")
+
+    assert result.exit_code == 1
+    assert "Empty stdin data" in result.stdout
+
+
+def test_generate_fields_invalid_json():
+    result = runner.invoke(app, ["generate-fields"], input="not valid json")
+
+    assert result.exit_code == 1
+    assert "Invalid JSON" in result.stdout
+
+
+def test_generate_fields_non_dict_json():
+    result = runner.invoke(app, ["generate-fields"], input='["array", "not", "dict"]')
+
+    assert result.exit_code == 1
+    assert "must be an object/dictionary" in result.stdout
+
+
+def test_generate_fields_types():
+    json_input = """{
+        "str_val": "hello",
+        "int_val": 42,
+        "float_val": 3.14,
+        "bool_val": true,
+        "null_val": null,
+        "list_val": [1, 2, 3]
+    }"""
+
+    result = runner.invoke(app, ["generate-fields"], input=json_input)
+
+    assert result.exit_code == 0
+    assert 'type = "str"' in result.stdout
+    assert 'type = "int"' in result.stdout
+    assert 'type = "float"' in result.stdout
+    assert 'type = "bool"' in result.stdout
+    assert 'type = "any"' in result.stdout
+    assert 'type = "list"' in result.stdout
