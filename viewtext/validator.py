@@ -6,6 +6,7 @@ type checking, constraint validation, and error handling strategies.
 """
 
 import re
+from re import Pattern
 from typing import Any, Optional
 
 
@@ -78,6 +79,7 @@ class FieldValidator:
         self.min_items = min_items
         self.max_items = max_items
 
+        self._compiled_pattern: Optional[Pattern[str]]
         if self.pattern:
             self._compiled_pattern = re.compile(self.pattern)
         else:

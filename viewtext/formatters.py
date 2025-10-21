@@ -498,18 +498,18 @@ class FormatterRegistry:
 
         field_values = {}
         for field_path in fields:
-            val: Any = value
+            field_val: Any = value
             for key in field_path.split("."):
-                if isinstance(val, dict):
-                    val = val.get(key)
-                    if val is None:
+                if isinstance(field_val, dict):
+                    field_val = field_val.get(key)
+                    if field_val is None:
                         break
                 else:
-                    val = None
+                    field_val = None
                     break
 
             field_name = field_path.replace(".", "_")
-            field_values[field_name] = val if val is not None else ""
+            field_values[field_name] = field_val if field_val is not None else ""
 
         try:
             return str(template.format(**field_values))
