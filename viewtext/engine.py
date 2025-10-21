@@ -5,10 +5,13 @@ This module provides the LayoutEngine class that builds formatted text
 layouts by combining field registries, formatters, and layout configurations.
 """
 
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from .formatters import get_formatter_registry
 from .registry import BaseFieldRegistry
+
+if TYPE_CHECKING:
+    from .loader import LayoutLoader
 
 
 class LayoutEngine:
@@ -48,7 +51,11 @@ class LayoutEngine:
     ['23.5']
     """
 
-    def __init__(self, field_registry: Optional[BaseFieldRegistry] = None):
+    def __init__(
+        self,
+        field_registry: Optional[BaseFieldRegistry] = None,
+        layout_loader: Optional["LayoutLoader"] = None,
+    ):
         """
         Initialize the layout engine.
 
@@ -56,9 +63,12 @@ class LayoutEngine:
         ----------
         field_registry : BaseFieldRegistry, optional
             Registry of field getter functions
+        layout_loader : LayoutLoader, optional
+            Layout loader for resolving formatter presets
         """
         self.field_registry = field_registry
         self.formatter_registry = get_formatter_registry()
+        self.layout_loader = layout_loader
 
     def build_line_str(
         self, layout_config: dict[str, Any], context: dict[str, Any]
@@ -156,7 +166,7 @@ class LayoutEngine:
         value : Any
             The value to format
         formatter_name : str
-            Name of the formatter to use
+            Name of the formatter to use (can be a preset reference)
         formatter_params : dict[str, Any]
             Parameters to pass to the formatter
         context : dict[str, Any], optional
@@ -170,7 +180,16 @@ class LayoutEngine:
         if not formatter_params:
             formatter_params = {}
 
-        formatter_type = formatter_params.get("type", formatter_name)
+        if self.layout_loader and not formatter_params:
+            preset = self.layout_loader.get_formatter_preset(formatter_name)
+            if preset:
+                formatter_type = preset.get("type", formatter_name)
+                formatter_params = preset.copy()
+                formatter_params.pop("type", None)
+            else:
+                formatter_type = formatter_name
+        else:
+            formatter_type = formatter_params.get("type", formatter_name)
 
         try:
             formatter = self.formatter_registry.get(formatter_type)
@@ -182,6 +201,7 @@ class LayoutEngine:
                 **formatter_params,
                 "_context": context,
                 "_engine": self,
+                "_loader": self.layout_loader,
             }
 
         return formatter(value, **formatter_params)

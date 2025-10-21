@@ -795,3 +795,321 @@ index = 1
         finally:
             os.unlink(fields_path)
             os.unlink(layouts_path)
+
+
+class TestFormatterPresets:
+    def test_formatter_preset_in_layout(self):
+        formatters_content = """
+[formatters.usd_price]
+type = "price"
+symbol = "$"
+decimals = 2
+thousands_sep = ","
+"""
+        layouts_content = """
+[layouts.product]
+name = "Product"
+
+[[layouts.product.lines]]
+field = "price"
+index = 0
+formatter = "usd_price"
+"""
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            layout = loader.get_layout("product")
+
+            engine = LayoutEngine(field_registry=None, layout_loader=loader)
+            context = {"price": 1234.567}
+
+            result = engine.build_line_str(layout, context)
+
+            assert result == ["$1,234.57"]
+        finally:
+            os.unlink(formatters_path)
+            os.unlink(layouts_path)
+
+    def test_formatter_preset_datetime(self):
+        from datetime import datetime
+
+        formatters_content = """
+[formatters.time_hm]
+type = "datetime"
+format = "%H:%M"
+"""
+        layouts_content = """
+[layouts.time_display]
+name = "Time Display"
+
+[[layouts.time_display.lines]]
+field = "timestamp"
+index = 0
+formatter = "time_hm"
+"""
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            layout = loader.get_layout("time_display")
+
+            engine = LayoutEngine(field_registry=None, layout_loader=loader)
+            timestamp = 1234567890
+            expected = datetime.fromtimestamp(timestamp).strftime("%H:%M")
+            context = {"timestamp": timestamp}
+
+            result = engine.build_line_str(layout, context)
+
+            assert result == [expected]
+        finally:
+            os.unlink(formatters_path)
+            os.unlink(layouts_path)
+
+    def test_formatter_preset_number(self):
+        formatters_content = """
+[formatters.minutes]
+type = "number"
+suffix = " MIN"
+decimals = 0
+"""
+        layouts_content = """
+[layouts.duration]
+name = "Duration"
+
+[[layouts.duration.lines]]
+field = "elapsed"
+index = 0
+formatter = "minutes"
+"""
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            layout = loader.get_layout("duration")
+
+            engine = LayoutEngine(field_registry=None, layout_loader=loader)
+            context = {"elapsed": 45.7}
+
+            result = engine.build_line_str(layout, context)
+
+            assert result == ["46 MIN"]
+        finally:
+            os.unlink(formatters_path)
+            os.unlink(layouts_path)
+
+    def test_formatter_preset_with_inline_params_uses_inline(self):
+        formatters_content = """
+[formatters.usd_price]
+type = "price"
+symbol = "$"
+decimals = 2
+"""
+        layouts_content = """
+[layouts.product]
+name = "Product"
+
+[[layouts.product.lines]]
+field = "price"
+index = 0
+formatter = "price"
+
+[layouts.product.lines.formatter_params]
+symbol = "£"
+decimals = 3
+"""
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            layout = loader.get_layout("product")
+
+            engine = LayoutEngine(field_registry=None, layout_loader=loader)
+            context = {"price": 99.999}
+
+            result = engine.build_line_str(layout, context)
+
+            assert result == ["£99.999"]
+        finally:
+            os.unlink(formatters_path)
+            os.unlink(layouts_path)
+
+    def test_formatter_preset_nonexistent_falls_back_to_builtin(self):
+        layouts_content = """
+[layouts.test]
+name = "Test"
+
+[[layouts.test.lines]]
+field = "value"
+index = 0
+formatter = "text"
+"""
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(config_path=layouts_path)
+            layout = loader.get_layout("test")
+
+            engine = LayoutEngine(field_registry=None, layout_loader=loader)
+            context = {"value": "hello"}
+
+            result = engine.build_line_str(layout, context)
+
+            assert result == ["hello"]
+        finally:
+            os.unlink(layouts_path)
+
+    def test_multiple_presets_in_same_layout(self):
+        from datetime import datetime
+
+        formatters_content = """
+[formatters.usd_price]
+type = "price"
+symbol = "$"
+decimals = 2
+
+[formatters.time_hm]
+type = "datetime"
+format = "%H:%M"
+
+[formatters.percent]
+type = "number"
+suffix = "%"
+decimals = 1
+"""
+        layouts_content = """
+[layouts.dashboard]
+name = "Dashboard"
+
+[[layouts.dashboard.lines]]
+field = "price"
+index = 0
+formatter = "usd_price"
+
+[[layouts.dashboard.lines]]
+field = "timestamp"
+index = 1
+formatter = "time_hm"
+
+[[layouts.dashboard.lines]]
+field = "change"
+index = 2
+formatter = "percent"
+"""
+        tmp_formatters = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_formatters.write(formatters_content)
+        tmp_formatters.close()
+        formatters_path = tmp_formatters.name
+
+        tmp_layouts = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False, encoding="utf-8"
+        )
+        tmp_layouts.write(layouts_content)
+        tmp_layouts.close()
+        layouts_path = tmp_layouts.name
+
+        try:
+            loader = LayoutLoader(
+                config_path=layouts_path, formatters_path=formatters_path
+            )
+            layout = loader.get_layout("dashboard")
+
+            engine = LayoutEngine(field_registry=None, layout_loader=loader)
+            timestamp = 1234567890
+            expected_time = datetime.fromtimestamp(timestamp).strftime("%H:%M")
+            context = {"price": 100.5, "timestamp": timestamp, "change": 2.345}
+
+            result = engine.build_line_str(layout, context)
+
+            assert result == ["$100.50", expected_time, "2.3%"]
+        finally:
+            os.unlink(formatters_path)
+            os.unlink(layouts_path)
+
+    def test_preset_without_layout_loader_falls_back(self):
+        registry = BaseFieldRegistry()
+
+        def price_getter(ctx):
+            return ctx["price"]
+
+        registry.register("price", price_getter)
+
+        engine = LayoutEngine(field_registry=registry, layout_loader=None)
+        layout_config = {
+            "lines": [
+                {
+                    "field": "price",
+                    "index": 0,
+                    "formatter": "usd_price",
+                    "formatter_params": {},
+                },
+            ]
+        }
+        context = {"price": 123.45}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["123.45"]

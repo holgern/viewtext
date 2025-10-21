@@ -150,10 +150,10 @@ Each line can have formatter-specific parameters:
     thousands_sep = ","
     symbol_position = "prefix"
 
-Global Formatter Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Formatter Presets
+~~~~~~~~~~~~~~~~~
 
-Define reusable formatter configurations:
+Define reusable formatter configurations (presets) to promote consistency and reduce duplication:
 
 .. code-block:: toml
 
@@ -163,13 +163,42 @@ Define reusable formatter configurations:
     decimals = 2
     thousands_sep = ","
 
+    [formatters.time_only]
+    type = "datetime"
+    format = "%H:%M"
+
+Presets can be referenced by name directly in layouts:
+
+.. code-block:: toml
+
     [layouts.product]
     name = "Product Display"
 
     [[layouts.product.lines]]
     field = "price"
     index = 0
-    formatter = "usd_price"
+    formatter = "usd_price"  # References preset
+
+    [[layouts.product.lines]]
+    field = "created_at"
+    index = 1
+    formatter = "time_only"  # References preset
+
+Presets can also be used in template formatter ``field_formatters``:
+
+.. code-block:: toml
+
+    [[layouts.crypto.lines]]
+    field = "ticker"
+    index = 0
+    formatter = "template"
+
+    [layouts.crypto.lines.formatter_params]
+    template = "{symbol}: {price}"
+    fields = ["symbol", "price"]
+    field_formatters = { "price": "usd_price" }
+
+For more details on formatter presets, see :doc:`formatters_reference`.
 
 Layout Engine
 -------------

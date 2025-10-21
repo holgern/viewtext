@@ -486,6 +486,41 @@ class LayoutLoader:
         params.pop("type", None)
         return params
 
+    def get_formatter_preset(self, preset_name: str) -> Optional[dict[str, Any]]:
+        """
+        Get formatter preset configuration by name.
+
+        Parameters
+        ----------
+        preset_name : str
+            Name of the formatter preset
+
+        Returns
+        -------
+        dict[str, Any] or None
+            Formatter preset configuration, or None if not found
+
+        Examples
+        --------
+        >>> loader = LayoutLoader("layouts.toml")
+        >>> preset = loader.get_formatter_preset("time_hms")
+        >>> print(preset["type"])
+        datetime
+        """
+        if self._layouts_config is None:
+            self.load()
+
+        assert self._layouts_config is not None
+
+        if (
+            self._layouts_config.formatters is None
+            or preset_name not in self._layouts_config.formatters
+        ):
+            return None
+
+        formatter_config = self._layouts_config.formatters[preset_name]
+        return formatter_config.model_dump(exclude_none=True)
+
     def get_field_mappings(self) -> dict[str, FieldMapping]:
         """
         Get all field mapping configurations.

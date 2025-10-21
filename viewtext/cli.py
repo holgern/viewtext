@@ -167,7 +167,7 @@ def render(
         else:
             registry = get_registry_from_config(loader=loader)
 
-        engine = LayoutEngine(field_registry=registry)
+        engine = LayoutEngine(field_registry=registry, layout_loader=loader)
 
         has_stdin_data = not sys.stdin.isatty()
 
@@ -218,13 +218,6 @@ def render(
                     raise typer.Exit(code=1) from None
             else:
                 context = create_mock_context()
-
-        for line_config in layout.get("lines", []):
-            formatter_name = line_config.get("formatter")
-            if formatter_name and loader.get_formatter_params(formatter_name):
-                line_config["formatter_params"] = loader.get_formatter_params(
-                    formatter_name
-                )
 
         lines = engine.build_line_str(layout, context)
 

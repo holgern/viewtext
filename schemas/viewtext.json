@@ -342,7 +342,7 @@
         },
         "formatter": {
           "type": "string",
-          "description": "Name of the formatter to apply (built-in or custom)"
+          "description": "Name of the formatter to apply (built-in type like 'text', 'number', 'datetime', or a preset name from the formatters section)"
         },
         "formatter_params": {
           "type": "object",
@@ -394,6 +394,22 @@
                 "type": "string"
               },
               "description": "List of field names for template substitution"
+            },
+            "field_formatters": {
+              "type": "object",
+              "description": "Formatter configurations for individual fields in templates",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "description": "Reference to a formatter preset defined in [formatters]"
+                  },
+                  {
+                    "$ref": "#/definitions/formatter",
+                    "description": "Inline formatter configuration"
+                  }
+                ]
+              }
             }
           }
         }

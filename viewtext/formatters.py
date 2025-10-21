@@ -397,14 +397,17 @@ class FormatterRegistry:
                 Template string with {field} placeholders (default: "{}")
             fields : list[str], optional
                 List of field paths to extract (default: [])
-            field_formatters : dict[str, dict], optional
-                Dictionary mapping field names to formatter config
+            field_formatters : dict[str, dict|str], optional
+                Dictionary mapping field names to formatter config or preset name
                 Format: {"field_name": {"type": "formatter_name",
                                         "param1": value1, ...}}
+                Or: {"field_name": "preset_name"}
             _context : dict, optional
                 Context dictionary for resolving fields from engine
             _engine : LayoutEngine, optional
                 Engine instance for resolving fields
+            _loader : LayoutLoader, optional
+                Layout loader for resolving formatter presets
 
         Returns
         -------
@@ -421,12 +424,21 @@ class FormatterRegistry:
         ... )
         'John is 30 years old'
 
-        >>> # With formatters
+        >>> # With inline formatters
         >>> FormatterRegistry._format_template(
         ...     value,
         ...     template="{name} is {age} years old",
         ...     fields=["name", "age"],
         ...     field_formatters={"age": {"type": "number", "suffix": " yrs"}}
+        ... )
+        'John is 30 yrs years old'
+
+        >>> # With preset reference
+        >>> FormatterRegistry._format_template(
+        ...     value,
+        ...     template="{name} is {age} years old",
+        ...     fields=["name", "age"],
+        ...     field_formatters={"age": "number_with_suffix"}
         ... )
         'John is 30 yrs years old'
         """
@@ -435,6 +447,7 @@ class FormatterRegistry:
         field_formatters = kwargs.get("field_formatters", {})
         context = kwargs.get("_context")
         engine = kwargs.get("_engine")
+        loader = kwargs.get("_loader")
 
         if context is not None and engine is not None:
             field_values: dict[str, Any] = {}
@@ -443,6 +456,17 @@ class FormatterRegistry:
 
                 if field_name in field_formatters:
                     formatter_config = field_formatters[field_name]
+
+                    if isinstance(formatter_config, str):
+                        if loader is not None:
+                            preset = loader.get_formatter_preset(formatter_config)
+                            if preset is not None:
+                                formatter_config = preset
+                            else:
+                                formatter_config = {"type": "text"}
+                        else:
+                            formatter_config = {"type": "text"}
+
                     formatter_type = formatter_config.get("type", "text")
                     formatter_params = {
                         k: v for k, v in formatter_config.items() if k != "type"

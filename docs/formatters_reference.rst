@@ -727,10 +727,17 @@ Use **computed field operations** when you want to:
     decimals = 2
     thousands_sep = ","
 
-Global Formatter Configuration
--------------------------------
+Formatter Presets
+-----------------
 
-You can define reusable formatter configurations in your TOML files:
+You can define reusable formatter configurations (presets) in your TOML files to promote
+consistency and reduce duplication across your layouts.
+
+Defining Presets
+~~~~~~~~~~~~~~~~
+
+Formatter presets are defined in the ``[formatters]`` section. Each preset has a ``type``
+field that specifies the built-in formatter type, along with any parameters for that formatter:
 
 .. code-block:: toml
 
@@ -752,23 +759,179 @@ You can define reusable formatter configurations in your TOML files:
     type = "datetime"
     format = "%Y-%m-%d"
 
-    # Use presets in layouts
+    [formatters.time_only]
+    type = "datetime"
+    format = "%H:%M"
+
+Using Presets in Layouts
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once defined, presets can be referenced by name in two ways:
+
+**Method 1: Direct reference in layout line** (recommended for simplicity):
+
+.. code-block:: toml
+
+    [[layouts.product.lines]]
+    field = "price"
+    index = 0
+    formatter = "usd_price"  # References the preset by name
+
+    [[layouts.product.lines]]
+    field = "created_at"
+    index = 1
+    formatter = "short_date"  # References the preset by name
+
+**Method 2: Template field_formatters** (useful for template formatter):
+
+.. code-block:: toml
+
+    [[layouts.crypto.lines]]
+    field = "ticker"
+    index = 0
+    formatter = "template"
+
+    [layouts.crypto.lines.formatter_params]
+    template = "{symbol} - {price}"
+    fields = ["symbol", "price"]
+    field_formatters = { "price": "usd_price" }  # Apply preset to specific field
+
+Benefits of Using Presets
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. **Consistency** - Define formatting rules once, use everywhere
+2. **Maintainability** - Update formatting in one place, affects all usages
+3. **Readability** - Layout definitions become more concise and expressive
+4. **Reusability** - Share formatters across multiple layouts and files
+
+Comparison: Inline vs Preset
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Without presets** (verbose, repeated configuration):
+
+.. code-block:: toml
+
+    [[layouts.product.lines]]
+    field = "price"
+    index = 0
+    formatter = "price"
+
+    [layouts.product.lines.formatter_params]
+    symbol = "$"
+    decimals = 2
+    thousands_sep = ","
+
+    [[layouts.invoice.lines]]
+    field = "total"
+    index = 5
+    formatter = "price"
+
+    [layouts.invoice.lines.formatter_params]
+    symbol = "$"
+    decimals = 2
+    thousands_sep = ","
+
+**With presets** (concise, reusable):
+
+.. code-block:: toml
+
+    [formatters.usd_price]
+    type = "price"
+    symbol = "$"
+    decimals = 2
+    thousands_sep = ","
+
     [[layouts.product.lines]]
     field = "price"
     index = 0
     formatter = "usd_price"
 
-    [[layouts.product_eu.lines]]
-    field = "price"
+    [[layouts.invoice.lines]]
+    field = "total"
+    index = 5
+    formatter = "usd_price"
+
+Preset Resolution
+~~~~~~~~~~~~~~~~~
+
+When ViewText encounters a formatter name in a layout, it follows this resolution order:
+
+1. Check if ``formatter_params`` is provided inline - use built-in formatter with those params
+2. Check if a preset exists with that name - use preset configuration
+3. Fall back to built-in formatter with default parameters
+
+This means you can mix inline parameters and presets in the same layout:
+
+.. code-block:: toml
+
+    [formatters.standard_date]
+    type = "datetime"
+    format = "%Y-%m-%d"
+
+    [[layouts.mixed.lines]]
+    field = "created_at"
     index = 0
-    formatter = "eur_price"
+    formatter = "standard_date"  # Uses preset
+
+    [[layouts.mixed.lines]]
+    field = "price"
+    index = 1
+    formatter = "price"
+
+    [layouts.mixed.lines.formatter_params]
+    symbol = "$"
+    decimals = 2  # Inline parameters
+
+Organizing Presets in Separate Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For better organization, you can define formatter presets in a separate file:
+
+``formatters.toml``:
+
+.. code-block:: toml
+
+    [formatters.usd_price]
+    type = "price"
+    symbol = "$"
+    decimals = 2
+    thousands_sep = ","
+
+    [formatters.eur_price]
+    type = "price"
+    symbol = "€"
+    decimals = 2
+    thousands_sep = "."
+    decimal_sep = ","
+
+``layouts.toml``:
+
+.. code-block:: toml
+
+    [layouts.product]
+    name = "Product Display"
 
     [[layouts.product.lines]]
-    field = "created_at"
-    index = 1
-    formatter = "short_date"
+    field = "price"
+    index = 0
+    formatter = "usd_price"
 
-This approach promotes consistency and reduces duplication across your layouts.
+Load both files together:
+
+.. code-block:: bash
+
+    viewtext --config layouts.toml --formatters formatters.toml list
+
+.. code-block:: python
+
+    from viewtext import LayoutLoader
+
+    loader = LayoutLoader(
+        config_path="layouts.toml",
+        formatters_path="formatters.toml"
+    )
+
+See :doc:`user_guide` for more information on split configuration files.
 
 Best Practices
 --------------
