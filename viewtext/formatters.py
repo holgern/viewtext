@@ -391,12 +391,20 @@ class FormatterRegistry:
         Parameters
         ----------
         value : Any
-            Dictionary containing field values
+            Dictionary containing field values, or any value if context provided
         **kwargs : Any
             template : str, optional
                 Template string with {field} placeholders (default: "{}")
             fields : list[str], optional
                 List of field paths to extract (default: [])
+            field_formatters : dict[str, dict], optional
+                Dictionary mapping field names to formatter config
+                Format: {"field_name": {"type": "formatter_name",
+                                        "param1": value1, ...}}
+            _context : dict, optional
+                Context dictionary for resolving fields from engine
+            _engine : LayoutEngine, optional
+                Engine instance for resolving fields
 
         Returns
         -------
@@ -412,14 +420,59 @@ class FormatterRegistry:
         ...     fields=["name", "age"]
         ... )
         'John is 30 years old'
+
+        >>> # With formatters
+        >>> FormatterRegistry._format_template(
+        ...     value,
+        ...     template="{name} is {age} years old",
+        ...     fields=["name", "age"],
+        ...     field_formatters={"age": {"type": "number", "suffix": " yrs"}}
+        ... )
+        'John is 30 yrs years old'
         """
         template = str(kwargs.get("template", "{}"))
         fields = kwargs.get("fields", [])
+        field_formatters = kwargs.get("field_formatters", {})
+        context = kwargs.get("_context")
+        engine = kwargs.get("_engine")
+
+        if context is not None and engine is not None:
+            field_values: dict[str, Any] = {}
+            for field_name in fields:
+                val = engine._get_field_value(field_name, context)
+
+                if field_name in field_formatters:
+                    formatter_config = field_formatters[field_name]
+                    formatter_type = formatter_config.get("type", "text")
+                    formatter_params = {
+                        k: v for k, v in formatter_config.items() if k != "type"
+                    }
+
+                    try:
+                        formatter = engine.formatter_registry.get(formatter_type)
+                        val = formatter(val, **formatter_params)
+                    except (ValueError, Exception):
+                        val = str(val) if val is not None else ""
+                else:
+                    if val is not None:
+                        if isinstance(val, float):
+                            if val == int(val):
+                                val = int(val)
+                        val = str(val)
+                    else:
+                        val = ""
+
+                field_values[field_name] = val if val is not None else ""
+
+            try:
+                return str(template.format(**field_values))
+            except (KeyError, ValueError) as e:
+                return f"Template error: {e}"
 
         if not isinstance(value, dict):
             return str(value)
 
-        field_values: dict[str, Any] = {}
+        field_values = {}
         for field_path in fields:
             val: Any = value
             for key in field_path.split("."):

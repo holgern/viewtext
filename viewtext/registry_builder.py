@@ -233,18 +233,28 @@ class RegistryBuilder:
         registry = BaseFieldRegistry()
 
         for field_name, mapping in field_mappings.items():
+            if not mapping.operation:
+                if mapping.python_function:
+                    getter = RegistryBuilder._create_python_function_getter(
+                        field_name, mapping
+                    )
+                else:
+                    context_key = mapping.context_key or field_name
+                    getter = RegistryBuilder._create_getter(
+                        field_name,
+                        context_key,
+                        mapping.default,
+                        mapping.transform,
+                        mapping,
+                    )
+                registry.register(field_name, getter)
+
+        for field_name, mapping in field_mappings.items():
             if mapping.operation:
-                getter = RegistryBuilder._create_operation_getter(field_name, mapping)
-            elif mapping.python_function:
-                getter = RegistryBuilder._create_python_function_getter(
-                    field_name, mapping
+                getter = RegistryBuilder._create_operation_getter(
+                    field_name, mapping, registry
                 )
-            else:
-                context_key = mapping.context_key or field_name
-                getter = RegistryBuilder._create_getter(
-                    field_name, context_key, mapping.default, mapping.transform, mapping
-                )
-            registry.register(field_name, getter)
+                registry.register(field_name, getter)
 
         return registry
 
@@ -491,6 +501,25 @@ class RegistryBuilder:
             return value
 
     @staticmethod
+    def _get_source_value(
+        context: dict[str, Any],
+        source: str,
+        default: Any,
+        registry: Optional[BaseFieldRegistry] = None,
+    ) -> Optional[float]:
+        """Get numeric value from source field, resolving through
+        registry if available."""
+        if registry and registry.has_field(source):
+            getter = registry.get(source)
+            value = getter(context)
+        else:
+            value = context.get(source)
+
+        if value is None or not isinstance(value, (int, float)):
+            return None
+        return float(value)
+
+    @staticmethod
     def _get_numeric_value(
         context: dict[str, Any], key: str, default: Any
     ) -> Optional[float]:
@@ -545,6 +574,7 @@ class RegistryBuilder:
         operation: str,
         op_func: Callable[..., Any],
         params: dict[str, Any],
+        registry: Optional[BaseFieldRegistry] = None,
     ) -> Any:
         """Handle operations with multiple source values."""
         sources = params.get("sources", [])
@@ -553,7 +583,7 @@ class RegistryBuilder:
 
         values = []
         for source in sources:
-            val = RegistryBuilder._get_numeric_value(context, source, default)
+            val = RegistryBuilder._get_source_value(context, source, default, registry)
             if val is None:
                 return default
             values.append(val)
@@ -770,6 +800,7 @@ class RegistryBuilder:
     def _create_operation_getter(
         field_name: str,
         mapping: FieldMapping,
+        registry: Optional[BaseFieldRegistry] = None,
     ) -> Callable[[dict[str, Any]], Any]:
         """
         Create a getter function for computed fields with operations.
@@ -887,7 +918,7 @@ class RegistryBuilder:
 
                         if params["sources"]:
                             result = RegistryBuilder._handle_sources_operation(
-                                context, operation, op_func_typed, params
+                                context, operation, op_func_typed, params, registry
                             )
                         elif params["context_key"]:
                             result = RegistryBuilder._handle_context_key_operation(

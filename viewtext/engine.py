@@ -108,7 +108,9 @@ class LayoutEngine:
             value = self._get_field_value(field_name, context)
 
             if formatter_name:
-                value = self._format_value(value, formatter_name, formatter_params)
+                value = self._format_value(
+                    value, formatter_name, formatter_params, context
+                )
 
             if index < len(line_str):
                 line_str[index] = str(value) if value is not None else ""
@@ -140,7 +142,11 @@ class LayoutEngine:
             return None
 
     def _format_value(
-        self, value: Any, formatter_name: str, formatter_params: dict[str, Any]
+        self,
+        value: Any,
+        formatter_name: str,
+        formatter_params: dict[str, Any],
+        context: Optional[dict[str, Any]] = None,
     ) -> Any:
         """
         Format a value using the specified formatter.
@@ -153,6 +159,8 @@ class LayoutEngine:
             Name of the formatter to use
         formatter_params : dict[str, Any]
             Parameters to pass to the formatter
+        context : dict[str, Any], optional
+            Context dictionary for template formatter
 
         Returns
         -------
@@ -168,6 +176,13 @@ class LayoutEngine:
             formatter = self.formatter_registry.get(formatter_type)
         except ValueError:
             formatter = self.formatter_registry.get("text")
+
+        if formatter_type == "template" and context is not None:
+            formatter_params = {
+                **formatter_params,
+                "_context": context,
+                "_engine": self,
+            }
 
         return formatter(value, **formatter_params)
 
