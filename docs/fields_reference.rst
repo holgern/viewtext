@@ -40,11 +40,12 @@ Fields are defined in the ``[fields]`` section of TOML configuration files:
 Field Types
 -----------
 
-There are three types of field definitions:
+There are four types of field definitions:
 
 1. **Context Fields** - Extract values directly from context
 2. **Computed Fields** - Perform calculations on source data
-3. **Validated Fields** - Include type checking and constraints
+3. **Python Function Fields** - Execute Python code to generate values
+4. **Validated Fields** - Include type checking and constraints
 
 Context Fields
 ~~~~~~~~~~~~~~
@@ -101,6 +102,53 @@ Perform operations on source data. See :doc:`computed_fields_reference` for comp
     operation = "celsius_to_fahrenheit"
     sources = ["temp_celsius"]
     default = 0.0
+
+Python Function Fields
+~~~~~~~~~~~~~~~~~~~~~~
+
+Execute Python code to generate dynamic values. Useful for timestamps, UUIDs, random values, or any Python expression.
+
+**Key features:**
+
+- Execute arbitrary Python expressions
+- Import standard library modules
+- Values are cached per render (same value across multiple uses)
+- Transform and validation applied after execution
+- Errors return default value
+
+**Example:**
+
+.. code-block:: toml
+
+    # Current timestamp
+    [fields.current_time]
+    python_module = "datetime"
+    python_function = "datetime.datetime.now().timestamp()"
+    transform = "int"
+    type = "int"
+    default = 0
+
+    # Generate UUID
+    [fields.request_id]
+    python_module = "uuid"
+    python_function = "str(uuid.uuid4())"
+    type = "str"
+    default = ""
+
+    # Random number
+    [fields.random_value]
+    python_module = "random"
+    python_function = "random.randint(1, 100)"
+    type = "int"
+    default = 0
+
+    # Simple math (no module needed)
+    [fields.constant]
+    python_function = "2 + 2"
+    default = 0
+
+.. warning::
+   Python function fields execute arbitrary Python code. Only use trusted configuration files.
 
 Validated Fields
 ~~~~~~~~~~~~~~~~
@@ -229,6 +277,74 @@ Simple text transformations applied after retrieving the value.
     context_key = "email"
     transform = "lower"
     default = ""
+
+python_module
+~~~~~~~~~~~~~
+
+**Type:** ``str``
+
+**Required:** No (for Python function fields)
+
+Name of the Python standard library module to import before executing ``python_function``.
+
+**Examples:**
+
+.. code-block:: toml
+
+    [fields.current_time]
+    python_module = "datetime"
+    python_function = "datetime.datetime.now().timestamp()"
+    default = 0
+
+    [fields.uuid]
+    python_module = "uuid"
+    python_function = "str(uuid.uuid4())"
+    default = ""
+
+    [fields.random_value]
+    python_module = "random"
+    python_function = "random.randint(1, 100)"
+    default = 0
+
+python_function
+~~~~~~~~~~~~~~~
+
+**Type:** ``str``
+
+**Required:** Yes (for Python function fields)
+
+Python expression to evaluate. The expression has access to any modules imported via ``python_module``.
+
+Results are cached per render using ``__python_function_cache_{field_name}`` to ensure consistent values across multiple field uses.
+
+**Execution order:** eval → transform → validate
+
+**Examples:**
+
+.. code-block:: toml
+
+    # With module import
+    [fields.timestamp]
+    python_module = "datetime"
+    python_function = "datetime.datetime.now().timestamp()"
+    transform = "int"
+    type = "int"
+    default = 0
+
+    # Simple expression (no module needed)
+    [fields.constant]
+    python_function = "2 + 2"
+    default = 0
+
+    # Generate UUID
+    [fields.request_id]
+    python_module = "uuid"
+    python_function = "str(uuid.uuid4())"
+    type = "str"
+    default = ""
+
+.. warning::
+   Python function fields execute arbitrary code. Only use trusted configuration files.
 
 Validation Parameters
 ---------------------

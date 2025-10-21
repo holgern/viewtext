@@ -861,5 +861,132 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "1234,56")
 
 
+class TestPythonFunctionGetter(unittest.TestCase):
+    def test_python_function_datetime(self):
+        import time
+
+        mapping = FieldMapping(
+            python_module="datetime",
+            python_function="datetime.datetime.now().timestamp()",
+            transform="int",
+        )
+        getter = RegistryBuilder._create_python_function_getter("current_time", mapping)
+        context = {}
+        result = getter(context)
+        self.assertIsInstance(result, int)
+        self.assertGreater(result, 0)
+        self.assertLess(result - int(time.time()), 2)
+
+    def test_python_function_caching(self):
+        mapping = FieldMapping(
+            python_module="random", python_function="random.random()", default=0.0
+        )
+        getter = RegistryBuilder._create_python_function_getter("random_value", mapping)
+        context = {}
+        first_call = getter(context)
+        second_call = getter(context)
+        self.assertEqual(first_call, second_call)
+
+    def test_python_function_uuid(self):
+        mapping = FieldMapping(
+            python_module="uuid", python_function="str(uuid.uuid4())", default=""
+        )
+        getter = RegistryBuilder._create_python_function_getter("unique_id", mapping)
+        context = {}
+        result = getter(context)
+        self.assertIsInstance(result, str)
+        self.assertEqual(len(result), 36)
+
+    def test_python_function_math(self):
+        mapping = FieldMapping(
+            python_module="math", python_function="math.pi", default=0.0
+        )
+        getter = RegistryBuilder._create_python_function_getter("pi_value", mapping)
+        context = {}
+        result = getter(context)
+        self.assertAlmostEqual(result, 3.14159, places=5)
+
+    def test_python_function_with_transform(self):
+        mapping = FieldMapping(
+            python_module="math",
+            python_function="math.pi",
+            transform="int",
+            default=0,
+        )
+        getter = RegistryBuilder._create_python_function_getter("pi_int", mapping)
+        context = {}
+        result = getter(context)
+        self.assertEqual(result, 3)
+
+    def test_python_function_bad_module_returns_default(self):
+        mapping = FieldMapping(
+            python_module="nonexistent_module",
+            python_function="nonexistent_module.func()",
+            default="default",
+        )
+        getter = RegistryBuilder._create_python_function_getter("bad_module", mapping)
+        context = {}
+        result = getter(context)
+        self.assertEqual(result, "default")
+
+    def test_python_function_bad_function_returns_default(self):
+        mapping = FieldMapping(
+            python_module="math",
+            python_function="math.nonexistent_function()",
+            default=999,
+        )
+        getter = RegistryBuilder._create_python_function_getter("bad_func", mapping)
+        context = {}
+        result = getter(context)
+        self.assertEqual(result, 999)
+
+    def test_python_function_syntax_error_returns_default(self):
+        mapping = FieldMapping(
+            python_module="math",
+            python_function="invalid syntax here",
+            default="error",
+        )
+        getter = RegistryBuilder._create_python_function_getter("bad_syntax", mapping)
+        context = {}
+        result = getter(context)
+        self.assertEqual(result, "error")
+
+    def test_python_function_no_module(self):
+        mapping = FieldMapping(python_function="2 + 2", default=0)
+        getter = RegistryBuilder._create_python_function_getter("simple_math", mapping)
+        context = {}
+        result = getter(context)
+        self.assertEqual(result, 4)
+
+    def test_python_function_with_validator(self):
+        mapping = FieldMapping(
+            python_module="math",
+            python_function="math.pi",
+            type="float",
+            min_value=3.0,
+            max_value=4.0,
+            default=0.0,
+        )
+        getter = RegistryBuilder._create_python_function_getter("validated_pi", mapping)
+        context = {}
+        result = getter(context)
+        self.assertAlmostEqual(result, 3.14159, places=5)
+
+    def test_python_function_validator_out_of_range(self):
+        mapping = FieldMapping(
+            python_module="math",
+            python_function="math.pi",
+            type="float",
+            min_value=5.0,
+            max_value=10.0,
+            on_validation_error="use_default",
+            default=7.5,
+        )
+        getter = RegistryBuilder._create_python_function_getter("invalid_pi", mapping)
+        context = {}
+        result = getter(context)
+        self.assertEqual(result, 7.5)
+
+
 if __name__ == "__main__":
     unittest.main()

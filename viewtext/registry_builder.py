@@ -235,6 +235,10 @@ class RegistryBuilder:
         for field_name, mapping in field_mappings.items():
             if mapping.operation:
                 getter = RegistryBuilder._create_operation_getter(field_name, mapping)
+            elif mapping.python_function:
+                getter = RegistryBuilder._create_python_function_getter(
+                    field_name, mapping
+                )
             else:
                 context_key = mapping.context_key or field_name
                 getter = RegistryBuilder._create_getter(
@@ -343,6 +347,101 @@ class RegistryBuilder:
                 value = RegistryBuilder._apply_transform(value, transform)
 
             return value
+
+        return getter
+
+    @staticmethod
+    def _create_python_function_getter(
+        field_name: str,
+        mapping: FieldMapping,
+    ) -> Callable[[dict[str, Any]], Any]:
+        """
+        Create a getter function for fields that execute Python functions.
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the field
+        mapping : FieldMapping
+            Field mapping configuration containing python_module and python_function
+
+        Returns
+        -------
+        Callable[[dict[str, Any]], Any]
+            Getter function that executes the Python function
+
+        Examples
+        --------
+        >>> from viewtext.loader import FieldMapping
+        >>> mapping = FieldMapping(
+        ...     python_module="datetime",
+        ...     python_function="datetime.now().timestamp()",
+        ...     transform="int"
+        ... )
+        >>> getter = RegistryBuilder._create_python_function_getter(
+        ...     "current_time", mapping
+        ... )
+        >>> result = getter({})
+        >>> isinstance(result, int)
+        True
+        """
+        python_module = mapping.python_module
+        python_function = mapping.python_function
+        default = mapping.default
+        transform = mapping.transform
+
+        validator = None
+        if mapping.type:
+            validator = FieldValidator(
+                field_name=field_name,
+                field_type=mapping.type,
+                on_validation_error=mapping.on_validation_error,
+                default=default,
+                min_value=mapping.min_value,
+                max_value=mapping.max_value,
+                min_length=mapping.min_length,
+                max_length=mapping.max_length,
+                pattern=mapping.pattern,
+                allowed_values=mapping.allowed_values,
+                min_items=mapping.min_items,
+                max_items=mapping.max_items,
+            )
+
+        def getter(context: dict[str, Any]) -> Any:
+            cache_key = f"__python_function_cache_{field_name}"
+            if cache_key in context:
+                return context[cache_key]
+
+            if not python_function:
+                return default
+
+            try:
+                namespace: dict[str, Any] = {"__builtins__": __builtins__}
+                if python_module:
+                    exec(f"import {python_module}", namespace)
+
+                # Type narrowing - at this point python_function is str
+                assert isinstance(python_function, str)
+                value = eval(python_function, namespace)
+
+                if transform and value is not None:
+                    value = RegistryBuilder._apply_transform(value, transform)
+
+                if validator:
+                    value = validator.validate(value)
+
+                context[cache_key] = value
+                return value
+
+            except (
+                ImportError,
+                NameError,
+                AttributeError,
+                SyntaxError,
+                TypeError,
+                ValueError,
+            ):
+                return default
 
         return getter
 

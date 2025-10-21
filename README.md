@@ -46,6 +46,35 @@ engine = LayoutEngine()
 lines = engine.build_line_str(layout, {"temp": 72})
 ```
 
+### Python Function Fields
+
+Execute Python code to generate dynamic field values (timestamps, UUIDs, random
+numbers):
+
+```toml
+# Current timestamp
+[fields.current_time]
+python_module = "datetime"
+python_function = "datetime.datetime.now().timestamp()"
+transform = "int"
+default = 0
+
+# Generate UUID
+[fields.request_id]
+python_module = "uuid"
+python_function = "str(uuid.uuid4())"
+default = ""
+
+# Random number
+[fields.random_value]
+python_module = "random"
+python_function = "random.randint(1, 100)"
+default = 0
+```
+
+See `examples/time_diff_example.toml` and `examples/README_time_diff.md` for more
+details.
+
 ### Computed Fields
 
 Perform calculations on your data directly in TOML configuration:

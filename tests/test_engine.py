@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import Any
 
 from viewtext.engine import LayoutEngine
 from viewtext.loader import LayoutLoader
@@ -698,6 +699,99 @@ formatter = "text"
             context_missing = {"value1": 50000}
             result_missing = engine.build_line_str(layout, context_missing)
             assert result_missing == ["50,000", "N/A", "N/A"]
+        finally:
+            os.unlink(fields_path)
+            os.unlink(layouts_path)
+
+    def test_python_function_field(self):
+        from datetime import datetime
+
+        fields_data = """
+[fields.current_time]
+python_module = "datetime"
+python_function = "datetime.datetime.now().timestamp()"
+transform = "int"
+type = "int"
+"""
+        layouts_data = """
+[layouts.test]
+name = "Test Layout"
+
+[[layouts.test.lines]]
+field = "current_time"
+index = 0
+"""
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as fields_file:
+            fields_file.write(fields_data)
+            fields_path = fields_file.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as layouts_file:
+            layouts_file.write(layouts_data)
+            layouts_path = layouts_file.name
+
+        try:
+            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            layout = loader.get_layout("test")
+            registry = RegistryBuilder.build_from_config(loader=loader)
+            engine = LayoutEngine(field_registry=registry)
+
+            context: dict[str, Any] = {}
+            result = engine.build_line_str(layout, context)
+
+            current_timestamp = int(datetime.now().timestamp())
+            result_timestamp = int(result[0])
+            assert abs(result_timestamp - current_timestamp) < 2
+        finally:
+            os.unlink(fields_path)
+            os.unlink(layouts_path)
+
+    def test_python_function_caching(self):
+        fields_data = """
+[fields.random_value]
+python_module = "random"
+python_function = "random.random()"
+type = "float"
+"""
+        layouts_data = """
+[layouts.test]
+name = "Test Layout"
+
+[[layouts.test.lines]]
+field = "random_value"
+index = 0
+
+[[layouts.test.lines]]
+field = "random_value"
+index = 1
+"""
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as fields_file:
+            fields_file.write(fields_data)
+            fields_path = fields_file.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".toml", delete=False
+        ) as layouts_file:
+            layouts_file.write(layouts_data)
+            layouts_path = layouts_file.name
+
+        try:
+            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            layout = loader.get_layout("test")
+            registry = RegistryBuilder.build_from_config(loader=loader)
+            engine = LayoutEngine(field_registry=registry)
+
+            context: dict[str, Any] = {}
+            result = engine.build_line_str(layout, context)
+
+            assert result[0] == result[1]
         finally:
             os.unlink(fields_path)
             os.unlink(layouts_path)

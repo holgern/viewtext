@@ -217,6 +217,14 @@
           "type": "integer",
           "minimum": 0,
           "description": "Maximum number of items for list/array types"
+        },
+        "python_module": {
+          "type": "string",
+          "description": "Python module to import before executing python_function (e.g., 'datetime', 'uuid', 'random')"
+        },
+        "python_function": {
+          "type": "string",
+          "description": "Python expression to execute for generating field value (e.g., 'datetime.datetime.now().timestamp()'). Value is cached per render."
         }
       },
       "oneOf": [
@@ -227,6 +235,10 @@
         {
           "required": ["operation"],
           "description": "Computed field: performs calculation on source data"
+        },
+        {
+          "required": ["python_function"],
+          "description": "Python function field: executes Python code to generate value"
         }
       ]
     },

@@ -157,6 +157,10 @@ class FieldMapping(BaseModel):
         Minimum number of items for list/array types
     max_items : int, optional
         Maximum number of items for list/array types
+    python_module : str, optional
+        Python module to import for python_function execution
+    python_function : str, optional
+        Python function call expression to execute (e.g., "datetime.now().timestamp()")
     """
 
     context_key: Optional[str] = None
@@ -190,6 +194,8 @@ class FieldMapping(BaseModel):
     allowed_values: Optional[list[Any]] = None
     min_items: Optional[int] = None
     max_items: Optional[int] = None
+    python_module: Optional[str] = None
+    python_function: Optional[str] = None
 
 
 class LayoutsConfig(BaseModel):
