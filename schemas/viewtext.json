@@ -354,13 +354,20 @@
         },
         "lines": {
           "type": "array",
-          "description": "List of line configurations",
+          "description": "List of line configurations (for line-based layouts)",
           "items": {
             "$ref": "#/definitions/line"
           }
+        },
+        "items": {
+          "type": "array",
+          "description": "List of dictionary item configurations (for dict-based layouts)",
+          "items": {
+            "$ref": "#/definitions/dict_item"
+          }
         }
       },
-      "required": ["name", "lines"]
+      "required": ["name"]
     },
     "line": {
       "type": "object",
@@ -450,6 +457,94 @@
         }
       },
       "required": ["field", "index"]
+    },
+    "dict_item": {
+      "type": "object",
+      "description": "Dictionary item configuration in a layout",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Name of the field to display"
+        },
+        "key": {
+          "type": "string",
+          "description": "Key name in the output dictionary"
+        },
+        "formatter": {
+          "type": "string",
+          "description": "Name of the formatter to apply (built-in type like 'text', 'number', 'datetime', or a preset name from the formatters section)"
+        },
+        "formatter_params": {
+          "type": "object",
+          "description": "Parameters to pass to the formatter",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "Currency symbol for price formatter"
+            },
+            "symbol_position": {
+              "type": "string",
+              "enum": ["prefix", "suffix"],
+              "description": "Position of currency symbol"
+            },
+            "decimals": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of decimal places"
+            },
+            "thousands_sep": {
+              "type": "string",
+              "maxLength": 1,
+              "description": "Thousands separator character"
+            },
+            "decimal_sep": {
+              "type": "string",
+              "maxLength": 1,
+              "description": "Decimal separator character"
+            },
+            "prefix": {
+              "type": "string",
+              "description": "String to prepend to the value"
+            },
+            "suffix": {
+              "type": "string",
+              "description": "String to append to the value"
+            },
+            "format": {
+              "type": "string",
+              "description": "Format string (e.g., datetime format)"
+            },
+            "template": {
+              "type": "string",
+              "description": "Template string with {field_name} placeholders"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of field names for template substitution"
+            },
+            "field_formatters": {
+              "type": "object",
+              "description": "Formatter configurations for individual fields in templates",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "description": "Reference to a formatter preset defined in [formatters]"
+                  },
+                  {
+                    "$ref": "#/definitions/formatter",
+                    "description": "Inline formatter configuration"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "required": ["field", "key"]
     }
   }
 }

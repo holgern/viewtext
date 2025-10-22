@@ -127,6 +127,61 @@ class LayoutEngine:
 
         return line_str
 
+    def build_dict_str(
+        self, layout_config: dict[str, Any], context: dict[str, Any]
+    ) -> dict[str, str]:
+        """
+        Build formatted dictionary from layout configuration and context.
+
+        Parameters
+        ----------
+        layout_config : dict[str, Any]
+            Layout configuration dictionary containing "items" list
+        context : dict[str, Any]
+            Context dictionary containing data values
+
+        Returns
+        -------
+        dict[str, str]
+            Dictionary mapping keys to formatted values
+
+        Examples
+        --------
+        >>> engine = LayoutEngine()
+        >>> layout = {
+        ...     "items": [
+        ...         {"field": "temp", "key": "temperature",
+        ...          "formatter": "number", "formatter_params": {"suffix": "°"}},
+        ...         {"field": "price", "key": "cost", "formatter": "price"}
+        ...     ]
+        ... }
+        >>> result = engine.build_dict_str(layout, {"temp": 31, "price": 32})
+        >>> result
+        {'temperature': '31°', 'cost': '$32.00'}
+        """
+        items = layout_config.get("items", [])
+        result = {}
+
+        for item_config in items:
+            key = item_config.get("key")
+            field_name = item_config.get("field")
+            formatter_name = item_config.get("formatter")
+            formatter_params = item_config.get("formatter_params", {})
+
+            if key is None or field_name is None:
+                continue
+
+            value = self._get_field_value(field_name, context)
+
+            if formatter_name:
+                value = self._format_value(
+                    value, formatter_name, formatter_params, context
+                )
+
+            result[key] = str(value) if value is not None else ""
+
+        return result
+
     def _get_field_value(self, field_name: str, context: dict[str, Any]) -> Any:
         """
         Get field value from registry or context.

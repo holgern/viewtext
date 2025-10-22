@@ -38,6 +38,28 @@ class LineConfig(BaseModel):
     formatter_params: dict[str, Any] = Field(default_factory=dict)
 
 
+class DictItemConfig(BaseModel):
+    """
+    Configuration for a single dictionary item in a layout.
+
+    Attributes
+    ----------
+    field : str
+        Name of the field to display
+    key : str
+        Key name in the output dictionary
+    formatter : str, optional
+        Name of the formatter to apply
+    formatter_params : dict[str, Any]
+        Parameters to pass to the formatter
+    """
+
+    field: str
+    key: str
+    formatter: Optional[str] = None
+    formatter_params: dict[str, Any] = Field(default_factory=dict)
+
+
 class LayoutConfig(BaseModel):
     """
     Configuration for a complete layout.
@@ -46,12 +68,15 @@ class LayoutConfig(BaseModel):
     ----------
     name : str
         Display name of the layout
-    lines : list[LineConfig]
-        List of line configurations
+    lines : list[LineConfig], optional
+        List of line configurations (for line-based layouts)
+    items : list[DictItemConfig], optional
+        List of dict item configurations (for dict-based layouts)
     """
 
     name: str
-    lines: list[LineConfig]
+    lines: Optional[list[LineConfig]] = None
+    items: Optional[list[DictItemConfig]] = None
 
 
 class FormatterConfigParams(BaseModel):

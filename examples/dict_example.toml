@@ -1,0 +1,97 @@
+#:schema schemas/viewtext.json
+
+[fields.temperature]
+context_key = "temperature"
+type = "float"
+
+[fields.price_value]
+context_key = "price_value"
+type = "float"
+
+[fields.text_value]
+context_key = "text_value"
+type = "str"
+
+[fields.number_value]
+context_key = "number_value"
+type = "float"
+
+[fields.timestamp]
+context_key = "timestamp"
+type = "int"
+
+[fields.demo1]
+context_key = "demo1"
+type = "str"
+
+[fields.demo2]
+context_key = "demo2"
+type = "str"
+
+[fields.demo3]
+context_key = "demo3"
+type = "str"
+
+[layouts.weather_dict]
+name = "Weather Dictionary Display"
+
+[[layouts.weather_dict.items]]
+field = "temperature"
+key = "temp"
+formatter = "number"
+
+[layouts.weather_dict.items.formatter_params]
+suffix = "°"
+decimals = 1
+
+[[layouts.weather_dict.items]]
+field = "price_value"
+key = "price"
+formatter = "price"
+
+[layouts.weather_dict.items.formatter_params]
+symbol = "$"
+decimals = 2
+
+[[layouts.weather_dict.items]]
+field = "text_value"
+key = "message"
+formatter = "text"
+
+[[layouts.weather_dict.items]]
+field = "timestamp"
+key = "time"
+formatter = "datetime"
+
+[layouts.weather_dict.items.formatter_params]
+format = "%Y-%m-%d %H:%M:%S"
+
+[layouts.simple_dict]
+name = "Simple Dictionary"
+
+[[layouts.simple_dict.items]]
+field = "demo1"
+key = "greeting"
+
+[[layouts.simple_dict.items]]
+field = "demo2"
+key = "world"
+
+[[layouts.simple_dict.items]]
+field = "demo3"
+key = "app"
+
+[layouts.mixed_line]
+name = "Traditional Line Layout"
+
+[[layouts.mixed_line.lines]]
+field = "demo1"
+index = 0
+
+[[layouts.mixed_line.lines]]
+field = "demo2"
+index = 1
+
+[[layouts.mixed_line.lines]]
+field = "demo3"
+index = 2

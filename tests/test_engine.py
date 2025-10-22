@@ -206,6 +206,178 @@ class TestLayoutEngine:
 
         assert result == ["", "test"]
 
+    def test_build_dict_str_basic(self):
+        registry = BaseFieldRegistry()
+
+        def temp_getter(ctx):
+            return ctx["temperature"]
+
+        registry.register("temp", temp_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {"field": "temp", "key": "temperature"},
+            ]
+        }
+        context = {"temperature": 25}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"temperature": "25"}
+
+    def test_build_dict_str_multiple_items(self):
+        registry = BaseFieldRegistry()
+
+        def temp_getter(ctx):
+            return ctx["temperature"]
+
+        def humidity_getter(ctx):
+            return ctx["humidity"]
+
+        registry.register("temp", temp_getter)
+        registry.register("humidity", humidity_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {"field": "temp", "key": "temp"},
+                {"field": "humidity", "key": "humid"},
+            ]
+        }
+        context = {"temperature": 25, "humidity": 60}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"temp": "25", "humid": "60"}
+
+    def test_build_dict_str_with_formatter(self):
+        registry = BaseFieldRegistry()
+
+        def price_getter(ctx):
+            return ctx["price"]
+
+        registry.register("price", price_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {
+                    "field": "price",
+                    "key": "cost",
+                    "formatter": "price",
+                    "formatter_params": {"symbol": "$", "decimals": 2},
+                },
+            ]
+        }
+        context = {"price": 123.45}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"cost": "$123.45"}
+
+    def test_build_dict_str_from_context_without_registry(self):
+        engine = LayoutEngine(field_registry=None)
+        layout_config = {
+            "items": [
+                {"field": "temperature", "key": "temp"},
+            ]
+        }
+        context = {"temperature": 25}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"temp": "25"}
+
+    def test_build_dict_str_missing_field_returns_empty(self):
+        registry = BaseFieldRegistry()
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {"field": "nonexistent", "key": "missing"},
+            ]
+        }
+        context = {}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"missing": ""}
+
+    def test_build_dict_str_with_text_formatter(self):
+        registry = BaseFieldRegistry()
+
+        def name_getter(ctx):
+            return ctx["name"]
+
+        registry.register("name", name_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {
+                    "field": "name",
+                    "key": "greeting",
+                    "formatter": "text",
+                    "formatter_params": {"prefix": "Hello, ", "suffix": "!"},
+                },
+            ]
+        }
+        context = {"name": "World"}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"greeting": "Hello, World!"}
+
+    def test_build_dict_str_with_number_formatter(self):
+        registry = BaseFieldRegistry()
+
+        def count_getter(ctx):
+            return ctx["count"]
+
+        registry.register("count", count_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {
+                    "field": "count",
+                    "key": "total",
+                    "formatter": "number",
+                    "formatter_params": {"thousands_sep": ","},
+                },
+            ]
+        }
+        context = {"count": 1234567}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"total": "1,234,567"}
+
+    def test_build_dict_str_empty_items(self):
+        engine = LayoutEngine(field_registry=None)
+        layout_config = {"items": []}
+        context = {}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {}
+
+    def test_build_dict_str_missing_key_or_field_skipped(self):
+        registry = BaseFieldRegistry()
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {"field": "temp"},
+                {"key": "empty"},
+                {"field": "valid", "key": "data"},
+            ]
+        }
+        context = {"valid": "test"}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"data": "test"}
+
     def test_get_field_value_registry_priority(self):
         registry = BaseFieldRegistry()
 

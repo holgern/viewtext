@@ -5,7 +5,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import typer
 from rich.console import Console
@@ -13,7 +13,7 @@ from rich.table import Table
 
 from .engine import LayoutEngine
 from .formatters import get_formatter_registry
-from .loader import LayoutLoader
+from .loader import DictItemConfig, LayoutLoader, LineConfig
 from .registry_builder import get_registry_from_config
 
 app = typer.Typer(help="ViewText CLI - Text grid layout generator")
@@ -78,12 +78,21 @@ def list_layouts(ctx: typer.Context) -> None:
         table = Table(title="Available Layouts", show_header=True, header_style="bold")
         table.add_column("Layout Name", style="cyan", width=30)
         table.add_column("Display Name", style="green", width=40)
-        table.add_column("Lines", justify="right", style="magenta")
+        table.add_column("Type", justify="right", style="magenta")
+        table.add_column("Count", justify="right", style="magenta")
 
         for layout_name, layout_config in sorted(layouts_config.layouts.items()):
             display_name = layout_config.name
-            num_lines = len(layout_config.lines)
-            table.add_row(layout_name, display_name, str(num_lines))
+            if layout_config.items:
+                layout_type = "dict"
+                count = len(layout_config.items)
+            elif layout_config.lines:
+                layout_type = "line"
+                count = len(layout_config.lines)
+            else:
+                layout_type = "empty"
+                count = 0
+            table.add_row(layout_name, display_name, layout_type, str(count))
 
         console.print(table)
         console.print(f"\n[bold]Total layouts:[/bold] {len(layouts_config.layouts)}\n")
@@ -112,23 +121,51 @@ def show_layout(
             f"\n[bold green]Layout:[/bold green] {layout_name} - {layout['name']}\n"
         )
 
-        table = Table(show_header=True, header_style="bold")
-        table.add_column("Index", justify="right", style="cyan", width=8)
-        table.add_column("Field", style="green", width=25)
-        table.add_column("Formatter", style="yellow", width=20)
-        table.add_column("Parameters", style="magenta")
+        has_items = "items" in layout and layout.get("items")
+        has_lines = "lines" in layout and layout.get("lines")
 
-        for line in layout.get("lines", []):
-            index = str(line.get("index", ""))
-            field = line.get("field", "")
-            formatter = line.get("formatter", "")
-            params = line.get("formatter_params", {})
-            params_str = str(params) if params else ""
+        if has_items:
+            table = Table(show_header=True, header_style="bold")
+            table.add_column("Key", justify="left", style="cyan", width=20)
+            table.add_column("Field", style="green", width=25)
+            table.add_column("Formatter", style="yellow", width=20)
+            table.add_column("Parameters", style="magenta")
 
-            table.add_row(index, field, formatter, params_str)
+            for item in layout.get("items", []):
+                key = item.get("key", "")
+                field = item.get("field", "")
+                formatter = item.get("formatter", "")
+                params = item.get("formatter_params", {})
+                params_str = str(params) if params else ""
 
-        console.print(table)
-        console.print(f"\n[bold]Total lines:[/bold] {len(layout.get('lines', []))}\n")
+                table.add_row(key, field, formatter, params_str)
+
+            console.print(table)
+            console.print(
+                f"\n[bold]Total items:[/bold] {len(layout.get('items', []))}\n"
+            )
+        elif has_lines:
+            table = Table(show_header=True, header_style="bold")
+            table.add_column("Index", justify="right", style="cyan", width=8)
+            table.add_column("Field", style="green", width=25)
+            table.add_column("Formatter", style="yellow", width=20)
+            table.add_column("Parameters", style="magenta")
+
+            for line in layout.get("lines", []):
+                index = str(line.get("index", ""))
+                field = line.get("field", "")
+                formatter = line.get("formatter", "")
+                params = line.get("formatter_params", {})
+                params_str = str(params) if params else ""
+
+                table.add_row(index, field, formatter, params_str)
+
+            console.print(table)
+            console.print(
+                f"\n[bold]Total lines:[/bold] {len(layout.get('lines', []))}\n"
+            )
+        else:
+            console.print("[yellow]Empty layout (no lines or items)[/yellow]\n")
 
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -219,20 +256,39 @@ def render(
             else:
                 context = create_mock_context()
 
-        lines = engine.build_line_str(layout, context)
+        has_items = "items" in layout and layout.get("items")
+        has_lines = "lines" in layout and layout.get("lines")
 
-        if json_output:
-            print(json.dumps(lines, indent=2))
-        else:
-            console.print(
-                f"\n[bold green]Rendered Output:[/bold green] {layout_name}\n"
-            )
-            console.print("[dim]" + "─" * 80 + "[/dim]")
+        if has_items and not has_lines:
+            result = engine.build_dict_str(layout, context)
 
-            for i, line in enumerate(lines):
-                console.print(f"[cyan]{i}:[/cyan] {line}")
+            if json_output:
+                print(json.dumps(result, indent=2))
+            else:
+                console.print(
+                    f"\n[bold green]Rendered Output:[/bold green] {layout_name}\n"
+                )
+                console.print("[dim]" + "─" * 80 + "[/dim]")
 
-            console.print("[dim]" + "─" * 80 + "[/dim]\n")
+                for key, value in result.items():
+                    console.print(f"[cyan]{key}:[/cyan] {value}")
+
+                console.print("[dim]" + "─" * 80 + "[/dim]\n")
+        elif has_lines:
+            lines = engine.build_line_str(layout, context)
+
+            if json_output:
+                print(json.dumps(lines, indent=2))
+            else:
+                console.print(
+                    f"\n[bold green]Rendered Output:[/bold green] {layout_name}\n"
+                )
+                console.print("[dim]" + "─" * 80 + "[/dim]")
+
+                for i, line in enumerate(lines):
+                    console.print(f"[cyan]{i}:[/cyan] {line}")
+
+                console.print("[dim]" + "─" * 80 + "[/dim]\n")
 
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -372,18 +428,32 @@ def list_templates(ctx: typer.Context) -> None:
 
         template_lines = []
         for layout_name, layout_config in layouts_config.layouts.items():
-            for line in layout_config.lines:
-                if line.formatter == "template":
-                    template_lines.append(
-                        {
-                            "layout": layout_name,
-                            "layout_name": layout_config.name,
-                            "field": line.field,
-                            "index": line.index,
-                            "template": line.formatter_params.get("template", ""),
-                            "fields": line.formatter_params.get("fields", []),
-                        }
-                    )
+            if layout_config.lines:
+                for line in layout_config.lines:
+                    if line.formatter == "template":
+                        template_lines.append(
+                            {
+                                "layout": layout_name,
+                                "layout_name": layout_config.name,
+                                "field": line.field,
+                                "index": line.index,
+                                "template": line.formatter_params.get("template", ""),
+                                "fields": line.formatter_params.get("fields", []),
+                            }
+                        )
+            if layout_config.items:
+                for item in layout_config.items:
+                    if item.formatter == "template":
+                        template_lines.append(
+                            {
+                                "layout": layout_name,
+                                "layout_name": layout_config.name,
+                                "field": item.field,
+                                "index": item.key,
+                                "template": item.formatter_params.get("template", ""),
+                                "fields": item.formatter_params.get("fields", []),
+                            }
+                        )
 
         if not template_lines:
             console.print(
@@ -399,12 +469,12 @@ def list_templates(ctx: typer.Context) -> None:
         table.add_column("Template", style="yellow", overflow="fold", width=40)
         table.add_column("Fields Used", style="magenta", overflow="fold")
 
-        for item in template_lines:
-            fields_str = ", ".join(item["fields"])
+        for template_item in template_lines:
+            fields_str = ", ".join(template_item["fields"])
             table.add_row(
-                f"{item['layout']}\n({item['layout_name']})",
-                item["field"],
-                item["template"],
+                f"{template_item['layout']}\n({template_item['layout_name']})",
+                template_item["field"],
+                template_item["template"],
                 fields_str,
             )
 
@@ -514,11 +584,17 @@ def test_field(
                     raise typer.Exit(code=1) from None
 
                 layout_config = layouts_config.layouts[layout]
-                matching_line = None
-                for line in layout_config.lines:
-                    if line.field == field_name and line.formatter == formatter:
-                        matching_line = line
-                        break
+                matching_line: Optional[Union[LineConfig, DictItemConfig]] = None
+                if layout_config.lines:
+                    for line in layout_config.lines:
+                        if line.field == field_name and line.formatter == formatter:
+                            matching_line = line
+                            break
+                if layout_config.items and not matching_line:
+                    for item in layout_config.items:
+                        if item.field == field_name and item.formatter == formatter:
+                            matching_line = item
+                            break
 
                 if matching_line and matching_line.formatter_params:
                     formatter_params = matching_line.formatter_params
@@ -657,60 +733,70 @@ def check(ctx: typer.Context) -> None:
         all_formatters = builtin_formatters | defined_formatters
 
         for layout_name, layout_config in layouts_config.layouts.items():
-            for line_idx, line in enumerate(layout_config.lines):
-                field_name = line.field
+            items_to_check: list[tuple[str, Union[LineConfig, DictItemConfig]]] = []
+            if layout_config.lines:
+                items_to_check.extend(
+                    [(f"line {i}", line) for i, line in enumerate(layout_config.lines)]
+                )
+            if layout_config.items:
+                items_to_check.extend(
+                    [(f"item '{item.key}'", item) for item in layout_config.items]
+                )
+
+            for item_label, item in items_to_check:
+                field_name = item.field
 
                 if registry and not registry.has_field(field_name):
                     if field_name not in defined_fields:
                         warnings.append(
-                            f"Layout '{layout_name}', line {line_idx}: "
+                            f"Layout '{layout_name}', {item_label}: "
                             f"field '{field_name}' not defined in field registry"
                         )
 
-                if line.formatter:
-                    if line.formatter not in all_formatters:
+                if item.formatter:
+                    if item.formatter not in all_formatters:
                         errors.append(
-                            f"Layout '{layout_name}', line {line_idx}: "
-                            f"unknown formatter '{line.formatter}'"
+                            f"Layout '{layout_name}', {item_label}: "
+                            f"unknown formatter '{item.formatter}'"
                         )
                     else:
                         try:
-                            formatter_registry.get(line.formatter)
+                            formatter_registry.get(item.formatter)
                         except ValueError:
                             if (
-                                line.formatter in defined_formatters
+                                item.formatter in defined_formatters
                                 and layouts_config.formatters
                             ):
                                 formatter_config = layouts_config.formatters[
-                                    line.formatter
+                                    item.formatter
                                 ]
                                 formatter_type = formatter_config.type
                                 try:
                                     formatter_registry.get(formatter_type)
                                 except ValueError:
                                     errors.append(
-                                        f"Layout '{layout_name}', line {line_idx}: "
-                                        f"formatter '{line.formatter}' has unknown "
+                                        f"Layout '{layout_name}', {item_label}: "
+                                        f"formatter '{item.formatter}' has unknown "
                                         f"type '{formatter_type}'"
                                     )
 
-                    if line.formatter == "template" or (
-                        line.formatter in defined_formatters
+                    if item.formatter == "template" or (
+                        item.formatter in defined_formatters
                         and layouts_config.formatters
-                        and layouts_config.formatters[line.formatter].type == "template"
+                        and layouts_config.formatters[item.formatter].type == "template"
                     ):
-                        if not line.formatter_params.get("template"):
+                        if not item.formatter_params.get("template"):
                             errors.append(
-                                f"Layout '{layout_name}', line {line_idx}: "
+                                f"Layout '{layout_name}', {item_label}: "
                                 f"template formatter missing 'template' parameter"
                             )
-                        if not line.formatter_params.get("fields"):
+                        if not item.formatter_params.get("fields"):
                             errors.append(
-                                f"Layout '{layout_name}', line {line_idx}: "
+                                f"Layout '{layout_name}', {item_label}: "
                                 f"template formatter missing 'fields' parameter"
                             )
                         else:
-                            template_fields = line.formatter_params.get("fields", [])
+                            template_fields = item.formatter_params.get("fields", [])
                             for tf in template_fields:
                                 base_field = tf.split(".")[0]
                                 if (
@@ -718,7 +804,7 @@ def check(ctx: typer.Context) -> None:
                                     and base_field not in defined_fields
                                 ):
                                     warnings.append(
-                                        f"Layout '{layout_name}', line {line_idx}: "
+                                        f"Layout '{layout_name}', {item_label}: "
                                         f"template references undefined field "
                                         f"'{base_field}'"
                                     )

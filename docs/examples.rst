@@ -524,6 +524,142 @@ Access array elements and nested data structures using dot notation and numeric 
 
 See ``examples/mempool_layouts.toml`` for a complete example.
 
+Dictionary Layout Example
+-------------------------
+
+Dictionary layouts produce key-value pairs instead of indexed lines. This is ideal for
+JSON APIs, configuration generation, or structured data export.
+
+**Field Mappings** (``fields.toml``)
+
+.. code-block:: toml
+
+    [fields.temperature]
+    context_key = "temp"
+    default = 0
+
+    [fields.price_value]
+    context_key = "price"
+    default = 0
+
+    [fields.text_value]
+    context_key = "message"
+    default = ""
+
+    [fields.timestamp]
+    context_key = "time"
+    default = 0
+
+**Layout Configuration** (``weather_api.toml``)
+
+.. code-block:: toml
+
+    [layouts.weather_dict]
+    name = "Weather API Response"
+
+    [[layouts.weather_dict.items]]
+    key = "temp"
+    field = "temperature"
+    formatter = "number"
+
+    [layouts.weather_dict.items.formatter_params]
+    decimals = 1
+    suffix = "°"
+
+    [[layouts.weather_dict.items]]
+    key = "price"
+    field = "price_value"
+    formatter = "price"
+
+    [layouts.weather_dict.items.formatter_params]
+    symbol = "$"
+    decimals = 2
+
+    [[layouts.weather_dict.items]]
+    key = "message"
+    field = "text_value"
+    formatter = "text"
+
+    [[layouts.weather_dict.items]]
+    key = "time"
+    field = "timestamp"
+    formatter = "datetime"
+
+    [layouts.weather_dict.items.formatter_params]
+    format = "%Y-%m-%d %H:%M:%S"
+
+**Usage**
+
+.. code-block:: python
+
+    from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
+
+    loader = LayoutLoader("weather_api.toml", fields_path="fields.toml")
+    layout = loader.get_layout("weather_dict")
+
+    registry = RegistryBuilder.build_from_config(loader=loader)
+    engine = LayoutEngine(field_registry=registry)
+
+    context = {
+        "temp": 72.5,
+        "price": 19.99,
+        "message": "Partly cloudy",
+        "time": 1234567890
+    }
+
+    result = engine.build_dict_str(layout, context)
+
+    # Use as dictionary
+    print(result["temp"])
+    print(result["message"])
+
+    # Or export as JSON
+    import json
+    print(json.dumps(result, indent=2))
+
+**Output (Dictionary)**
+
+.. code-block:: python
+
+    {
+        "temp": "72.5°",
+        "price": "$19.99",
+        "message": "Partly cloudy",
+        "time": "2009-02-14 00:31:30"
+    }
+
+**CLI Usage**
+
+.. code-block:: bash
+
+    # Render as key:value pairs
+    echo '{"temp": 72.5, "price": 19.99}' | viewtext render weather_dict
+
+    # Output as JSON
+    echo '{"temp": 72.5, "price": 19.99}' | viewtext render weather_dict --json
+
+**Output (CLI text format)**
+
+.. code-block:: text
+
+    temp: 72.5°
+    price: $19.99
+    message: Partly cloudy
+    time: 2009-02-14 00:31:30
+
+**Output (CLI JSON format)**
+
+.. code-block:: json
+
+    {
+      "temp": "72.5°",
+      "price": "$19.99",
+      "message": "Partly cloudy",
+      "time": "2009-02-14 00:31:30"
+    }
+
+See ``dict_example.toml`` for a complete example with multiple dictionary layouts.
+
 Custom Formatter Example
 -------------------------
 

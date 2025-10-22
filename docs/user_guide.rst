@@ -99,10 +99,14 @@ You can register custom formatters with the FormatterRegistry:
 Layout Configuration
 --------------------
 
-Layouts are defined in TOML files and specify how fields map to output lines.
+Layouts are defined in TOML files and specify how fields map to output. ViewText supports
+two types of layouts: **line-based layouts** and **dictionary-based layouts**.
 
-Basic Layout Structure
-~~~~~~~~~~~~~~~~~~~~~~
+Line-Based Layouts
+~~~~~~~~~~~~~~~~~~
+
+Line-based layouts map fields to numbered line positions (indices). This is useful for
+fixed-position text displays like terminal dashboards or e-ink displays.
 
 .. code-block:: toml
 
@@ -116,6 +120,68 @@ Basic Layout Structure
 
     [layouts.my_layout.lines.formatter_params]
     prefix = "Label: "
+
+The ``build_line_str()`` method returns a list of strings, one per line:
+
+.. code-block:: python
+
+    lines = engine.build_line_str(layout, context)
+    # Returns: ["Label: value", "Line 2", ...]
+
+Dictionary-Based Layouts
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dictionary-based layouts map fields to named keys, producing key-value pairs. This is
+useful for JSON APIs, configuration files, or structured data output.
+
+.. code-block:: toml
+
+    [layouts.my_dict_layout]
+    name = "My Dictionary Layout"
+
+    [[layouts.my_dict_layout.items]]
+    key = "display_name"
+    field = "field_name"
+    formatter = "text"
+
+    [layouts.my_dict_layout.items.formatter_params]
+    prefix = "Label: "
+
+    [[layouts.my_dict_layout.items]]
+    key = "temperature"
+    field = "temp"
+    formatter = "number"
+
+    [layouts.my_dict_layout.items.formatter_params]
+    decimals = 1
+    suffix = "°"
+
+The ``build_dict_str()`` method returns a dictionary with formatted string values:
+
+.. code-block:: python
+
+    result = engine.build_dict_str(layout, context)
+    # Returns: {"display_name": "Label: value", "temperature": "72.5°"}
+
+**When to Use Each Type**
+
+- **Line-based layouts**: Terminal UIs, e-ink displays, fixed-position text grids
+- **Dictionary-based layouts**: JSON APIs, key-value stores, structured data export
+
+**CLI Support**
+
+The CLI automatically detects layout type:
+
+.. code-block:: bash
+
+    # List shows layout type
+    viewtext list
+
+    # Render outputs key:value pairs for dict layouts
+    echo '{"temp": 72.5}' | viewtext render weather_dict
+
+    # JSON output returns dict for dict layouts, array for line layouts
+    echo '{"temp": 72.5}' | viewtext render weather_dict --json
 
 Multiple Layouts
 ~~~~~~~~~~~~~~~~
@@ -222,6 +288,10 @@ Creating an Engine
 Building Output
 ~~~~~~~~~~~~~~~
 
+ViewText provides two methods for building output, depending on your layout type:
+
+**Line-Based Layouts**
+
 .. code-block:: python
 
     context = {
@@ -235,6 +305,27 @@ Building Output
     # lines is a list of strings, one per line
     for i, line in enumerate(lines):
         print(f"Line {i}: {line}")
+
+**Dictionary-Based Layouts**
+
+.. code-block:: python
+
+    context = {
+        "temp": 72.5,
+        "price": 19.99,
+        "message": "Hello"
+    }
+
+    result = engine.build_dict_str(layout, context)
+
+    # result is a dict with string values
+    print(result["temp"])       # "72.5°"
+    print(result["price"])      # "$19.99"
+    print(result["message"])    # "Hello"
+
+    # Export as JSON
+    import json
+    print(json.dumps(result, indent=2))
 
 Field Resolution
 ~~~~~~~~~~~~~~~~
