@@ -1,4 +1,4 @@
-#:schema schemas/viewtext.json
+#:schema ../schemas/viewtext.json
 
 [fields.temperature]
 context_key = "temperature"
