@@ -225,20 +225,55 @@
         "python_function": {
           "type": "string",
           "description": "Python expression to execute for generating field value (e.g., 'datetime.datetime.now().timestamp()'). Value is cached per render."
+        },
+        "constant": {
+          "description": "Constant value for this field (string, number, boolean, etc.)"
         }
       },
       "oneOf": [
         {
           "required": ["context_key"],
+          "not": {
+            "anyOf": [
+              {"required": ["operation"]},
+              {"required": ["python_function"]},
+              {"required": ["constant"]}
+            ]
+          },
           "description": "Context field: extracts value from context dictionary"
         },
         {
           "required": ["operation"],
+          "not": {
+            "anyOf": [
+              {"required": ["context_key"]},
+              {"required": ["python_function"]},
+              {"required": ["constant"]}
+            ]
+          },
           "description": "Computed field: performs calculation on source data"
         },
         {
           "required": ["python_function"],
+          "not": {
+            "anyOf": [
+              {"required": ["context_key"]},
+              {"required": ["operation"]},
+              {"required": ["constant"]}
+            ]
+          },
           "description": "Python function field: executes Python code to generate value"
+        },
+        {
+          "required": ["constant"],
+          "not": {
+            "anyOf": [
+              {"required": ["context_key"]},
+              {"required": ["operation"]},
+              {"required": ["python_function"]}
+            ]
+          },
+          "description": "Constant field: returns a static value"
         }
       ]
     },

@@ -105,6 +105,8 @@ class FieldMapping(BaseModel):
     ----------
     context_key : str, optional
         Key to look up in the context dictionary
+    constant : Any, optional
+        Constant value to use for this field (int, float, str, bool, etc.)
     default : Any, optional
         Default value if the field is not found
     transform : str, optional
@@ -164,6 +166,7 @@ class FieldMapping(BaseModel):
     """
 
     context_key: Optional[str] = None
+    constant: Optional[Any] = None
     default: Optional[Any] = None
     transform: Optional[str] = None
     operation: Optional[str] = None

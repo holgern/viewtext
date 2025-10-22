@@ -234,7 +234,11 @@ class RegistryBuilder:
 
         for field_name, mapping in field_mappings.items():
             if not mapping.operation:
-                if mapping.python_function:
+                if mapping.constant is not None:
+                    getter = RegistryBuilder._create_constant_getter(
+                        field_name, mapping
+                    )
+                elif mapping.python_function:
                     getter = RegistryBuilder._create_python_function_getter(
                         field_name, mapping
                     )
@@ -257,6 +261,61 @@ class RegistryBuilder:
                 registry.register(field_name, getter)
 
         return registry
+
+    @staticmethod
+    def _create_constant_getter(
+        field_name: str,
+        mapping: FieldMapping,
+    ) -> Callable[[dict[str, Any]], Any]:
+        """
+        Create a getter function for constant fields.
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the field
+        mapping : FieldMapping
+            Field mapping configuration containing constant value
+
+        Returns
+        -------
+        Callable[[dict[str, Any]], Any]
+            Getter function that returns the constant value
+
+        Examples
+        --------
+        >>> from viewtext.loader import FieldMapping
+        >>> mapping = FieldMapping(constant=60, type="int")
+        >>> getter = RegistryBuilder._create_constant_getter("sixty", mapping)
+        >>> getter({})
+        60
+        """
+        constant_value = mapping.constant
+
+        validator = None
+        if mapping.type:
+            validator = FieldValidator(
+                field_name=field_name,
+                field_type=mapping.type,
+                on_validation_error=mapping.on_validation_error,
+                default=mapping.default,
+                min_value=mapping.min_value,
+                max_value=mapping.max_value,
+                min_length=mapping.min_length,
+                max_length=mapping.max_length,
+                pattern=mapping.pattern,
+                allowed_values=mapping.allowed_values,
+                min_items=mapping.min_items,
+                max_items=mapping.max_items,
+            )
+
+        def getter(context: dict[str, Any]) -> Any:
+            value = constant_value
+            if validator:
+                value = validator.validate(value)
+            return value
+
+        return getter
 
     @staticmethod
     def _create_getter(

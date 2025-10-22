@@ -40,12 +40,13 @@ Fields are defined in the ``[fields]`` section of TOML configuration files:
 Field Types
 -----------
 
-There are four types of field definitions:
+There are five types of field definitions:
 
 1. **Context Fields** - Extract values directly from context
 2. **Computed Fields** - Perform calculations on source data
-3. **Python Function Fields** - Execute Python code to generate values
-4. **Validated Fields** - Include type checking and constraints
+3. **Constant Fields** - Return static values
+4. **Python Function Fields** - Execute Python code to generate values
+5. **Validated Fields** - Include type checking and constraints
 
 Context Fields
 ~~~~~~~~~~~~~~
@@ -102,6 +103,45 @@ Perform operations on source data. See :doc:`computed_fields_reference` for comp
     operation = "celsius_to_fahrenheit"
     sources = ["temp_celsius"]
     default = 0.0
+
+Constant Fields
+~~~~~~~~~~~~~~~
+
+Return static values without requiring context data. Useful for constants like currency symbols, fixed numbers, or configuration values.
+
+**Key features:**
+
+- No context data required
+- Type validation applied to constant value
+- More explicit than using ``python_function``
+- Better performance than python functions
+
+**Example:**
+
+.. code-block:: toml
+
+    # String constants
+    [fields.currency_symbol]
+    constant = "€"
+    type = "str"
+
+    [fields.app_name]
+    constant = "ViewText"
+    type = "str"
+
+    # Numeric constants
+    [fields.vat_rate]
+    constant = 0.19
+    type = "float"
+
+    [fields.max_retries]
+    constant = 3
+    type = "int"
+
+    # Boolean constants
+    [fields.debug_mode]
+    constant = false
+    type = "bool"
 
 Python Function Fields
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -331,11 +371,6 @@ Results are cached per render using ``__python_function_cache_{field_name}`` to 
     type = "int"
     default = 0
 
-    # Simple expression (no module needed)
-    [fields.constant]
-    python_function = "2 + 2"
-    default = 0
-
     # Generate UUID
     [fields.request_id]
     python_module = "uuid"
@@ -345,6 +380,63 @@ Results are cached per render using ``__python_function_cache_{field_name}`` to 
 
 .. warning::
    Python function fields execute arbitrary code. Only use trusted configuration files.
+
+.. note::
+   For static constant values, use the ``constant`` parameter instead of ``python_function``.
+
+constant
+~~~~~~~~
+
+**Type:** Any (string, number, boolean, etc.)
+
+**Required:** Yes (for constant fields)
+
+Static value to return for this field. Unlike ``default``, which is only used as a fallback, ``constant`` is the primary value.
+
+**Examples:**
+
+.. code-block:: toml
+
+    # String constant
+    [fields.currency_symbol]
+    constant = "€"
+    type = "str"
+
+    # Numeric constant
+    [fields.seconds_per_minute]
+    constant = 60
+    type = "int"
+
+    # Float constant
+    [fields.pi]
+    constant = 3.14159
+    type = "float"
+
+    # Boolean constant
+    [fields.feature_enabled]
+    constant = true
+    type = "bool"
+
+**When to use:**
+
+- Currency symbols and units
+- Mathematical or physical constants
+- Configuration values that don't change per render
+- Default text values like "N/A" or "Unknown"
+
+**Constant vs Python Function:**
+
+.. code-block:: toml
+
+    # Preferred: Use constant for static values
+    [fields.euro]
+    constant = "€"
+    type = "str"
+
+    # Avoid: Using python_function for constants
+    [fields.euro]
+    python_function = "'€'"
+    type = "str"
 
 Validation Parameters
 ---------------------
