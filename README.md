@@ -168,6 +168,9 @@ viewtext show weather
 # Show input mappings from config
 viewtext inputs
 
+# Evaluate inputs (works with input-only configs)
+viewtext render-inputs
+
 # Render a layout with mock data
 viewtext render weather
 
@@ -191,6 +194,7 @@ viewtext --config examples/layouts.toml show weather
 - **show**: Display detailed configuration for a specific layout
 - **inputs**: Display all input mappings from the configuration file
 - **render**: Render a layout with mock data
+- **render-inputs**: Evaluate configured inputs (works even when no layouts are defined)
 - **formatters**: List all available formatters and their descriptions
 - **templates**: List all template formatters used in layouts
 - **test**: Test individual inputs with custom context values and formatters

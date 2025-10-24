@@ -270,7 +270,7 @@ class LayoutsConfig(BaseModel):
         Name of the context provider to use
     """
 
-    layouts: dict[str, LayoutConfig]
+    layouts: dict[str, LayoutConfig] = Field(default_factory=dict)
     formatters: Optional[dict[str, FormatterConfigParams]] = None
     inputs: Optional[dict[str, InputMapping]] = None
     presenters: Optional[dict[str, PresenterConfig]] = None

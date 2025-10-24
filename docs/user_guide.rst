@@ -745,13 +745,10 @@ organization and maintainability:
 
 .. code-block:: bash
 
-    # Use --formatters and --fields flags
-    viewtext --config layouts.toml \\
-             --formatters formatters.toml \\
-             --fields inputs.toml \\
-             list
+    # Provide multiple --config arguments in merge order
+    viewtext -c layouts.toml -c inputs.toml -c formatters.toml list
 
-    viewtext -c layouts.toml -f formatters.toml -F inputs.toml render weather
+    viewtext -c layouts.toml -c inputs.toml -c formatters.toml render weather
 
 **Benefits of Split Files**
 
@@ -764,7 +761,7 @@ organization and maintainability:
 
 When multiple files are provided:
 
-- Fields from ``inputs.toml`` are merged into the base configuration
+- Inputs from ``inputs.toml`` are merged into the base configuration
 - Formatters from ``formatters.toml`` are merged into the base configuration
 - If the same key exists in multiple files, values from separate files take precedence
 - All separate files are optional
@@ -838,8 +835,11 @@ Basic Commands
     # Show specific layout configuration
     viewtext show weather
 
-    # Show field mappings from config
-    viewtext fields
+    # Show input mappings from config
+    viewtext inputs
+
+    # Evaluate inputs (works even without layouts)
+    viewtext render-inputs
 
     # Show all available formatters
     viewtext formatters
@@ -869,7 +869,13 @@ Use the ``--config`` or ``-c`` option to specify a custom configuration file:
     # Global option can be placed before any command
     viewtext -c examples/layouts.toml list
     viewtext --config my_layouts.toml show weather
-    viewtext -c custom.toml render crypto_ticker
+    viewtext -c custom.toml render-inputs
+
+When you only have an inputs file, you can still inspect values before defining layouts:
+
+.. code-block:: bash
+
+    viewtext -c inputs.toml render-inputs
 
 The default config file is ``layouts.toml`` in the current directory.
 
@@ -1032,7 +1038,7 @@ Schema Features
 
 The schema validates:
 
-- **Field definitions** - Ensures proper structure with required properties
+- **Input definitions** - Ensures proper structure with required properties
 - **Formatter configurations** - Validates types and parameters
 - **Layout definitions** - Validates layout structure
 - **Computed operations** - Validates operation names and parameters

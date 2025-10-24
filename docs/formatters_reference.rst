@@ -6,7 +6,7 @@ This document provides a complete reference for all formatters available in View
 Overview
 --------
 
-Formatters are functions that transform values into formatted strings for display. They are used in layout definitions to control how field values appear in the output. Unlike computed field operations (which transform data), formatters only affect the presentation.
+Formatters are functions that transform values into formatted strings for display. They are used in layout definitions to control how field values appear in the output. Unlike computed input operations (which transform data), formatters only affect the presentation.
 
 All formatters are registered in the ``FormatterRegistry`` and can be accessed by name in TOML layout configurations.
 
@@ -18,7 +18,7 @@ Formatters are specified in layout line definitions:
 .. code-block:: toml
 
     [[layouts.my_layout.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "number"
 
@@ -45,7 +45,7 @@ Basic text formatting with optional prefix and suffix.
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "name"
+    input = "name"
     index = 0
     formatter = "text"
 
@@ -61,7 +61,7 @@ Basic text formatting with optional prefix and suffix.
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "status"
+    input = "status"
     index = 1
     formatter = "text"
 
@@ -88,7 +88,7 @@ None
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "city"
+    input = "city"
     index = 0
     formatter = "text_uppercase"
 
@@ -100,7 +100,7 @@ None
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "code"
+    input = "code"
     index = 1
     formatter = "text_uppercase"
 
@@ -128,7 +128,7 @@ Format numbers with precision, separators, and optional prefix/suffix.
 
     # Basic number formatting
     [[layouts.demo.lines]]
-    field = "population"
+    input = "population"
     index = 0
     formatter = "number"
 
@@ -144,7 +144,7 @@ Format numbers with precision, separators, and optional prefix/suffix.
 
     # Temperature with suffix
     [[layouts.demo.lines]]
-    field = "temperature"
+    input = "temperature"
     index = 1
     formatter = "number"
 
@@ -161,7 +161,7 @@ Format numbers with precision, separators, and optional prefix/suffix.
 
     # European number format
     [[layouts.demo.lines]]
-    field = "amount"
+    input = "amount"
     index = 2
     formatter = "number"
 
@@ -179,7 +179,7 @@ Format numbers with precision, separators, and optional prefix/suffix.
 
     # With prefix and suffix
     [[layouts.demo.lines]]
-    field = "value"
+    input = "value"
     index = 3
     formatter = "number"
 
@@ -213,7 +213,7 @@ Specialized price formatting with currency symbol positioning.
 
     # US Dollar format
     [[layouts.demo.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "price"
 
@@ -231,7 +231,7 @@ Specialized price formatting with currency symbol positioning.
 
     # Euro with suffix
     [[layouts.demo.lines]]
-    field = "price"
+    input = "price"
     index = 1
     formatter = "price"
 
@@ -249,7 +249,7 @@ Specialized price formatting with currency symbol positioning.
 
     # European Euro format
     [[layouts.demo.lines]]
-    field = "price"
+    input = "price"
     index = 2
     formatter = "price"
 
@@ -268,7 +268,7 @@ Specialized price formatting with currency symbol positioning.
 
     # Swiss Franc format
     [[layouts.demo.lines]]
-    field = "amount"
+    input = "amount"
     index = 3
     formatter = "price"
 
@@ -304,7 +304,7 @@ Format timestamps and datetime objects using strftime format strings.
 
     # Full datetime
     [[layouts.demo.lines]]
-    field = "timestamp"
+    input = "timestamp"
     index = 0
     formatter = "datetime"
 
@@ -320,7 +320,7 @@ Format timestamps and datetime objects using strftime format strings.
 
     # Date only
     [[layouts.demo.lines]]
-    field = "date"
+    input = "date"
     index = 1
     formatter = "datetime"
 
@@ -336,7 +336,7 @@ Format timestamps and datetime objects using strftime format strings.
 
     # Time only
     [[layouts.demo.lines]]
-    field = "time"
+    input = "time"
     index = 2
     formatter = "datetime"
 
@@ -352,7 +352,7 @@ Format timestamps and datetime objects using strftime format strings.
 
     # Custom format
     [[layouts.demo.lines]]
-    field = "created_at"
+    input = "created_at"
     index = 3
     formatter = "datetime"
 
@@ -396,7 +396,7 @@ Time value in seconds (typically the number of seconds elapsed)
 
     # Short format
     [[layouts.demo.lines]]
-    field = "elapsed_seconds"
+    input = "elapsed_seconds"
     index = 0
     formatter = "relative_time"
 
@@ -414,7 +414,7 @@ Time value in seconds (typically the number of seconds elapsed)
 
     # Long format
     [[layouts.demo.lines]]
-    field = "elapsed_seconds"
+    input = "elapsed_seconds"
     index = 1
     formatter = "relative_time"
 
@@ -438,7 +438,7 @@ Time value in seconds (typically the number of seconds elapsed)
 template
 ~~~~~~~~
 
-Combine multiple fields using a Python format string with field placeholders.
+Combine multiple inputs using a Python format string with field placeholders.
 
 This is the most powerful formatter, allowing you to combine multiple fields with custom formatting specifications in a single template string.
 
@@ -460,7 +460,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Basic field combination
     [[layouts.demo.lines]]
-    field = "ticker"
+    input = "ticker"
     index = 0
     formatter = "template"
 
@@ -477,7 +477,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Multiple fields with formatting
     [[layouts.demo.lines]]
-    field = "stock"
+    input = "stock"
     index = 1
     formatter = "template"
 
@@ -494,7 +494,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Nested field access
     [[layouts.demo.lines]]
-    field = "crypto"
+    input = "crypto"
     index = 2
     formatter = "template"
 
@@ -511,7 +511,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Answer to user's question: format two floats
     [[layouts.demo.lines]]
-    field = "coordinates"
+    input = "coordinates"
     index = 3
     formatter = "template"
 
@@ -528,7 +528,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Alignment and padding
     [[layouts.demo.lines]]
-    field = "table_row"
+    input = "table_row"
     index = 4
     formatter = "template"
 
@@ -545,7 +545,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Thousands separator
     [[layouts.demo.lines]]
-    field = "stats"
+    input = "stats"
     index = 5
     formatter = "template"
 
@@ -562,7 +562,7 @@ This is the most powerful formatter, allowing you to combine multiple fields wit
 
     # Percentage formatting
     [[layouts.demo.lines]]
-    field = "progress"
+    input = "progress"
     index = 6
     formatter = "template"
 
@@ -620,7 +620,7 @@ Then use it in your TOML:
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "growth_rate"
+    input = "growth_rate"
     index = 0
     formatter = "percentage"
 
@@ -655,7 +655,7 @@ Usage:
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "file_size"
+    input = "file_size"
     index = 0
     formatter = "bytes"
 
@@ -667,10 +667,10 @@ Usage:
     Input: 1536 → Output: "1.50 KB"
     Input: 1048576 → Output: "1.00 MB"
 
-Formatter vs Computed Field Operation
+Formatter vs Computed Input Operation
 --------------------------------------
 
-It's important to understand the difference between formatters and computed field operations:
+It's important to understand the difference between formatters and computed input operations:
 
 **Formatters:**
 
@@ -678,14 +678,14 @@ It's important to understand the difference between formatters and computed fiel
 - Only affect presentation, not data
 - Defined in layout line definitions
 - Return formatted strings
-- Cannot be chained or used as input to other fields
+- Cannot be chained or used as input to other inputs
 - Examples: number, price, datetime, template
 
-**Computed Field Operations:**
+**Computed Input Operations:**
 
 - Applied at data processing time
 - Transform the actual data
-- Defined in the fields section
+- Defined in the inputs section
 - Return processed values (can be any type)
 - Can be chained (output of one is input to another)
 - Examples: add, subtract, multiply, concat, conditional
@@ -697,9 +697,9 @@ Use **formatters** when you want to:
 - Format numbers with thousands separators for display
 - Add currency symbols to prices
 - Format dates/times for display
-- Combine multiple fields into one display string
+- Combine multiple inputs into one display string
 
-Use **computed field operations** when you want to:
+Use **computed input operations** when you want to:
 
 - Calculate derived values (e.g., subtotal * tax_rate)
 - Perform unit conversions (e.g., Celsius to Fahrenheit)
@@ -710,15 +710,15 @@ Use **computed field operations** when you want to:
 
 .. code-block:: toml
 
-    # Computed field: calculate total price
-    [fields.total_price]
+    # Computed input: calculate total price
+    [inputs.total_price]
     operation = "multiply"
     sources = ["price", "quantity"]
     default = 0.0
 
     # Formatter: display total_price with currency symbol
     [[layouts.product.lines]]
-    field = "total_price"
+    input = "total_price"
     index = 0
     formatter = "price"
 
@@ -773,12 +773,12 @@ Once defined, presets can be referenced by name in two ways:
 .. code-block:: toml
 
     [[layouts.product.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "usd_price"  # References the preset by name
 
     [[layouts.product.lines]]
-    field = "created_at"
+    input = "created_at"
     index = 1
     formatter = "short_date"  # References the preset by name
 
@@ -787,7 +787,7 @@ Once defined, presets can be referenced by name in two ways:
 .. code-block:: toml
 
     [[layouts.crypto.lines]]
-    field = "ticker"
+    input = "ticker"
     index = 0
     formatter = "template"
 
@@ -812,7 +812,7 @@ Comparison: Inline vs Preset
 .. code-block:: toml
 
     [[layouts.product.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "price"
 
@@ -822,7 +822,7 @@ Comparison: Inline vs Preset
     thousands_sep = ","
 
     [[layouts.invoice.lines]]
-    field = "total"
+    input = "total"
     index = 5
     formatter = "price"
 
@@ -842,12 +842,12 @@ Comparison: Inline vs Preset
     thousands_sep = ","
 
     [[layouts.product.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "usd_price"
 
     [[layouts.invoice.lines]]
-    field = "total"
+    input = "total"
     index = 5
     formatter = "usd_price"
 
@@ -869,12 +869,12 @@ This means you can mix inline parameters and presets in the same layout:
     format = "%Y-%m-%d"
 
     [[layouts.mixed.lines]]
-    field = "created_at"
+    input = "created_at"
     index = 0
     formatter = "standard_date"  # Uses preset
 
     [[layouts.mixed.lines]]
-    field = "price"
+    input = "price"
     index = 1
     formatter = "price"
 
@@ -912,7 +912,7 @@ For better organization, you can define formatter presets in a separate file:
     name = "Product Display"
 
     [[layouts.product.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "usd_price"
 
@@ -948,7 +948,7 @@ Best Practices
 
 6. **Document custom formatters** - Add docstrings and examples when creating custom formatters
 
-7. **Keep formatters simple** - Formatters should focus on presentation. Use computed field operations for data transformation.
+7. **Keep formatters simple** - Formatters should focus on presentation. Use computed input operations for data transformation.
 
 Examples by Use Case
 --------------------
@@ -960,7 +960,7 @@ Financial Data
 
     # US stock display
     [[layouts.stock.lines]]
-    field = "ticker"
+    input = "ticker"
     index = 0
     formatter = "template"
 
@@ -970,7 +970,7 @@ Financial Data
 
     # European price formatting
     [[layouts.product_eu.lines]]
-    field = "price"
+    input = "price"
     index = 1
     formatter = "price"
 
@@ -987,7 +987,7 @@ Temperature Display
 
     # Celsius with one decimal
     [[layouts.weather.lines]]
-    field = "temp_celsius"
+    input = "temp_celsius"
     index = 0
     formatter = "number"
 
@@ -997,7 +997,7 @@ Temperature Display
 
     # Both Celsius and Fahrenheit
     [[layouts.weather.lines]]
-    field = "temperature"
+    input = "temperature"
     index = 1
     formatter = "template"
 
@@ -1012,7 +1012,7 @@ Activity Timestamps
 
     # Last seen time
     [[layouts.user.lines]]
-    field = "last_seen_seconds"
+    input = "last_seen_seconds"
     index = 0
     formatter = "relative_time"
 
@@ -1021,7 +1021,7 @@ Activity Timestamps
 
     # Created date
     [[layouts.user.lines]]
-    field = "created_at"
+    input = "created_at"
     index = 1
     formatter = "datetime"
 
@@ -1035,7 +1035,7 @@ Dashboard Layout
 
     # System metrics dashboard
     [[layouts.dashboard.lines]]
-    field = "cpu"
+    input = "cpu"
     index = 0
     formatter = "template"
 
@@ -1044,7 +1044,7 @@ Dashboard Layout
     fields = ["usage", "cores"]
 
     [[layouts.dashboard.lines]]
-    field = "memory"
+    input = "memory"
     index = 1
     formatter = "template"
 
@@ -1053,7 +1053,7 @@ Dashboard Layout
     fields = ["used", "total", "pct"]
 
     [[layouts.dashboard.lines]]
-    field = "uptime"
+    input = "uptime"
     index = 2
     formatter = "relative_time"
 

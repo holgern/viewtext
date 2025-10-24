@@ -38,7 +38,7 @@ Inputs are defined in the ``[inputs]`` section of TOML configuration files:
     transform = "upper"
 
 Input Mapping Types
------------
+-------------------
 
 There are five types of input definitions:
 

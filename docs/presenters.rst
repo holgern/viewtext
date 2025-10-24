@@ -22,10 +22,10 @@ parameters.
     [presenters.status_badge]
     input = "status"
     formatter = "template"
-    formatter_params = {
-        template = "{status_icon} {status_text}",
-        fields = ["status_icon", "status_text"],
-    }
+
+    [presenters.status_badge.formatter_params]
+    template = "{status_icon} {status_text}"
+    fields = ["status_icon", "status_text"]
 
 Using Presenters in Layouts
 ---------------------------

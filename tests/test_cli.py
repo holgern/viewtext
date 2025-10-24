@@ -242,3 +242,35 @@ def test_generate_inputs_types():
     assert 'type = "bool"' in result.stdout
     assert 'type = "any"' in result.stdout
     assert 'type = "list"' in result.stdout
+
+
+def test_render_inputs_with_inputs_only_config():
+    config_content = """
+[inputs.temperature]
+context_key = "temp"
+default = 0
+
+[inputs.humidity]
+context_key = "humid"
+default = "missing"
+"""
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_path = Path(tmpdir) / "inputs.toml"
+        config_path.write_text(config_content)
+
+        json_input = '{"temp": 21.5}'
+
+        result = runner.invoke(
+            app,
+            ["--config", str(config_path), "render-inputs", "--json"],
+            input=json_input,
+        )
+
+        assert result.exit_code == 0
+
+        start = result.stdout.find("{")
+        assert start != -1, result.stdout
+        output = json.loads(result.stdout[start:])
+        assert output["temperature"] == 21.5
+        assert output["humidity"] == "missing"

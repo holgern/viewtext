@@ -194,6 +194,30 @@ index = 0
         finally:
             os.unlink(tmp_path)
 
+    def test_load_inputs_only_config(self):
+        config_content = """
+[inputs.temperature]
+context_key = "temp"
+default = 0
+"""
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
+            tmp.write(config_content)
+            tmp_path = tmp.name
+
+        try:
+            loader = LayoutLoader(config_path=tmp_path)
+            config = loader.load()
+
+            assert config.layouts == {}
+
+            mappings = loader.get_input_mappings()
+            assert "temperature" in mappings
+            assert mappings["temperature"].context_key == "temp"
+            assert mappings["temperature"].default == 0
+        finally:
+            os.unlink(tmp_path)
+
     def test_get_context_provider_returns_provider(self):
         config_content = """
 context_provider = "my_provider"
