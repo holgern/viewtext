@@ -11,22 +11,22 @@ runner = CliRunner()
 
 def test_render_json_output():
     config_content = """
-[fields.demo1]
+[inputs.demo1]
 context_key = "demo1"
 
-[fields.demo2]
+[inputs.demo2]
 context_key = "demo2"
 
 [layouts.demo]
 name = "Demo Display"
 
 [[layouts.demo.lines]]
-field = "demo1"
+input = "demo1"
 index = 0
 formatter = "text"
 
 [[layouts.demo.lines]]
-field = "demo2"
+input = "demo2"
 index = 1
 formatter = "text"
 """
@@ -51,30 +51,30 @@ formatter = "text"
 
 def test_render_json_output_with_formatters():
     config_content = """
-[fields.text_value]
+[inputs.text_value]
 context_key = "text_value"
 
-[fields.number_value]
+[inputs.number_value]
 context_key = "number_value"
 
-[fields.price_value]
+[inputs.price_value]
 context_key = "price_value"
 
 [layouts.advanced]
 name = "Advanced Features Demo"
 
 [[layouts.advanced.lines]]
-field = "text_value"
+input = "text_value"
 index = 0
 formatter = "text"
 
 [[layouts.advanced.lines]]
-field = "number_value"
+input = "number_value"
 index = 1
 formatter = "number"
 
 [[layouts.advanced.lines]]
-field = "price_value"
+input = "price_value"
 index = 2
 formatter = "price"
 """
@@ -104,14 +104,14 @@ formatter = "price"
 
 def test_render_without_json_output():
     config_content = """
-[fields.demo1]
+[inputs.demo1]
 context_key = "demo1"
 
 [layouts.demo]
 name = "Demo Display"
 
 [[layouts.demo.lines]]
-field = "demo1"
+input = "demo1"
 index = 0
 formatter = "text"
 """
@@ -131,99 +131,99 @@ formatter = "text"
         assert "[" not in result.stdout or "Rendered Output" in result.stdout
 
 
-def test_generate_fields_simple():
+def test_generate_inputs_simple():
     json_input = '{"name": "John", "age": 30}'
 
-    result = runner.invoke(app, ["generate-fields"], input=json_input)
+    result = runner.invoke(app, ["generate-inputs"], input=json_input)
 
     assert result.exit_code == 0
-    assert "[fields.name]" in result.stdout
+    assert "[inputs.name]" in result.stdout
     assert 'context_key = "name"' in result.stdout
     assert 'type = "str"' in result.stdout
-    assert "[fields.age]" in result.stdout
+    assert "[inputs.age]" in result.stdout
     assert 'context_key = "age"' in result.stdout
     assert 'type = "int"' in result.stdout
 
 
-def test_generate_fields_nested():
+def test_generate_inputs_nested():
     json_input = '{"user": {"name": "Alice", "age": 25}, "active": true}'
 
-    result = runner.invoke(app, ["generate-fields"], input=json_input)
+    result = runner.invoke(app, ["generate-inputs"], input=json_input)
 
     assert result.exit_code == 0
-    assert "[fields.user_name]" in result.stdout
+    assert "[inputs.user_name]" in result.stdout
     assert 'context_key = "user.name"' in result.stdout
     assert 'type = "str"' in result.stdout
-    assert "[fields.user_age]" in result.stdout
+    assert "[inputs.user_age]" in result.stdout
     assert 'context_key = "user.age"' in result.stdout
     assert 'type = "int"' in result.stdout
-    assert "[fields.active]" in result.stdout
+    assert "[inputs.active]" in result.stdout
     assert 'type = "bool"' in result.stdout
 
 
-def test_generate_fields_with_prefix():
+def test_generate_inputs_with_prefix():
     json_input = '{"temp": 25.5, "city": "Berlin"}'
 
     result = runner.invoke(
-        app, ["generate-fields", "--prefix", "api_"], input=json_input
+        app, ["generate-inputs", "--prefix", "api_"], input=json_input
     )
 
     assert result.exit_code == 0
-    assert "[fields.api_temp]" in result.stdout
+    assert "[inputs.api_temp]" in result.stdout
     assert 'context_key = "temp"' in result.stdout
     assert 'type = "float"' in result.stdout
-    assert "[fields.api_city]" in result.stdout
+    assert "[inputs.api_city]" in result.stdout
     assert 'context_key = "city"' in result.stdout
 
 
-def test_generate_fields_to_file():
+def test_generate_inputs_to_file():
     json_input = '{"test": "value"}'
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        output_path = Path(tmpdir) / "fields.toml"
+        output_path = Path(tmpdir) / "inputs.toml"
 
         result = runner.invoke(
-            app, ["generate-fields", "--output", str(output_path)], input=json_input
+            app, ["generate-inputs", "--output", str(output_path)], input=json_input
         )
 
         assert result.exit_code == 0
         assert output_path.exists()
 
         content = output_path.read_text()
-        assert "[fields.test]" in content
+        assert "[inputs.test]" in content
         assert 'context_key = "test"' in content
         assert 'type = "str"' in content
 
 
-def test_generate_fields_no_stdin():
-    result = runner.invoke(app, ["generate-fields"])
+def test_generate_inputs_no_stdin():
+    result = runner.invoke(app, ["generate-inputs"])
 
     assert result.exit_code == 1
     assert "stdin data" in result.stdout.lower() or "empty" in result.stdout.lower()
 
 
-def test_generate_fields_empty_stdin():
-    result = runner.invoke(app, ["generate-fields"], input="")
+def test_generate_inputs_empty_stdin():
+    result = runner.invoke(app, ["generate-inputs"], input="")
 
     assert result.exit_code == 1
     assert "Empty stdin data" in result.stdout
 
 
-def test_generate_fields_invalid_json():
-    result = runner.invoke(app, ["generate-fields"], input="not valid json")
+def test_generate_inputs_invalid_json():
+    result = runner.invoke(app, ["generate-inputs"], input="not valid json")
 
     assert result.exit_code == 1
     assert "Invalid JSON" in result.stdout
 
 
-def test_generate_fields_non_dict_json():
-    result = runner.invoke(app, ["generate-fields"], input='["array", "not", "dict"]')
+def test_generate_inputs_non_dict_json():
+    result = runner.invoke(app, ["generate-inputs"], input='["array", "not", "dict"]')
 
     assert result.exit_code == 1
     assert "must be an object/dictionary" in result.stdout
 
 
-def test_generate_fields_types():
+def test_generate_inputs_types():
     json_input = """{
         "str_val": "hello",
         "int_val": 42,
@@ -233,7 +233,7 @@ def test_generate_fields_types():
         "list_val": [1, 2, 3]
     }"""
 
-    result = runner.invoke(app, ["generate-fields"], input=json_input)
+    result = runner.invoke(app, ["generate-inputs"], input=json_input)
 
     assert result.exit_code == 0
     assert 'type = "str"' in result.stdout

@@ -31,17 +31,17 @@ A simple weather information display.
     name = "Weather Display"
 
     [[layouts.weather.lines]]
-    field = "city"
+    input = "city"
     index = 0
     formatter = "text_uppercase"
 
     [[layouts.weather.lines]]
-    field = "condition"
+    input = "condition"
     index = 1
     formatter = "text"
 
     [[layouts.weather.lines]]
-    field = "temp"
+    input = "temp"
     index = 2
     formatter = "number"
 
@@ -50,7 +50,7 @@ A simple weather information display.
     decimals = 1
 
     [[layouts.weather.lines]]
-    field = "feels_like"
+    input = "feels_like"
     index = 3
     formatter = "text"
 
@@ -59,7 +59,7 @@ A simple weather information display.
     suffix = "°F"
 
     [[layouts.weather.lines]]
-    field = "humidity"
+    input = "humidity"
     index = 4
     formatter = "number"
 
@@ -69,7 +69,7 @@ A simple weather information display.
     decimals = 0
 
     [[layouts.weather.lines]]
-    field = "wind_speed"
+    input = "wind_speed"
     index = 5
     formatter = "number"
 
@@ -154,17 +154,17 @@ Display cryptocurrency prices and changes.
     name = "Crypto Ticker"
 
     [[layouts.crypto_ticker.lines]]
-    field = "symbol"
+    input = "symbol"
     index = 0
     formatter = "text_uppercase"
 
     [[layouts.crypto_ticker.lines]]
-    field = "price"
+    input = "price"
     index = 1
     formatter = "usd"
 
     [[layouts.crypto_ticker.lines]]
-    field = "change_24h"
+    input = "change_24h"
     index = 2
     formatter = "text"
 
@@ -173,7 +173,7 @@ Display cryptocurrency prices and changes.
     suffix = "%"
 
     [[layouts.crypto_ticker.lines]]
-    field = "volume"
+    input = "volume"
     index = 3
     formatter = "usd"
 
@@ -181,7 +181,7 @@ Display cryptocurrency prices and changes.
     prefix = "Vol: "
 
     [[layouts.crypto_ticker.lines]]
-    field = "last_update"
+    input = "last_update"
     index = 4
     formatter = "datetime"
 
@@ -249,7 +249,7 @@ Display system resource usage.
     name = "System Monitor"
 
     [[layouts.system_monitor.lines]]
-    field = "cpu_percent"
+    input = "cpu_percent"
     index = 0
     formatter = "number"
 
@@ -259,7 +259,7 @@ Display system resource usage.
     decimals = 1
 
     [[layouts.system_monitor.lines]]
-    field = "memory_percent"
+    input = "memory_percent"
     index = 1
     formatter = "number"
 
@@ -269,7 +269,7 @@ Display system resource usage.
     decimals = 1
 
     [[layouts.system_monitor.lines]]
-    field = "disk_percent"
+    input = "disk_percent"
     index = 2
     formatter = "number"
 
@@ -279,7 +279,7 @@ Display system resource usage.
     decimals = 1
 
     [[layouts.system_monitor.lines]]
-    field = "uptime"
+    input = "uptime"
     index = 3
     formatter = "relative_time"
 
@@ -350,12 +350,12 @@ Display product information for e-commerce.
     name = "Product Card"
 
     [[layouts.product_card.lines]]
-    field = "name"
+    input = "name"
     index = 0
     formatter = "text"
 
     [[layouts.product_card.lines]]
-    field = "sku"
+    input = "sku"
     index = 1
     formatter = "text"
 
@@ -363,12 +363,12 @@ Display product information for e-commerce.
     prefix = "SKU: "
 
     [[layouts.product_card.lines]]
-    field = "price"
+    input = "price"
     index = 2
     formatter = "currency"
 
     [[layouts.product_card.lines]]
-    field = "stock"
+    input = "stock"
     index = 3
     formatter = "number"
 
@@ -377,7 +377,7 @@ Display product information for e-commerce.
     decimals = 0
 
     [[layouts.product_card.lines]]
-    field = "category"
+    input = "category"
     index = 4
     formatter = "text"
 
@@ -424,19 +424,19 @@ Array Indexing and Nested Data
 
 Access array elements and nested data structures using dot notation and numeric indices.
 
-**Field Mappings** (``fields.toml``)
+**Input Mappings** (``inputs.toml``)
 
 .. code-block:: toml
 
-    [fields.first_block_fee]
+    [inputs.first_block_fee]
     context_key = "mempool_blocks.0.medianFee"
     default = 0
 
-    [fields.second_block_fee]
+    [inputs.second_block_fee]
     context_key = "mempool_blocks.1.medianFee"
     default = 0
 
-    [fields.fastest_fee]
+    [inputs.fastest_fee]
     context_key = "recommended_fees.fastestFee"
     default = 0
 
@@ -448,7 +448,7 @@ Access array elements and nested data structures using dot notation and numeric 
     name = "Mempool Fees"
 
     [[layouts.mempool_fees.lines]]
-    field = "fastest_fee"
+    input = "fastest_fee"
     index = 0
     formatter = "number"
 
@@ -458,7 +458,7 @@ Access array elements and nested data structures using dot notation and numeric 
     decimals = 0
 
     [[layouts.mempool_fees.lines]]
-    field = "first_block_fee"
+    input = "first_block_fee"
     index = 1
     formatter = "number"
 
@@ -468,7 +468,7 @@ Access array elements and nested data structures using dot notation and numeric 
     decimals = 0
 
     [[layouts.mempool_fees.lines]]
-    field = "second_block_fee"
+    input = "second_block_fee"
     index = 2
     formatter = "number"
 
@@ -483,7 +483,7 @@ Access array elements and nested data structures using dot notation and numeric 
 
     from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
 
-    loader = LayoutLoader("mempool.toml", fields_path="fields.toml")
+    loader = LayoutLoader("mempool.toml", inputs_path="inputs.toml")
     layout = loader.get_layout("mempool_fees")
 
     registry = RegistryBuilder.build_from_config(loader=loader)
@@ -530,23 +530,23 @@ Dictionary Layout Example
 Dictionary layouts produce key-value pairs instead of indexed lines. This is ideal for
 JSON APIs, configuration generation, or structured data export.
 
-**Field Mappings** (``fields.toml``)
+**Input Mappings** (``inputs.toml``)
 
 .. code-block:: toml
 
-    [fields.temperature]
+    [inputs.temperature]
     context_key = "temp"
     default = 0
 
-    [fields.price_value]
+    [inputs.price_value]
     context_key = "price"
     default = 0
 
-    [fields.text_value]
+    [inputs.text_value]
     context_key = "message"
     default = ""
 
-    [fields.timestamp]
+    [inputs.timestamp]
     context_key = "time"
     default = 0
 
@@ -559,7 +559,7 @@ JSON APIs, configuration generation, or structured data export.
 
     [[layouts.weather_dict.items]]
     key = "temp"
-    field = "temperature"
+    input = "temperature"
     formatter = "number"
 
     [layouts.weather_dict.items.formatter_params]
@@ -568,7 +568,7 @@ JSON APIs, configuration generation, or structured data export.
 
     [[layouts.weather_dict.items]]
     key = "price"
-    field = "price_value"
+    input = "price_value"
     formatter = "price"
 
     [layouts.weather_dict.items.formatter_params]
@@ -577,12 +577,12 @@ JSON APIs, configuration generation, or structured data export.
 
     [[layouts.weather_dict.items]]
     key = "message"
-    field = "text_value"
+    input = "text_value"
     formatter = "text"
 
     [[layouts.weather_dict.items]]
     key = "time"
-    field = "timestamp"
+    input = "timestamp"
     formatter = "datetime"
 
     [layouts.weather_dict.items.formatter_params]
@@ -594,7 +594,7 @@ JSON APIs, configuration generation, or structured data export.
 
     from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
 
-    loader = LayoutLoader("weather_api.toml", fields_path="fields.toml")
+    loader = LayoutLoader("weather_api.toml", inputs_path="inputs.toml")
     layout = loader.get_layout("weather_dict")
 
     registry = RegistryBuilder.build_from_config(loader=loader)

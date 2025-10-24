@@ -13,13 +13,17 @@ through a flexible registry and layout system.
 
 ## Features
 
-- **Field Registry**: Register data getters that extract values from context objects
-- **Computed Fields**: Perform calculations on data (unit conversions, arithmetic,
-  aggregates)
+- **Input Mapping**: Declaratively describe how inputs pull values from context data or
+  computed operations
+- **Computed Inputs**: Perform calculations on data (unit conversions, arithmetic,
+  aggregates) without writing Python code
+- **Field Registry**: Register bespoke Python getters for advanced or dynamic data
+  extraction needs
 - **Formatter System**: Built-in formatters for text, numbers, prices, dates, and
   relative times
-- **Layout Engine**: TOML-based layout definitions that map fields to grid positions
-- **Extensible**: Easy to add custom fields and formatters for domain-specific needs
+- **Layout Engine**: TOML-based layout definitions that map inputs to grid positions
+- **Extensible**: Easy to add custom inputs, presenters, and formatters for
+  domain-specific needs
 
 ## Use Cases
 
@@ -31,42 +35,42 @@ through a flexible registry and layout system.
 ## Quick Example
 
 ```python
-from viewtext import LayoutEngine, LayoutLoader, FieldRegistry
+from viewtext import LayoutEngine, LayoutLoader, BaseFieldRegistry
 
-# Define your field registry
-registry = FieldRegistry()
+# Define your input registry
+registry = BaseFieldRegistry()
 registry.register("temperature", lambda ctx: ctx["temp"])
 
-# Load layout from TOML
+# Load layout from TOML (e.g., layouts.toml referencing the "temperature" input)
 loader = LayoutLoader("layouts.toml")
 layout = loader.get_layout("weather")
 
-# Build grid output
-engine = LayoutEngine()
+# Build grid output using the registered input getter
+engine = LayoutEngine(field_registry=registry)
 lines = engine.build_line_str(layout, {"temp": 72})
 ```
 
-### Python Function Fields
+### Python Function Inputs
 
-Execute Python code to generate dynamic field values (timestamps, UUIDs, random
+Execute Python code to generate dynamic input values (timestamps, UUIDs, random
 numbers):
 
 ```toml
 # Current timestamp
-[fields.current_time]
+[inputs.current_time]
 python_module = "datetime"
 python_function = "datetime.datetime.now().timestamp()"
 transform = "int"
 default = 0
 
 # Generate UUID
-[fields.request_id]
+[inputs.request_id]
 python_module = "uuid"
 python_function = "str(uuid.uuid4())"
 default = ""
 
 # Random number
-[fields.random_value]
+[inputs.random_value]
 python_module = "random"
 python_function = "random.randint(1, 100)"
 default = 0
@@ -75,22 +79,22 @@ default = 0
 See `examples/time_diff_example.toml` and `examples/README_time_diff.md` for more
 details.
 
-### Computed Fields
+### Computed Inputs
 
 Perform calculations on your data directly in TOML configuration:
 
 ```toml
-[fields.temperature_f]
+[inputs.temperature_f]
 operation = "celsius_to_fahrenheit"
 sources = ["temp_c"]
 default = 0.0
 
-[fields.total_price]
+[inputs.total_price]
 operation = "multiply"
 sources = ["price", "quantity"]
 default = 0.0
 
-[fields.average_score]
+[inputs.average_score]
 operation = "average"
 sources = ["score1", "score2", "score3"]
 ```
@@ -139,7 +143,7 @@ sources = ["score1", "score2", "score3"]
 
 **Conditional Operations:**
 
-- `conditional` - If/else logic with field references
+- `conditional` - If/else logic with input references
 
 See `examples/computed_fields.toml` and `examples/README_computed_fields.md` for more
 details.
@@ -161,8 +165,8 @@ viewtext list
 # Show specific layout configuration
 viewtext show weather
 
-# Show field mappings from config
-viewtext fields
+# Show input mappings from config
+viewtext inputs
 
 # Render a layout with mock data
 viewtext render weather
@@ -185,20 +189,20 @@ viewtext --config examples/layouts.toml show weather
 
 - **list**: List all layouts in the configuration file
 - **show**: Display detailed configuration for a specific layout
-- **fields**: Display all field mappings from the configuration file
+- **inputs**: Display all input mappings from the configuration file
 - **render**: Render a layout with mock data
 - **formatters**: List all available formatters and their descriptions
 - **templates**: List all template formatters used in layouts
-- **test**: Test individual fields with custom context values and formatters
+- **test**: Test individual inputs with custom context values and formatters
 - **info**: Show configuration file information and global formatters
-- **generate-fields**: Auto-generate field definitions from JSON data
+- **generate-inputs**: Auto-generate input definitions from JSON data
 
-### Testing Fields
+### Testing Inputs
 
-The `test` command allows you to test individual fields with custom values:
+The `test` command allows you to test individual inputs with custom values:
 
 ```bash
-# Test a computed field
+# Test a computed input
 viewtext test total_price price=19.99 quantity=3
 
 # Test with a formatter
@@ -219,7 +223,7 @@ Pipe JSON data from external sources directly to ViewText:
 curl -s https://api.example.com/data | viewtext render layout --json
 
 # From Python
-python3 -c "import json; print(json.dumps({'field': 'value'}))" | viewtext render layout --json
+python3 -c "import json; print(json.dumps({'input': 'value'}))" | viewtext render layout --json
 
 # From file with jq
 cat data.json | jq '.users[0]' | viewtext render layout --json
@@ -230,27 +234,27 @@ watch -n 5 'curl -s API_URL | viewtext -c config.toml render layout --json'
 
 See `examples/json_pipeline_example.md` for detailed examples and use cases.
 
-### Auto-Generating Field Definitions
+### Auto-Generating Input Definitions
 
-ViewText can automatically generate field definitions from JSON data:
+ViewText can automatically generate input definitions from JSON data:
 
 ```bash
-# Generate fields from API response
-curl -s https://api.example.com/data | viewtext generate-fields
+# Generate inputs from API response
+curl -s https://api.example.com/data | viewtext generate-inputs
 
 # Save to file
-echo '{"name": "John", "age": 30}' | viewtext generate-fields -o fields.toml
+echo '{"name": "John", "age": 30}' | viewtext generate-inputs -o inputs.toml
 
-# Add prefix to field names
-curl -s https://api.example.com/user | viewtext generate-fields --prefix "api_"
+# Add prefix to input names
+curl -s https://api.example.com/user | viewtext generate-inputs --prefix "api_"
 
 # Nested JSON objects are flattened
-echo '{"user": {"name": "Alice", "age": 25}}' | viewtext generate-fields
+echo '{"user": {"name": "Alice", "age": 25}}' | viewtext generate-inputs
 # Creates: user_name with context_key="user.name"
 ```
 
 The command automatically infers types (`str`, `int`, `float`, `bool`, `list`, `dict`,
-`any`) and creates properly formatted TOML field definitions.
+`any`) and creates properly formatted TOML input definitions.
 
 ### Global Options
 
@@ -262,7 +266,7 @@ ViewText provides a JSON Schema for TOML validation and autocomplete. Install th
 [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml)
 extension in VS Code or use Taplo LSP in other editors for:
 
-- **Validation**: Catch errors in field definitions, formatters, and layouts
+- **Validation**: Catch errors in input definitions, formatters, and layouts
 - **Autocomplete**: Get intelligent suggestions for property names and values
 - **Hover Documentation**: View descriptions of all configuration options
 
@@ -276,11 +280,11 @@ Full documentation is available at [Read the Docs](https://viewtext.readthedocs.
   started quickly
 - [User Guide](https://viewtext.readthedocs.io/en/latest/user_guide.html) - Core
   concepts and features
-- [Fields Reference](https://viewtext.readthedocs.io/en/latest/fields_reference.html) -
-  Complete field definition reference
+- [Inputs Reference](https://viewtext.readthedocs.io/en/latest/inputs_reference.html) -
+  Complete input definition reference
 - [Validation Reference](https://viewtext.readthedocs.io/en/latest/validation_reference.html) -
   Field validation and type checking
-- [Computed Fields Reference](https://viewtext.readthedocs.io/en/latest/computed_fields_reference.html) -
+- [Computed Inputs Reference](https://viewtext.readthedocs.io/en/latest/computed_fields_reference.html) -
   Complete list of data transformation operations
 - [Formatters Reference](https://viewtext.readthedocs.io/en/latest/formatters_reference.html) -
   Complete list of display formatters with examples

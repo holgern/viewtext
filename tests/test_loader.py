@@ -13,7 +13,7 @@ class TestLayoutLoader:
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "temperature"
+input = "temperature"
 index = 0
 formatter = "number"
 
@@ -47,14 +47,14 @@ decimals = 1
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
 [layouts.another_layout]
 name = "Another Layout"
 
 [[layouts.another_layout.lines]]
-field = "field2"
+input = "field2"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -67,7 +67,7 @@ index = 0
 
             assert layout["name"] == "Test Layout"
             assert len(layout["lines"]) == 1
-            assert layout["lines"][0]["field"] == "field1"
+            assert layout["lines"][0]["input"] == "field1"
         finally:
             os.unlink(tmp_path)
 
@@ -77,7 +77,7 @@ index = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -98,7 +98,7 @@ index = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
 [formatters.price_usd]
@@ -126,7 +126,7 @@ decimals = 2
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -141,20 +141,20 @@ index = 0
         finally:
             os.unlink(tmp_path)
 
-    def test_get_field_mappings_returns_mappings(self):
+    def test_get_input_mappings_returns_mappings(self):
         config_content = """
 [layouts.test_layout]
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
-[fields.temperature]
+[inputs.temperature]
 context_key = "temp"
 default = 0
 
-[fields.humidity]
+[inputs.humidity]
 context_key = "humid"
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -163,7 +163,7 @@ context_key = "humid"
 
         try:
             loader = LayoutLoader(config_path=tmp_path)
-            mappings = loader.get_field_mappings()
+            mappings = loader.get_input_mappings()
 
             assert "temperature" in mappings
             assert mappings["temperature"].context_key == "temp"
@@ -173,13 +173,13 @@ context_key = "humid"
         finally:
             os.unlink(tmp_path)
 
-    def test_get_field_mappings_no_fields_returns_empty(self):
+    def test_get_input_mappings_no_inputs_returns_empty(self):
         config_content = """
 [layouts.test_layout]
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -188,7 +188,7 @@ index = 0
 
         try:
             loader = LayoutLoader(config_path=tmp_path)
-            mappings = loader.get_field_mappings()
+            mappings = loader.get_input_mappings()
 
             assert mappings == {}
         finally:
@@ -202,7 +202,7 @@ context_provider = "my_provider"
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -223,7 +223,7 @@ index = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -244,18 +244,18 @@ index = 0
 name = "Layout 1"
 
 [[layouts.layout1.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
 [[layouts.layout1.lines]]
-field = "field2"
+input = "field2"
 index = 1
 
 [layouts.layout2]
 name = "Layout 2"
 
 [[layouts.layout2.lines]]
-field = "field3"
+input = "field3"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -279,7 +279,7 @@ index = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as tmp:
@@ -300,7 +300,7 @@ index = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 formatter = "price_usd"
 """
@@ -325,9 +325,7 @@ decimals = 2
         formatters_path = tmp_formatters.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             config = loader.load()
 
             assert config.formatters is not None
@@ -337,17 +335,17 @@ decimals = 2
             os.unlink(layouts_path)
             os.unlink(formatters_path)
 
-    def test_load_from_separate_fields_file(self):
+    def test_load_from_separate_inputs_file(self):
         layouts_content = """
 [layouts.test_layout]
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "temperature"
+input = "temperature"
 index = 0
 """
-        fields_content = """
-[fields.temperature]
+        inputs_content = """
+[inputs.temperature]
 context_key = "temp"
 default = 0
 """
@@ -358,23 +356,23 @@ default = 0
         tmp_layouts.close()
         layouts_path = tmp_layouts.name
 
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             config = loader.load()
 
-            assert config.fields is not None
-            assert "temperature" in config.fields
-            assert config.fields["temperature"].context_key == "temp"
+            assert config.inputs is not None
+            assert "temperature" in config.inputs
+            assert config.inputs["temperature"].context_key == "temp"
         finally:
             os.unlink(layouts_path)
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
 
     def test_load_from_all_separate_files(self):
         layouts_content = """
@@ -382,7 +380,7 @@ default = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "temperature"
+input = "temperature"
 index = 0
 formatter = "number_fmt"
 """
@@ -391,8 +389,8 @@ formatter = "number_fmt"
 type = "number"
 decimals = 1
 """
-        fields_content = """
-[fields.temperature]
+        inputs_content = """
+[inputs.temperature]
 context_key = "temp"
 default = 0
 """
@@ -410,30 +408,26 @@ default = 0
         tmp_formatters.close()
         formatters_path = tmp_formatters.name
 
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path,
-                formatters_path=formatters_path,
-                fields_path=fields_path,
-            )
+            loader = LayoutLoader([layouts_path, formatters_path, inputs_path])
             config = loader.load()
 
             assert config.formatters is not None
             assert "number_fmt" in config.formatters
-            assert config.fields is not None
-            assert "temperature" in config.fields
+            assert config.inputs is not None
+            assert "temperature" in config.inputs
             assert "test_layout" in config.layouts
         finally:
             os.unlink(layouts_path)
             os.unlink(formatters_path)
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
 
     def test_load_from_files_static_method(self):
         layouts_content = """
@@ -441,7 +435,7 @@ default = 0
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         formatters_content = """
@@ -464,9 +458,7 @@ symbol = "$"
         formatters_path = tmp_formatters.name
 
         try:
-            config = LayoutLoader.load_from_files(
-                layouts_path=layouts_path, formatters_path=formatters_path
-            )
+            config = LayoutLoader.load_from_files([layouts_path, formatters_path])
 
             assert "test_layout" in config.layouts
             assert config.formatters is not None
@@ -485,7 +477,7 @@ symbol = "£"
 name = "Test Layout"
 
 [[layouts.test_layout.lines]]
-field = "field1"
+input = "field1"
 index = 0
 """
         formatters_content = """
@@ -509,9 +501,7 @@ decimals = 2
         formatters_path = tmp_formatters.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             config = loader.load()
 
             assert config.formatters is not None
@@ -521,16 +511,16 @@ decimals = 2
             os.unlink(layouts_path)
             os.unlink(formatters_path)
 
-    def test_load_computed_field_celsius_to_fahrenheit(self):
+    def test_load_computed_input_celsius_to_fahrenheit(self):
         config_content = """
 [layouts.test]
 name = "Test"
 
 [[layouts.test.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
-[fields.temp_f]
+[inputs.temp_f]
 operation = "celsius_to_fahrenheit"
 sources = ["temp_c"]
 default = 0.0
@@ -543,7 +533,7 @@ default = 0.0
 
         try:
             loader = LayoutLoader(config_path=tmp_path)
-            mappings = loader.get_field_mappings()
+            mappings = loader.get_input_mappings()
 
             assert "temp_f" in mappings
             assert mappings["temp_f"].operation == "celsius_to_fahrenheit"
@@ -552,16 +542,16 @@ default = 0.0
         finally:
             os.unlink(tmp_path)
 
-    def test_load_computed_field_multiply(self):
+    def test_load_computed_input_multiply(self):
         config_content = """
 [layouts.test]
 name = "Test"
 
 [[layouts.test.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
-[fields.total_price]
+[inputs.total_price]
 operation = "multiply"
 sources = ["price", "quantity"]
 default = 0.0
@@ -574,7 +564,7 @@ default = 0.0
 
         try:
             loader = LayoutLoader(config_path=tmp_path)
-            mappings = loader.get_field_mappings()
+            mappings = loader.get_input_mappings()
 
             assert "total_price" in mappings
             assert mappings["total_price"].operation == "multiply"
@@ -582,16 +572,16 @@ default = 0.0
         finally:
             os.unlink(tmp_path)
 
-    def test_load_computed_field_average(self):
+    def test_load_computed_input_average(self):
         config_content = """
 [layouts.test]
 name = "Test"
 
 [[layouts.test.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
-[fields.avg_score]
+[inputs.avg_score]
 operation = "average"
 sources = ["score1", "score2", "score3"]
 default = 0.0
@@ -604,7 +594,7 @@ default = 0.0
 
         try:
             loader = LayoutLoader(config_path=tmp_path)
-            mappings = loader.get_field_mappings()
+            mappings = loader.get_input_mappings()
 
             assert "avg_score" in mappings
             assert mappings["avg_score"].operation == "average"
@@ -612,16 +602,16 @@ default = 0.0
         finally:
             os.unlink(tmp_path)
 
-    def test_load_computed_field_linear_transform(self):
+    def test_load_computed_input_linear_transform(self):
         config_content = """
 [layouts.test]
 name = "Test"
 
 [[layouts.test.lines]]
-field = "field1"
+input = "field1"
 index = 0
 
-[fields.scaled_value]
+[inputs.scaled_value]
 operation = "linear_transform"
 sources = ["value"]
 multiply = 2.5
@@ -636,7 +626,7 @@ default = 0.0
 
         try:
             loader = LayoutLoader(config_path=tmp_path)
-            mappings = loader.get_field_mappings()
+            mappings = loader.get_input_mappings()
 
             assert "scaled_value" in mappings
             assert mappings["scaled_value"].operation == "linear_transform"

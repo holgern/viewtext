@@ -58,37 +58,99 @@ def resolve_cli_file(value: Optional[str], option_name: str) -> Optional[str]:
     )
 
 
-def resolve_context_files(
-    ctx: typer.Context,
-) -> tuple[str, Optional[str], Optional[str]]:
+def resolve_config_files(ctx: typer.Context) -> list[str]:
     if ctx.obj is None:
         ctx.obj = {}
 
-    raw_config = ctx.obj.get("config", config_path)
-    resolved_config = resolve_cli_file(raw_config, "config")
+    raw_configs = ctx.obj.get("configs", [])
+    if not raw_configs:
+        raw_configs = [config_path]
 
-    resolved_formatters = resolve_cli_file(ctx.obj.get("formatters"), "formatters")
-    resolved_fields = resolve_cli_file(ctx.obj.get("fields"), "fields")
+    resolved_paths: list[str] = []
+    for raw_config in raw_configs:
+        resolved = resolve_cli_file(raw_config, "config")
+        if resolved is None:
+            resolved = raw_config
+        resolved_paths.append(resolved)
 
-    return resolved_config, resolved_formatters, resolved_fields
+    return resolved_paths
+
+
+def get_loader_and_configs(ctx: typer.Context) -> tuple[list[str], LayoutLoader]:
+    config_files = resolve_config_files(ctx)
+    global config_path
+    config_path = config_files[0]
+    loader = LayoutLoader(config_files)
+    return config_files, loader
+
+
+def _resolve_context_data(loader: LayoutLoader) -> dict[str, Any]:
+    has_stdin_data = not sys.stdin.isatty()
+    context_data: Any
+
+    if has_stdin_data:
+        try:
+            json_data = sys.stdin.read()
+            if json_data.strip():
+                context_data = json.loads(json_data)
+            else:
+                raise ValueError("Empty stdin")
+        except (json.JSONDecodeError, ValueError):
+            context_provider_path = loader.get_context_provider()
+            if context_provider_path:
+                try:
+                    module_name, func_name = context_provider_path.rsplit(".", 1)
+                    module = importlib.import_module(module_name)
+                    context_func = getattr(module, func_name)
+                    context_data = context_func()
+                except (ValueError, ImportError, AttributeError) as e:
+                    msg = f"Error loading context provider '{context_provider_path}'"
+                    console.print(f"[red]{msg}:[/red] {e}")
+                    raise typer.Exit(code=1) from None
+                except Exception as e:  # noqa: BLE001
+                    msg = f"Error calling context provider '{context_provider_path}'"
+                    console.print(f"[red]{msg}:[/red] {e}")
+                    raise typer.Exit(code=1) from None
+            else:
+                context_data = create_mock_context()
+    else:
+        context_provider_path = loader.get_context_provider()
+        if context_provider_path:
+            try:
+                module_name, func_name = context_provider_path.rsplit(".", 1)
+                module = importlib.import_module(module_name)
+                context_func = getattr(module, func_name)
+                context_data = context_func()
+            except (ValueError, ImportError, AttributeError) as e:
+                msg = f"Error loading context provider '{context_provider_path}'"
+                console.print(f"[red]{msg}:[/red] {e}")
+                raise typer.Exit(code=1) from None
+            except Exception as e:  # noqa: BLE001
+                msg = f"Error calling context provider '{context_provider_path}'"
+                console.print(f"[red]{msg}:[/red] {e}")
+                raise typer.Exit(code=1) from None
+        else:
+            context_data = create_mock_context()
+
+    if not isinstance(context_data, dict):
+        console.print("[red]Error:[/red] Context data must be a JSON object/dictionary")
+        raise typer.Exit(code=1) from None
+
+    return context_data
 
 
 @app.callback()
 def main_callback(
     ctx: typer.Context,
-    config: str = typer.Option(
-        "layouts.toml", "--config", "-c", help="Path to layouts.toml file"
-    ),
-    formatters: Optional[str] = typer.Option(
-        None, "--formatters", "-f", help="Path to formatters.toml file"
-    ),
-    fields: Optional[str] = typer.Option(
-        None, "--fields", "-F", help="Path to fields.toml file"
+    configs: list[str] = typer.Option(
+        [], "--config", "-c", help="Path to TOML config file (can be repeated)"
     ),
 ) -> None:
     global config_path
-    config_path = config
-    ctx.obj = {"config": config, "formatters": formatters, "fields": fields}
+    selected_configs = configs or ["layouts.toml"]
+    # Keep the first one as the reference for downstream defaults
+    config_path = selected_configs[0]
+    ctx.obj = {"configs": selected_configs}
 
 
 def create_mock_context() -> dict[str, Any]:
@@ -107,19 +169,12 @@ def create_mock_context() -> dict[str, Any]:
 @app.command(name="list")
 def list_layouts(ctx: typer.Context) -> None:
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-        loader = LayoutLoader(config, formatters_path, fields_path)
+        config_files, loader = get_loader_and_configs(ctx)
         layouts_config = loader.load()
 
-        console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
-        if formatters_path:
-            console.print(
-                f"[bold green]Formatters File:[/bold green] {formatters_path}"
-            )
-        if fields_path:
-            console.print(f"[bold green]Fields File:[/bold green] {fields_path}")
+        console.print("\n[bold green]Configuration Files:[/bold green]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
         console.print()
 
         if not layouts_config.layouts:
@@ -162,10 +217,7 @@ def show_layout(
     layout_name: str = typer.Argument(..., help="Name of the layout to display"),
 ) -> None:
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-        loader = LayoutLoader(config, formatters_path, fields_path)
+        config_files, loader = get_loader_and_configs(ctx)
         layout = loader.get_layout(layout_name)
 
         console.print(
@@ -178,18 +230,20 @@ def show_layout(
         if has_items:
             table = Table(show_header=True, header_style="bold")
             table.add_column("Key", justify="left", style="cyan", width=20)
-            table.add_column("Field", style="green", width=25)
+            table.add_column("Input", style="green", width=25)
+            table.add_column("Presenter", style="blue", width=20)
             table.add_column("Formatter", style="yellow", width=20)
             table.add_column("Parameters", style="magenta")
 
             for item in layout.get("items", []):
                 key = item.get("key", "")
-                field = item.get("field", "")
+                input_name = item.get("input", "")
+                presenter = item.get("presenter", "")
                 formatter = item.get("formatter", "")
                 params = item.get("formatter_params", {})
                 params_str = str(params) if params else ""
 
-                table.add_row(key, field, formatter, params_str)
+                table.add_row(key, input_name, presenter, formatter, params_str)
 
             console.print(table)
             console.print(
@@ -198,18 +252,20 @@ def show_layout(
         elif has_lines:
             table = Table(show_header=True, header_style="bold")
             table.add_column("Index", justify="right", style="cyan", width=8)
-            table.add_column("Field", style="green", width=25)
+            table.add_column("Input", style="green", width=25)
+            table.add_column("Presenter", style="blue", width=20)
             table.add_column("Formatter", style="yellow", width=20)
             table.add_column("Parameters", style="magenta")
 
             for line in layout.get("lines", []):
                 index = str(line.get("index", ""))
-                field = line.get("field", "")
+                input_name = line.get("input", "")
+                presenter = line.get("presenter", "")
                 formatter = line.get("formatter", "")
                 params = line.get("formatter_params", {})
                 params_str = str(params) if params else ""
 
-                table.add_row(index, field, formatter, params_str)
+                table.add_row(index, input_name, presenter, formatter, params_str)
 
             console.print(table)
             console.print(
@@ -241,10 +297,7 @@ def render(
     ),
 ) -> None:
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-        loader = LayoutLoader(config, formatters_path, fields_path)
+        config_files, loader = get_loader_and_configs(ctx)
         layout = loader.get_layout(layout_name)
 
         if field_registry:
@@ -257,55 +310,7 @@ def render(
 
         engine = LayoutEngine(field_registry=registry, layout_loader=loader)
 
-        has_stdin_data = not sys.stdin.isatty()
-
-        if has_stdin_data:
-            try:
-                json_data = sys.stdin.read()
-                if json_data.strip():
-                    context = json.loads(json_data)
-                else:
-                    raise ValueError("Empty stdin")
-            except (json.JSONDecodeError, ValueError):
-                context_provider_path = loader.get_context_provider()
-                if context_provider_path:
-                    try:
-                        module_name, func_name = context_provider_path.rsplit(".", 1)
-                        module = importlib.import_module(module_name)
-                        context_func = getattr(module, func_name)
-                        context = context_func()
-                    except (ValueError, ImportError, AttributeError) as e:
-                        msg = (
-                            f"Error loading context provider '{context_provider_path}'"
-                        )
-                        console.print(f"[red]{msg}:[/red] {e}")
-                        raise typer.Exit(code=1) from None
-                    except Exception as e:
-                        msg = (
-                            f"Error calling context provider '{context_provider_path}'"
-                        )
-                        console.print(f"[red]{msg}:[/red] {e}")
-                        raise typer.Exit(code=1) from None
-                else:
-                    context = create_mock_context()
-        else:
-            context_provider_path = loader.get_context_provider()
-            if context_provider_path:
-                try:
-                    module_name, func_name = context_provider_path.rsplit(".", 1)
-                    module = importlib.import_module(module_name)
-                    context_func = getattr(module, func_name)
-                    context = context_func()
-                except (ValueError, ImportError, AttributeError) as e:
-                    msg = f"Error loading context provider '{context_provider_path}'"
-                    console.print(f"[red]{msg}:[/red] {e}")
-                    raise typer.Exit(code=1) from None
-                except Exception as e:
-                    msg = f"Error calling context provider '{context_provider_path}'"
-                    console.print(f"[red]{msg}:[/red] {e}")
-                    raise typer.Exit(code=1) from None
-            else:
-                context = create_mock_context()
+        context = _resolve_context_data(loader)
 
         has_items = "items" in layout and layout.get("items")
         has_lines = "lines" in layout and layout.get("lines")
@@ -352,34 +357,311 @@ def render(
         raise typer.Exit(code=1) from None
 
 
-@app.command(name="fields")
-def list_fields(ctx: typer.Context) -> None:
+@app.command(name="render-inputs")
+def render_inputs(
+    ctx: typer.Context,
+    layout: Optional[str] = typer.Option(
+        None,
+        "--layout",
+        "-l",
+        help="Limit to inputs referenced by the specified layout",
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", "-j", help="Output rendered inputs as JSON"
+    ),
+) -> None:
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-        loader = LayoutLoader(config, formatters_path, fields_path)
-        field_mappings = loader.get_field_mappings()
+        config_files, loader = get_loader_and_configs(ctx)
+        layouts_config = loader.load()
+        input_mappings = loader.get_input_mappings()
 
-        console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
-        if fields_path:
-            console.print(f"[bold green]Fields File:[/bold green] {fields_path}\n")
+        console.print("\n[bold green]Configuration Files:[/bold green]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
+        console.print()
 
-        if not field_mappings:
+        if not input_mappings:
+            console.print("[yellow]No inputs defined in configuration[/yellow]")
+            return
+
+        inputs_to_show: list[str]
+        if layout:
+            if layout not in layouts_config.layouts:
+                console.print(f"[red]Error:[/red] Layout '{layout}' not found")
+                available = ", ".join(sorted(layouts_config.layouts.keys()))
+                console.print(f"\n[yellow]Available layouts:[/yellow] {available}")
+                raise typer.Exit(code=1) from None
+
+            layout_cfg = layouts_config.layouts[layout]
+            referenced_inputs: set[str] = set()
+
+            if layout_cfg.lines:
+                for line in layout_cfg.lines:
+                    if line.input:
+                        referenced_inputs.add(line.input)
+                    if line.presenter and layouts_config.presenters:
+                        presenter_cfg = layouts_config.presenters.get(line.presenter)
+                        if presenter_cfg and presenter_cfg.input:
+                            referenced_inputs.add(presenter_cfg.input)
+
+            if layout_cfg.items:
+                for item in layout_cfg.items:
+                    if item.input:
+                        referenced_inputs.add(item.input)
+                    if item.presenter and layouts_config.presenters:
+                        presenter_cfg = layouts_config.presenters.get(item.presenter)
+                        if presenter_cfg and presenter_cfg.input:
+                            referenced_inputs.add(presenter_cfg.input)
+
+            inputs_to_show = [
+                name
+                for name in sorted(input_mappings.keys())
+                if name in referenced_inputs
+            ]
+
+            if not inputs_to_show:
+                console.print(
+                    f"[yellow]Layout '{layout}' does not reference any inputs[/yellow]"
+                )
+                return
+        else:
+            inputs_to_show = sorted(input_mappings.keys())
+
+        registry = get_registry_from_config(loader=loader)
+        context = _resolve_context_data(loader)
+        evaluation_context = dict(context)
+
+        results: dict[str, Any] = {}
+
+        for input_name in inputs_to_show:
+            mapping = input_mappings[input_name]
+            if registry and registry.has_field(input_name):
+                getter = registry.get(input_name)
+                value = getter(evaluation_context)
+            elif input_name in evaluation_context:
+                value = evaluation_context[input_name]
+            else:
+                value = mapping.default
+
+            evaluation_context[input_name] = value
+            results[input_name] = value
+
+        if json_output:
+            print(json.dumps(results, indent=2, default=str))
+            return
+
+        table = Table(title="Rendered Inputs", show_header=True, header_style="bold")
+        table.add_column("Input", style="cyan", overflow="fold")
+        table.add_column("Value", style="green", overflow="fold")
+        table.add_column("Context Key", style="blue", overflow="fold")
+        table.add_column("Operation", style="magenta", overflow="fold")
+        table.add_column("Sources", style="magenta", overflow="fold")
+        table.add_column("Default", style="yellow", overflow="fold")
+
+        for input_name in inputs_to_show:
+            mapping = input_mappings[input_name]
+            value = results[input_name]
+            sources = ", ".join(mapping.sources) if mapping.sources else ""
+            operation = mapping.operation or ""
+            context_key = mapping.context_key or ""
+            default = mapping.default if mapping.default is not None else ""
+
+            table.add_row(
+                input_name,
+                repr(value),
+                context_key,
+                operation,
+                sources,
+                repr(default),
+            )
+
+        console.print(table)
+        console.print(f"\n[bold]Total inputs rendered:[/bold] {len(inputs_to_show)}\n")
+
+    except typer.Exit:
+        raise
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+    except Exception as e:  # noqa: BLE001
+        console.print(f"[red]Error rendering inputs:[/red] {e}")
+        raise typer.Exit(code=1) from None
+
+
+@app.command(name="render-presenters")
+def render_presenters(
+    ctx: typer.Context,
+    layout: Optional[str] = typer.Option(
+        None,
+        "--layout",
+        "-l",
+        help="Limit to presenters referenced by the specified layout",
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", "-j", help="Output rendered presenters as JSON"
+    ),
+) -> None:
+    try:
+        config_files, loader = get_loader_and_configs(ctx)
+        layouts_config = loader.load()
+        presenters = layouts_config.presenters or {}
+
+        console.print("\n[bold green]Configuration Files:[/bold green]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
+        console.print()
+
+        if not presenters:
+            console.print("[yellow]No presenters defined in configuration[/yellow]")
+            return
+
+        presenter_names: list[str]
+        if layout:
+            if layout not in layouts_config.layouts:
+                console.print(f"[red]Error:[/red] Layout '{layout}' not found")
+                available = ", ".join(sorted(layouts_config.layouts.keys()))
+                console.print(f"\n[yellow]Available layouts:[/yellow] {available}")
+                raise typer.Exit(code=1) from None
+
+            layout_cfg = layouts_config.layouts[layout]
+            referenced_presenters: set[str] = set()
+
+            if layout_cfg.lines:
+                for line in layout_cfg.lines:
+                    if line.presenter:
+                        referenced_presenters.add(line.presenter)
+
+            if layout_cfg.items:
+                for item in layout_cfg.items:
+                    if item.presenter:
+                        referenced_presenters.add(item.presenter)
+
+            presenter_names = [
+                name
+                for name in sorted(presenters.keys())
+                if name in referenced_presenters
+            ]
+
+            if not presenter_names:
+                console.print(
+                    f"[yellow]Layout '{layout}' does not reference any presenters"
+                    "[/yellow]"
+                )
+                return
+        else:
+            presenter_names = sorted(presenters.keys())
+
+        registry = get_registry_from_config(loader=loader)
+        input_mappings = loader.get_input_mappings()
+        context = _resolve_context_data(loader)
+        evaluation_context = dict(context)
+        engine = LayoutEngine(field_registry=registry, layout_loader=loader)
+
+        results: dict[str, dict[str, Any]] = {}
+
+        for presenter_name in presenter_names:
+            presenter_cfg = presenters[presenter_name]
+            input_name = presenter_cfg.input
+            raw_value: Any = None
+
+            if input_name:
+                if registry and registry.has_field(input_name):
+                    raw_value = registry.get(input_name)(evaluation_context)
+                elif input_name in evaluation_context:
+                    raw_value = evaluation_context[input_name]
+                else:
+                    mapping = input_mappings.get(input_name)
+                    raw_value = mapping.default if mapping else None
+
+                evaluation_context[input_name] = raw_value
+
+            formatter_params = dict(presenter_cfg.formatter_params or {})
+            formatted_value = raw_value
+            if presenter_cfg.formatter:
+                formatted_value = engine._format_value(
+                    raw_value,
+                    presenter_cfg.formatter,
+                    formatter_params,
+                    evaluation_context,
+                )
+
+            results[presenter_name] = {
+                "input": input_name,
+                "raw": raw_value,
+                "rendered": formatted_value,
+                "formatter": presenter_cfg.formatter,
+                "params": formatter_params,
+            }
+
+        if json_output:
+            print(json.dumps(results, indent=2, default=str))
+            return
+
+        table = Table(
+            title="Rendered Presenters", show_header=True, header_style="bold"
+        )
+        table.add_column("Presenter", style="cyan", overflow="fold")
+        table.add_column("Input", style="green", overflow="fold")
+        table.add_column("Formatter", style="yellow", overflow="fold")
+        table.add_column("Parameters", style="magenta", overflow="fold")
+        table.add_column("Raw Value", style="blue", overflow="fold")
+        table.add_column("Rendered", style="green", overflow="fold")
+
+        for presenter_name in presenter_names:
+            data = results[presenter_name]
+            params_str = (
+                json.dumps(data["params"], default=str) if data["params"] else ""
+            )
+            table.add_row(
+                presenter_name,
+                data["input"] or "",
+                data["formatter"] or "",
+                params_str,
+                repr(data["raw"]),
+                repr(data["rendered"]),
+            )
+
+        console.print(table)
+        console.print(
+            f"\n[bold]Total presenters rendered:[/bold] {len(presenter_names)}\n"
+        )
+
+    except typer.Exit:
+        raise
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+    except Exception as e:  # noqa: BLE001
+        console.print(f"[red]Error rendering presenters:[/red] {e}")
+        raise typer.Exit(code=1) from None
+
+
+@app.command(name="inputs")
+def list_inputs(ctx: typer.Context) -> None:
+    try:
+        config_files, loader = get_loader_and_configs(ctx)
+        input_mappings = loader.get_input_mappings()
+
+        console.print("\n[bold green]Configuration Files:[/bold green]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
+        console.print()
+
+        if not input_mappings:
             console.print(
-                "[yellow]No field mappings found in configuration file[/yellow]"
+                "[yellow]No input mappings found in configuration file[/yellow]"
             )
             return
 
-        table = Table(title="Field Mappings", show_header=True, header_style="bold")
-        table.add_column("Field Name", style="cyan", overflow="fold")
+        table = Table(title="Input Mappings", show_header=True, header_style="bold")
+        table.add_column("Input Name", style="cyan", overflow="fold")
         table.add_column("Context Key", style="green", overflow="fold")
         table.add_column("Operation", style="blue", overflow="fold")
         table.add_column("Parameters", style="magenta", overflow="fold")
         table.add_column("Default", style="yellow", overflow="fold")
         table.add_column("Transform", style="magenta", overflow="fold")
 
-        for field_name, mapping in sorted(field_mappings.items()):
+        for input_name, mapping in sorted(input_mappings.items()):
             context_key = mapping.context_key if mapping.context_key else ""
             operation = mapping.operation if mapping.operation else ""
             default = str(mapping.default) if mapping.default is not None else ""
@@ -424,17 +706,69 @@ def list_fields(ctx: typer.Context) -> None:
             params_str = ", ".join(params_parts)
 
             table.add_row(
-                field_name, context_key, operation, params_str, default, transform
+                input_name, context_key, operation, params_str, default, transform
             )
 
         console.print(table)
-        console.print(f"\n[bold]Total fields:[/bold] {len(field_mappings)}\n")
+        console.print(f"\n[bold]Total inputs:[/bold] {len(input_mappings)}\n")
 
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=1) from None
     except Exception as e:
-        console.print(f"[red]Error loading field mappings:[/red] {e}")
+        console.print(f"[red]Error loading input mappings:[/red] {e}")
+        raise typer.Exit(code=1) from None
+
+
+@app.command(name="presenters")
+def list_presenters(ctx: typer.Context) -> None:
+    try:
+        config_files, loader = get_loader_and_configs(ctx)
+        layouts_config = loader.load()
+
+        console.print("\n[bold green]Configuration Files:[/bold green]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
+        console.print()
+
+        if not layouts_config.presenters:
+            console.print(
+                "[yellow]No presenter definitions found in configuration file[/yellow]"
+            )
+            return
+
+        table = Table(
+            title="Presenter Definitions", show_header=True, header_style="bold"
+        )
+        table.add_column("Presenter", style="cyan", overflow="fold")
+        table.add_column("Input", style="green", overflow="fold")
+        table.add_column("Formatter", style="yellow", overflow="fold")
+        table.add_column("Parameters", style="magenta", overflow="fold")
+
+        for presenter_name, presenter_config in sorted(
+            layouts_config.presenters.items()
+        ):
+            input_name = presenter_config.input if presenter_config.input else ""
+            formatter = presenter_config.formatter if presenter_config.formatter else ""
+            params = (
+                presenter_config.formatter_params
+                if presenter_config.formatter_params
+                else {}
+            )
+            params_str = str(params) if params else ""
+
+            table.add_row(presenter_name, input_name, formatter, params_str)
+
+        console.print(table)
+        console.print(
+            f"\n[bold]Total presenters:[/bold] {len(layouts_config.presenters)}\n"
+        )
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+    except Exception as e:
+        console.print(f"[red]Error loading presenter definitions:[/red] {e}")
         raise typer.Exit(code=1) from None
 
 
@@ -468,14 +802,14 @@ def list_formatters() -> None:
 
 @app.command(name="templates")
 def list_templates(ctx: typer.Context) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
-        loader = LayoutLoader(config, formatters_path, fields_path)
+        config_files, loader = get_loader_and_configs(ctx)
         layouts_config = loader.load()
 
-        console.print(f"\n[bold green]Configuration File:[/bold green] {config}\n")
+        console.print("\n[bold green]Configuration Files:[/bold green]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
+        console.print()
 
         template_lines = []
         for layout_name, layout_config in layouts_config.layouts.items():
@@ -486,7 +820,7 @@ def list_templates(ctx: typer.Context) -> None:
                             {
                                 "layout": layout_name,
                                 "layout_name": layout_config.name,
-                                "field": line.field,
+                                "input": line.input,
                                 "index": line.index,
                                 "template": line.formatter_params.get("template", ""),
                                 "fields": line.formatter_params.get("fields", []),
@@ -499,7 +833,7 @@ def list_templates(ctx: typer.Context) -> None:
                             {
                                 "layout": layout_name,
                                 "layout_name": layout_config.name,
-                                "field": item.field,
+                                "input": item.input,
                                 "index": item.key,
                                 "template": item.formatter_params.get("template", ""),
                                 "fields": item.formatter_params.get("fields", []),
@@ -516,7 +850,7 @@ def list_templates(ctx: typer.Context) -> None:
             title="Template Formatters", show_header=True, header_style="bold"
         )
         table.add_column("Layout", style="cyan", overflow="fold")
-        table.add_column("Field", style="green", overflow="fold")
+        table.add_column("Input", style="green", overflow="fold")
         table.add_column("Template", style="yellow", overflow="fold", width=40)
         table.add_column("Fields Used", style="magenta", overflow="fold")
 
@@ -524,7 +858,7 @@ def list_templates(ctx: typer.Context) -> None:
             fields_str = ", ".join(template_item["fields"])
             table.add_row(
                 f"{template_item['layout']}\n({template_item['layout_name']})",
-                template_item["field"],
+                template_item["input"],
                 template_item["template"],
                 fields_str,
             )
@@ -543,9 +877,9 @@ def list_templates(ctx: typer.Context) -> None:
 
 
 @app.command(name="test")
-def test_field(
+def test_input(
     ctx: typer.Context,
-    field_name: str = typer.Argument(..., help="Name of the field to test"),
+    input_name: str = typer.Argument(..., help="Name of the input to test"),
     context_values: list[str] = typer.Argument(
         None, help="Context values in format key=value (e.g., membership=premium)"
     ),
@@ -561,16 +895,13 @@ def test_field(
     ),
 ) -> None:
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-        loader = LayoutLoader(config, formatters_path, fields_path)
-        field_mappings = loader.get_field_mappings()
+        config_files, loader = get_loader_and_configs(ctx)
+        input_mappings = loader.get_input_mappings()
 
-        if field_name not in field_mappings:
-            console.print(f"[red]Error:[/red] Field '{field_name}' not found")
-            available = ", ".join(sorted(field_mappings.keys()))
-            console.print(f"\n[yellow]Available fields:[/yellow] {available}")
+        if input_name not in input_mappings:
+            console.print(f"[red]Error:[/red] Input '{input_name}' not found")
+            available = ", ".join(sorted(input_mappings.keys()))
+            console.print(f"\n[yellow]Available inputs:[/yellow] {available}")
             raise typer.Exit(code=1) from None
 
         context = {}
@@ -592,9 +923,9 @@ def test_field(
 
         registry = get_registry_from_config(loader=loader)
 
-        console.print(f"\n[bold green]Testing Field:[/bold green] {field_name}\n")
+        console.print(f"\n[bold green]Testing Input:[/bold green] {input_name}\n")
 
-        mapping = field_mappings[field_name]
+        mapping = input_mappings[input_name]
         console.print(f"[bold]Operation:[/bold] {mapping.operation or 'None'}")
         if mapping.sources:
             console.print(f"[bold]Sources:[/bold] {', '.join(mapping.sources)}")
@@ -612,11 +943,11 @@ def test_field(
         else:
             console.print("  [dim](empty)[/dim]")
 
-        if registry and registry.has_field(field_name):
-            getter = registry.get(field_name)
+        if registry and registry.has_field(input_name):
+            getter = registry.get(input_name)
             result = getter(context)
-        elif field_name in context:
-            result = context[field_name]
+        elif input_name in context:
+            result = context[input_name]
         else:
             result = mapping.default
         console.print(f"\n[bold green]Result:[/bold green] {repr(result)}")
@@ -638,12 +969,12 @@ def test_field(
                 matching_line: Optional[Union[LineConfig, DictItemConfig]] = None
                 if layout_config.lines:
                     for line in layout_config.lines:
-                        if line.field == field_name and line.formatter == formatter:
+                        if line.input == input_name and line.formatter == formatter:
                             matching_line = line
                             break
                 if layout_config.items and not matching_line:
                     for item in layout_config.items:
-                        if item.field == field_name and item.formatter == formatter:
+                        if item.input == input_name and item.formatter == formatter:
                             matching_line = item
                             break
 
@@ -663,7 +994,7 @@ def test_field(
                     console.print()
                 elif not matching_line:
                     console.print(
-                        f"[yellow]Warning:[/yellow] Field '{field_name}' with "
+                        f"[yellow]Warning:[/yellow] Input '{input_name}' with "
                         f"formatter '{formatter}' not found in layout "
                         f"'{layout}'\n"
                     )
@@ -679,7 +1010,7 @@ def test_field(
                     "'template' and 'fields' parameters.\n"
                     "       Use --layout option to specify a layout that "
                     "uses this formatter.\n"
-                    f"       Example: viewtext test {field_name} "
+                    f"       Example: viewtext test {input_name} "
                     f"--formatter {formatter} --layout <layout_name>\n"
                 )
 
@@ -729,26 +1060,21 @@ def check(ctx: typer.Context) -> None:
     registry = None
 
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-
-        config_file = Path(config)
+        config_files, loader = get_loader_and_configs(ctx)
 
         console.print("\n[bold]ViewText Configuration Validation[/bold]\n")
-        console.print(f"[bold]Config File:[/bold] {config_file.absolute()}")
-        if formatters_path:
-            console.print(f"[bold]Formatters File:[/bold] {formatters_path}")
-        if fields_path:
-            console.print(f"[bold]Fields File:[/bold] {fields_path}")
+        console.print("[bold]Config Files:[/bold]")
+        for cfg in config_files:
+            console.print(f"  • {cfg}")
         console.print()
 
-        if not config_file.exists():
-            console.print(f"[red]✗ Config file not found:[/red] {config_file}\n")
+        missing_files = [cfg for cfg in config_files if not Path(cfg).exists()]
+        if missing_files:
+            missing_path = Path(missing_files[0]).absolute()
+            console.print(f"[red]✗ Config file not found:[/red] {missing_path}\n")
             raise typer.Exit(code=1) from None
 
         try:
-            loader = LayoutLoader(str(config_file), formatters_path, fields_path)
             layouts_config = loader.load()
             console.print("[green]✓ TOML syntax is valid[/green]")
         except Exception as e:
@@ -757,10 +1083,10 @@ def check(ctx: typer.Context) -> None:
 
         try:
             registry = get_registry_from_config(loader=loader)
-            console.print("[green]✓ Field registry built successfully[/green]")
+            console.print("[green]✓ Input registry built successfully[/green]")
         except Exception as e:
-            errors.append(f"Failed to build field registry: {e}")
-            console.print(f"[red]✗ Field registry error:[/red] {e}")
+            errors.append(f"Failed to build input registry: {e}")
+            console.print(f"[red]✗ Input registry error:[/red] {e}")
 
         formatter_registry = get_formatter_registry()
         builtin_formatters = {
@@ -773,12 +1099,17 @@ def check(ctx: typer.Context) -> None:
             "template",
         }
 
-        defined_fields = (
-            set(layouts_config.fields.keys()) if layouts_config.fields else set()
+        defined_inputs = (
+            set(layouts_config.inputs.keys()) if layouts_config.inputs else set()
         )
         defined_formatters = (
             set(layouts_config.formatters.keys())
             if layouts_config.formatters
+            else set()
+        )
+        defined_presenters = (
+            set(layouts_config.presenters.keys())
+            if layouts_config.presenters
             else set()
         )
         all_formatters = builtin_formatters | defined_formatters
@@ -795,151 +1126,162 @@ def check(ctx: typer.Context) -> None:
                 )
 
             for item_label, item in items_to_check:
-                field_name = item.field
+                input_name = item.input
 
-                if registry and not registry.has_field(field_name):
-                    if field_name not in defined_fields:
+                if registry and input_name and not registry.has_field(input_name):
+                    if input_name not in defined_inputs:
                         warnings.append(
                             f"Layout '{layout_name}', {item_label}: "
-                            f"field '{field_name}' not defined in field registry"
+                            f"input '{input_name}' not defined in input registry"
                         )
 
-                if item.formatter:
-                    if item.formatter not in all_formatters:
+                presenter_name = (
+                    item.presenter if isinstance(item, LineConfig) else item.presenter
+                )
+                if presenter_name:
+                    if presenter_name not in defined_presenters:
                         errors.append(
                             f"Layout '{layout_name}', {item_label}: "
-                            f"unknown formatter '{item.formatter}'"
+                            f"unknown presenter '{presenter_name}'"
                         )
-                    else:
-                        try:
-                            formatter_registry.get(item.formatter)
-                        except ValueError:
-                            if (
-                                item.formatter in defined_formatters
-                                and layouts_config.formatters
-                            ):
-                                formatter_config = layouts_config.formatters[
-                                    item.formatter
-                                ]
-                                formatter_type = formatter_config.type
-                                try:
-                                    formatter_registry.get(formatter_type)
-                                except ValueError:
-                                    errors.append(
-                                        f"Layout '{layout_name}', {item_label}: "
-                                        f"formatter '{item.formatter}' has unknown "
-                                        f"type '{formatter_type}'"
-                                    )
+                else:
+                    formatter_name = item.formatter
+                    if formatter_name:
+                        if formatter_name not in all_formatters:
+                            errors.append(
+                                f"Layout '{layout_name}', {item_label}: "
+                                f"unknown formatter '{formatter_name}'"
+                            )
+                        else:
+                            try:
+                                formatter_registry.get(formatter_name)
+                            except ValueError:
+                                if (
+                                    formatter_name in defined_formatters
+                                    and layouts_config.formatters
+                                ):
+                                    formatter_config = layouts_config.formatters[
+                                        formatter_name
+                                    ]
+                                    formatter_type = formatter_config.type
+                                    try:
+                                        formatter_registry.get(formatter_type)
+                                    except ValueError:
+                                        errors.append(
+                                            f"Layout '{layout_name}', {item_label}: "
+                                            f"formatter '{formatter_name}' has unknown "
+                                            f"type '{formatter_type}'"
+                                        )
 
-                    if item.formatter == "template" or (
-                        item.formatter in defined_formatters
+                    if formatter_name == "template" or (
+                        formatter_name in defined_formatters
                         and layouts_config.formatters
-                        and layouts_config.formatters[item.formatter].type == "template"
+                        and layouts_config.formatters[formatter_name].type == "template"
                     ):
                         if not item.formatter_params.get("template"):
                             errors.append(
                                 f"Layout '{layout_name}', {item_label}: "
-                                f"template formatter missing 'template' parameter"
+                                "template formatter missing 'template' parameter"
                             )
                         if not item.formatter_params.get("fields"):
                             errors.append(
                                 f"Layout '{layout_name}', {item_label}: "
-                                f"template formatter missing 'fields' parameter"
+                                "template formatter missing 'fields' parameter"
                             )
                         else:
                             template_fields = item.formatter_params.get("fields", [])
                             for tf in template_fields:
-                                base_field = tf.split(".")[0]
+                                base_input = tf.split(".")[0]
                                 if (
-                                    base_field != field_name
-                                    and base_field not in defined_fields
+                                    base_input != input_name
+                                    and base_input not in defined_inputs
                                 ):
                                     warnings.append(
                                         f"Layout '{layout_name}', {item_label}: "
-                                        f"template references undefined field "
-                                        f"'{base_field}'"
+                                        f"template references undefined input "
+                                        f"'{base_input}'"
                                     )
 
-        if layouts_config.fields:
-            for field_name, field_mapping in layouts_config.fields.items():
-                if field_mapping.type:
+        if layouts_config.inputs:
+            for input_name, input_mapping in layouts_config.inputs.items():
+                if input_mapping.type:
                     valid_types = {"str", "int", "float", "bool", "list", "dict", "any"}
-                    if field_mapping.type not in valid_types:
+                    if input_mapping.type not in valid_types:
                         errors.append(
-                            f"Field '{field_name}': unknown type '{field_mapping.type}'"
+                            f"Input '{input_name}': unknown type '{input_mapping.type}'"
                         )
 
-                if field_mapping.on_validation_error:
+                if input_mapping.on_validation_error:
                     valid_strategies = {"raise", "skip", "use_default", "coerce"}
-                    if field_mapping.on_validation_error not in valid_strategies:
+                    if input_mapping.on_validation_error not in valid_strategies:
                         errors.append(
-                            f"Field '{field_name}': unknown on_validation_error "
-                            f"strategy '{field_mapping.on_validation_error}'"
+                            f"Input '{input_name}': unknown on_validation_error "
+                            f"strategy '{input_mapping.on_validation_error}'"
                         )
 
                 if (
-                    field_mapping.min_value is not None
-                    or field_mapping.max_value is not None
+                    input_mapping.min_value is not None
+                    or input_mapping.max_value is not None
                 ):
-                    if field_mapping.type and field_mapping.type not in {
+                    if input_mapping.type and input_mapping.type not in {
                         "int",
                         "float",
                         "any",
                     }:
                         warnings.append(
-                            f"Field '{field_name}': min_value/max_value constraints "
+                            f"Input '{input_name}': min_value/max_value constraints "
                             f"are typically used with numeric types (int/float), "
-                            f"but field has type '{field_mapping.type}'"
+                            f"but input has type '{input_mapping.type}'"
                         )
 
                 if (
-                    field_mapping.min_length is not None
-                    or field_mapping.max_length is not None
+                    input_mapping.min_length is not None
+                    or input_mapping.max_length is not None
                 ):
-                    if field_mapping.type and field_mapping.type not in {"str", "any"}:
+                    if input_mapping.type and input_mapping.type not in {"str", "any"}:
                         warnings.append(
-                            f"Field '{field_name}': min_length/max_length constraints "
+                            f"Input '{input_name}': min_length/max_length constraints "
                             f"are typically used with string types, "
-                            f"but field has type '{field_mapping.type}'"
+                            f"but input has type '{input_mapping.type}'"
                         )
 
                 if (
-                    field_mapping.min_items is not None
-                    or field_mapping.max_items is not None
+                    input_mapping.min_items is not None
+                    or input_mapping.max_items is not None
                 ):
-                    if field_mapping.type and field_mapping.type not in {"list", "any"}:
+                    if input_mapping.type and input_mapping.type not in {"list", "any"}:
                         warnings.append(
-                            f"Field '{field_name}': min_items/max_items constraints "
+                            f"Input '{input_name}': min_items/max_items constraints "
                             f"are typically used with list types, "
-                            f"but field has type '{field_mapping.type}'"
+                            f"but input has type '{input_mapping.type}'"
                         )
 
-                if field_mapping.pattern is not None:
-                    if field_mapping.type and field_mapping.type not in {"str", "any"}:
+                if input_mapping.pattern is not None:
+                    if input_mapping.type and input_mapping.type not in {"str", "any"}:
                         warnings.append(
-                            f"Field '{field_name}': pattern constraint "
+                            f"Input '{input_name}': pattern constraint "
                             f"is typically used with string types, "
-                            f"but field has type '{field_mapping.type}'"
+                            f"but input has type '{input_mapping.type}'"
                         )
                     else:
                         try:
-                            re.compile(field_mapping.pattern)
+                            re.compile(input_mapping.pattern)
                         except re.error as e:
                             errors.append(
-                                f"Field '{field_name}': invalid regex pattern "
-                                f"'{field_mapping.pattern}': {e}"
+                                f"Input '{input_name}': invalid regex pattern "
+                                f"'{input_mapping.pattern}': {e}"
                             )
 
                 if (
-                    field_mapping.on_validation_error == "use_default"
-                    and field_mapping.default is None
+                    input_mapping.on_validation_error == "use_default"
+                    and input_mapping.default is None
                 ):
                     warnings.append(
-                        f"Field '{field_name}': on_validation_error='use_default' "
+                        f"Input '{input_name}': on_validation_error='use_default' "
                         f"but no default value is specified"
                     )
 
-                if field_mapping.operation:
+                if input_mapping.operation:
                     valid_operations = {
                         "celsius_to_fahrenheit",
                         "fahrenheit_to_celsius",
@@ -962,21 +1304,21 @@ def check(ctx: typer.Context) -> None:
                         "conditional",
                         "format_number",
                     }
-                    if field_mapping.operation not in valid_operations:
+                    if input_mapping.operation not in valid_operations:
                         errors.append(
-                            f"Field '{field_name}': unknown operation "
-                            f"'{field_mapping.operation}'"
+                            f"Input '{input_name}': unknown operation "
+                            f"'{input_mapping.operation}'"
                         )
 
-                    if field_mapping.sources:
-                        for source in field_mapping.sources:
-                            if source not in defined_fields:
+                    if input_mapping.sources:
+                        for source in input_mapping.sources:
+                            if source not in defined_inputs:
                                 warnings.append(
-                                    f"Field '{field_name}': source field "
+                                    f"Input '{input_name}': source input "
                                     f"'{source}' not defined"
                                 )
 
-                if field_mapping.transform:
+                if input_mapping.transform:
                     valid_transforms = {
                         "upper",
                         "lower",
@@ -987,10 +1329,42 @@ def check(ctx: typer.Context) -> None:
                         "str",
                         "bool",
                     }
-                    if field_mapping.transform not in valid_transforms:
+                    if input_mapping.transform not in valid_transforms:
                         errors.append(
-                            f"Field '{field_name}': unknown transform "
-                            f"'{field_mapping.transform}'"
+                            f"Input '{input_name}': unknown transform "
+                            f"'{input_mapping.transform}'"
+                        )
+
+        if layouts_config.presenters:
+            for presenter_name, presenter_config in layouts_config.presenters.items():
+                if not presenter_config.input:
+                    errors.append(
+                        f"Presenter '{presenter_name}': missing input specification"
+                    )
+
+                if (
+                    presenter_config.formatter
+                    and presenter_config.formatter not in all_formatters
+                ):
+                    errors.append(
+                        f"Presenter '{presenter_name}': unknown formatter "
+                        f"'{presenter_config.formatter}'"
+                    )
+                elif (
+                    presenter_config.formatter in defined_formatters
+                    and layouts_config.formatters
+                ):
+                    formatter_config = layouts_config.formatters[
+                        presenter_config.formatter
+                    ]
+                    formatter_type = formatter_config.type
+                    try:
+                        formatter_registry.get(formatter_type)
+                    except ValueError:
+                        errors.append(
+                            f"Presenter '{presenter_name}': formatter "
+                            f"'{presenter_config.formatter}' has unknown "
+                            f"type '{formatter_type}'"
                         )
 
         console.print()
@@ -1034,12 +1408,12 @@ def check(ctx: typer.Context) -> None:
         raise typer.Exit(code=1) from None
 
 
-@app.command(name="generate-fields")
-def generate_fields(
+@app.command(name="generate-inputs")
+def generate_inputs(
     output: Optional[str] = typer.Option(
         None, "--output", "-o", help="Output file path (defaults to stdout)"
     ),
-    prefix: str = typer.Option("", "--prefix", "-p", help="Prefix for field names"),
+    prefix: str = typer.Option("", "--prefix", "-p", help="Prefix for input names"),
 ) -> None:
     try:
         has_stdin_data = not sys.stdin.isatty()
@@ -1047,11 +1421,11 @@ def generate_fields(
         if not has_stdin_data:
             console.print(
                 "[red]Error:[/red] No stdin data provided. "
-                "Pipe JSON data to generate fields."
+                "Pipe JSON data to generate inputs."
             )
             console.print(
                 "\n[yellow]Example:[/yellow] "
-                'echo \'{"name": "John", "age": 30}\' | viewtext generate-fields'
+                'echo \'{"name": "John", "age": 30}\' | viewtext generate-inputs'
             )
             raise typer.Exit(code=1) from None
 
@@ -1072,7 +1446,7 @@ def generate_fields(
             )
             raise typer.Exit(code=1) from None
 
-        toml_lines = _generate_field_definitions(data, prefix)
+        toml_lines = _generate_input_definitions(data, prefix)
 
         if output:
             output_path = Path(output)
@@ -1080,7 +1454,7 @@ def generate_fields(
                 with open(output_path, "w") as f:
                     f.write(toml_lines)
                 console.print(
-                    f"\n[green]✓ Field definitions written to:[/green] {output_path}\n"
+                    f"\n[green]✓ Input definitions written to:[/green] {output_path}\n"
                 )
             except OSError as e:
                 console.print(f"[red]Error writing to file:[/red] {e}")
@@ -1095,22 +1469,22 @@ def generate_fields(
         raise typer.Exit(code=1) from None
 
 
-def _generate_field_definitions(
+def _generate_input_definitions(
     data: dict[str, Any], prefix: str = "", path: str = ""
 ) -> str:
     lines = []
 
     for key, value in data.items():
-        field_name = f"{prefix}{key}" if prefix else key
+        input_name = f"{prefix}{key}" if prefix else key
         context_key = f"{path}.{key}" if path else key
 
         if isinstance(value, dict):
-            nested_fields = _generate_field_definitions(
-                value, prefix=f"{field_name}_", path=context_key
+            nested_inputs = _generate_input_definitions(
+                value, prefix=f"{input_name}_", path=context_key
             )
-            lines.append(nested_fields)
+            lines.append(nested_inputs)
         else:
-            lines.append(f"[fields.{field_name}]")
+            lines.append(f"[inputs.{input_name}]")
             lines.append(f'context_key = "{context_key}"')
 
             if isinstance(value, bool):
@@ -1134,54 +1508,52 @@ def _generate_field_definitions(
 @app.command()
 def info(ctx: typer.Context) -> None:
     try:
-        config, formatters_path, fields_path = resolve_context_files(ctx)
-        global config_path
-        config_path = config
-
-        config_file = Path(config)
+        config_files, loader = get_loader_and_configs(ctx)
 
         console.print("\n[bold]ViewText Configuration Info[/bold]\n")
 
-        console.print(f"[bold]Config File:[/bold] {config_file.absolute()}")
-        console.print(f"[bold]Exists:[/bold] {config_file.exists()}")
-        if formatters_path:
-            console.print(f"[bold]Formatters File:[/bold] {formatters_path}")
-        if fields_path:
-            console.print(f"[bold]Fields File:[/bold] {fields_path}")
-
-        if config_file.exists():
-            console.print(f"[bold]Size:[/bold] {config_file.stat().st_size} bytes")
-
-            loader = LayoutLoader(str(config_file), formatters_path, fields_path)
-            layouts_config = loader.load()
-
+        for cfg in config_files:
+            cfg_path = Path(cfg)
+            exists = cfg_path.exists()
+            size_info = f" ({cfg_path.stat().st_size} bytes)" if exists else ""
             console.print(
-                f"\n[bold]Layouts:[/bold] {len(layouts_config.layouts)} found"
+                f"[bold]-[/bold] {cfg_path.absolute()} - "
+                f"{'exists' if exists else 'missing'}{size_info}"
             )
 
-            if layouts_config.formatters:
-                formatter_count = len(layouts_config.formatters)
-                console.print(
-                    f"[bold]Global Formatters:[/bold] {formatter_count} defined"
-                )
+        console.print()
 
-                formatter_table = Table(
-                    show_header=True, header_style="bold", title="Global Formatters"
-                )
-                formatter_table.add_column("Name", style="cyan")
-                formatter_table.add_column("Type", style="green")
-                formatter_table.add_column("Parameters", style="yellow")
+        layouts_config = loader.load()
 
-                for fmt_name, fmt_config in layouts_config.formatters.items():
-                    params = fmt_config.model_dump(exclude_none=True)
-                    fmt_type = params.pop("type", "")
-                    params_str = ", ".join(f"{k}={v}" for k, v in params.items())
-                    formatter_table.add_row(fmt_name, fmt_type, params_str)
+        console.print(f"[bold]Layouts:[/bold] {len(layouts_config.layouts)} found")
+        console.print(
+            f"[bold]Inputs:[/bold] {len(layouts_config.inputs or {})} defined"
+        )
+        console.print(
+            f"[bold]Presenters:[/bold] {len(layouts_config.presenters or {})} defined"
+        )
 
-                console.print()
-                console.print(formatter_table)
-            else:
-                console.print("[bold]Global Formatters:[/bold] None defined in config")
+        if layouts_config.formatters:
+            formatter_count = len(layouts_config.formatters)
+            console.print(f"[bold]Global Formatters:[/bold] {formatter_count} defined")
+
+            formatter_table = Table(
+                show_header=True, header_style="bold", title="Global Formatters"
+            )
+            formatter_table.add_column("Name", style="cyan")
+            formatter_table.add_column("Type", style="green")
+            formatter_table.add_column("Parameters", style="yellow")
+
+            for fmt_name, fmt_config in layouts_config.formatters.items():
+                params = fmt_config.model_dump(exclude_none=True)
+                fmt_type = params.pop("type", "")
+                params_str = ", ".join(f"{k}={v}" for k, v in params.items())
+                formatter_table.add_row(fmt_name, fmt_type, params_str)
+
+            console.print()
+            console.print(formatter_table)
+        else:
+            console.print("[bold]Global Formatters:[/bold] None defined in config")
 
         console.print()
 

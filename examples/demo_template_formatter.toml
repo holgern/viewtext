@@ -1,11 +1,11 @@
-[fields.current_price]
+[inputs.current_price]
 context_key = "current_price"
 
 [layouts.crypto_composite_price]
 name = "Cryptocurrency Composite Price Display"
 
 [[layouts.crypto_composite_price.lines]]
-field = "current_price"
+input = "current_price"
 index = 0
 formatter = "template"
 

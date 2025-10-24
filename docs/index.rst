@@ -10,10 +10,10 @@ through a flexible registry and layout system.
 Features
 --------
 
-- **Field Registry**: Register data getters that extract values from context objects
+- **Input Mapping**: Declaratively describe how inputs pull data from context objects or computed operations
 - **Formatter System**: Built-in formatters for text, numbers, prices, dates, and relative times
-- **Layout Engine**: TOML-based layout definitions that map fields to grid positions
-- **Extensible**: Easy to add custom fields and formatters for domain-specific needs
+- **Layout Engine**: TOML-based layout definitions that map inputs to grid positions
+- **Extensible**: Easy to add custom inputs, presenters, and formatters for domain-specific needs
 
 Use Cases
 ---------
@@ -55,7 +55,8 @@ Contents
 
    quickstart
    user_guide
-   fields_reference
+   inputs_reference
+   presenters
    validation_reference
    computed_fields_reference
    formatters_reference

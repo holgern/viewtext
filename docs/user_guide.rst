@@ -57,7 +57,7 @@ ViewText provides built-in formatters for:
 - **price** - Currency formatting with symbols
 - **datetime** - Format timestamps and dates
 - **relative_time** - Human-readable time differences (e.g., "5m ago")
-- **template** - Combine multiple fields with Python format specifications
+- **template** - Combine multiple inputs with Python format specifications
 
 Quick Example
 ~~~~~~~~~~~~~
@@ -65,7 +65,7 @@ Quick Example
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "price"
 
@@ -99,13 +99,13 @@ You can register custom formatters with the FormatterRegistry:
 Layout Configuration
 --------------------
 
-Layouts are defined in TOML files and specify how fields map to output. ViewText supports
+Layouts are defined in TOML files and specify how inputs map to output. ViewText supports
 two types of layouts: **line-based layouts** and **dictionary-based layouts**.
 
 Line-Based Layouts
 ~~~~~~~~~~~~~~~~~~
 
-Line-based layouts map fields to numbered line positions (indices). This is useful for
+Line-based layouts map inputs to numbered line positions (indices). This is useful for
 fixed-position text displays like terminal dashboards or e-ink displays.
 
 .. code-block:: toml
@@ -114,7 +114,7 @@ fixed-position text displays like terminal dashboards or e-ink displays.
     name = "My Layout"
 
     [[layouts.my_layout.lines]]
-    field = "field_name"
+    input = "input_name"
     index = 0
     formatter = "text"
 
@@ -131,7 +131,7 @@ The ``build_line_str()`` method returns a list of strings, one per line:
 Dictionary-Based Layouts
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Dictionary-based layouts map fields to named keys, producing key-value pairs. This is
+Dictionary-based layouts map inputs to named keys, producing key-value pairs. This is
 useful for JSON APIs, configuration files, or structured data output.
 
 .. code-block:: toml
@@ -141,7 +141,7 @@ useful for JSON APIs, configuration files, or structured data output.
 
     [[layouts.my_dict_layout.items]]
     key = "display_name"
-    field = "field_name"
+    input = "input_name"
     formatter = "text"
 
     [layouts.my_dict_layout.items.formatter_params]
@@ -149,7 +149,7 @@ useful for JSON APIs, configuration files, or structured data output.
 
     [[layouts.my_dict_layout.items]]
     key = "temperature"
-    field = "temp"
+    input = "temp"
     formatter = "number"
 
     [layouts.my_dict_layout.items.formatter_params]
@@ -206,7 +206,7 @@ Each line can have formatter-specific parameters:
 .. code-block:: toml
 
     [[layouts.demo.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "price"
 
@@ -241,12 +241,12 @@ Presets can be referenced by name directly in layouts:
     name = "Product Display"
 
     [[layouts.product.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "usd_price"  # References preset
 
     [[layouts.product.lines]]
-    field = "created_at"
+    input = "created_at"
     index = 1
     formatter = "time_only"  # References preset
 
@@ -255,7 +255,7 @@ Presets can also be used in template formatter ``field_formatters``:
 .. code-block:: toml
 
     [[layouts.crypto.lines]]
-    field = "ticker"
+    input = "ticker"
     index = 0
     formatter = "template"
 
@@ -327,23 +327,23 @@ ViewText provides two methods for building output, depending on your layout type
     import json
     print(json.dumps(result, indent=2))
 
-Field Resolution
+Input Resolution
 ~~~~~~~~~~~~~~~~
 
-The engine resolves fields in this order:
+The engine resolves input values in this order:
 
-1. Check field registry (if provided)
-2. Check context dictionary directly
-3. Return None if not found
+1. Check the field registry (if provided)
+2. Check the context dictionary directly
+3. Return ``None`` if not found
 
-This allows mixing registered fields with direct context values.
+This allows mixing registered getters with direct context values.
 
-For detailed information on field types and definitions, see :doc:`fields_reference`.
+For detailed information on input definitions, see :doc:`inputs_reference`.
 
-Field Validation
+Input Validation
 ----------------
 
-ViewText provides comprehensive field validation to ensure data quality and type safety.
+ViewText provides comprehensive input validation to ensure data quality and type safety.
 Validation rules are defined declaratively in TOML configuration files.
 
 Quick Example
@@ -351,7 +351,7 @@ Quick Example
 
 .. code-block:: toml
 
-    [fields.user_age]
+    [inputs.user_age]
     context_key = "age"
     type = "int"
     min_value = 0
@@ -359,7 +359,7 @@ Quick Example
     on_validation_error = "use_default"
     default = 0
 
-This field definition ensures that ``user_age`` is:
+This input definition ensures that ``user_age`` is:
 
 - An integer value
 - Between 0 and 120
@@ -378,10 +378,10 @@ ViewText supports:
 For complete documentation of validation parameters, error handling strategies, and examples,
 see :doc:`validation_reference`.
 
-Computed Fields
+Computed Inputs
 ---------------
 
-Computed fields allow you to perform calculations on source data without writing Python code.
+Computed inputs allow you to perform calculations on source data without writing Python code.
 All operations are defined in TOML configuration files and are compiled at load time.
 
 Available Operations
@@ -422,36 +422,36 @@ Available Operations
 
 **Conditional Operations**
 
-- ``conditional`` - Return different values based on field equality condition (``condition``, ``if_true``, ``if_false``)
+- ``conditional`` - Return different values based on input equality condition (``condition``, ``if_true``, ``if_false``)
 
-Defining Computed Fields
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Defining Computed Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Computed fields are defined in the ``[fields]`` section of your TOML configuration:
+Computed inputs are defined in the ``[inputs]`` section of your TOML configuration:
 
 .. code-block:: toml
 
     # Temperature conversion
-    [fields.temp_f]
+    [inputs.temp_f]
     operation = "celsius_to_fahrenheit"
     sources = ["temp_c"]
     default = 0.0
 
     # Price calculation
-    [fields.total_price]
+    [inputs.total_price]
     operation = "multiply"
     sources = ["price", "quantity"]
     default = 0.0
 
     # Discount calculation
-    [fields.discount_price]
+    [inputs.discount_price]
     operation = "linear_transform"
     sources = ["price"]
     multiply = 0.8
     default = 0.0
 
     # Average score
-    [fields.average_score]
+    [inputs.average_score]
     operation = "average"
     sources = ["score1", "score2", "score3"]
     default = 0.0
@@ -459,10 +459,10 @@ Computed fields are defined in the ``[fields]`` section of your TOML configurati
 Operation Parameters
 ~~~~~~~~~~~~~~~~~~~~
 
-Each computed field requires:
+Each computed input requires:
 
 - ``operation`` - Name of the operation to perform
-- ``sources`` - List of field names from context to use as inputs
+- ``sources`` - List of input names from context to use as sources
 - ``default`` - Value to return if operation fails or sources are missing
 
 Some operations support additional parameters:
@@ -478,14 +478,14 @@ Formula: ``(value * multiply / divide) + add``
 .. code-block:: toml
 
     # Convert km/h to mph
-    [fields.speed_mph]
+    [inputs.speed_mph]
     operation = "linear_transform"
     sources = ["speed_kmh"]
     multiply = 0.621371
     default = 0.0
 
     # Apply 20% discount and add $5 handling fee
-    [fields.discounted_price]
+    [inputs.discounted_price]
     operation = "linear_transform"
     sources = ["price"]
     multiply = 0.8
@@ -497,13 +497,13 @@ Formula: ``(value * multiply / divide) + add``
 .. code-block:: toml
 
     # Scale mempool size and round up
-    [fields.vsize_scaled]
+    [inputs.vsize_scaled]
     operation = "linear_transform"
     context_key = "mempool.vsize"
     divide = 1000000
     default = 0
 
-    [fields.vsize_mb]
+    [inputs.vsize_mb]
     operation = "ceil"
     sources = ["vsize_scaled"]
     default = 0
@@ -518,14 +518,14 @@ Formula: ``(value * multiply / divide) + add``
 .. code-block:: toml
 
     # Concatenate first and last name
-    [fields.full_name]
+    [inputs.full_name]
     operation = "concat"
     sources = ["first_name", "last_name"]
     separator = " "
     default = ""
 
     # Extract domain from email
-    [fields.domain]
+    [inputs.domain]
     operation = "split"
     sources = ["email"]
     separator = "@"
@@ -533,7 +533,7 @@ Formula: ``(value * multiply / divide) + add``
     default = ""
 
     # Extract year from date string
-    [fields.year]
+    [inputs.year]
     operation = "substring"
     sources = ["date"]
     start = 0
@@ -541,7 +541,7 @@ Formula: ``(value * multiply / divide) + add``
     default = ""
 
     # Get last 3 characters
-    [fields.suffix]
+    [inputs.suffix]
     operation = "substring"
     sources = ["text"]
     start = -3
@@ -552,7 +552,7 @@ Formula: ``(value * multiply / divide) + add``
 .. code-block:: toml
 
     # Check if number is even/odd (result will be 0 or 1)
-    [fields.remainder]
+    [inputs.remainder]
     operation = "modulo"
     sources = ["number", "divisor"]
     default = 0
@@ -562,19 +562,19 @@ Formula: ``(value * multiply / divide) + add``
 .. code-block:: toml
 
     # Display price with currency formatting
-    [fields.price_display]
+    [inputs.price_display]
     operation = "conditional"
-    condition = { field = "currency", equals = "USD" }
+    condition = { input = "currency", equals = "USD" }
     if_true = "$~amount~"
     if_false = "~amount~ ~currency~"
     default = ""
 
-The ``~field_name~`` syntax in ``if_true`` and ``if_false`` allows embedding other field values.
+The ``~input_name~`` syntax in ``if_true`` and ``if_false`` allows embedding other input values.
 
 Error Handling
 ~~~~~~~~~~~~~~
 
-Computed fields include automatic error handling:
+Computed inputs include automatic error handling:
 
 - Missing source values return the default
 - Non-numeric values return the default (for numeric operations)
@@ -590,12 +590,12 @@ Example Use Cases
 
 .. code-block:: toml
 
-    [fields.temp_f]
+    [inputs.temp_f]
     operation = "celsius_to_fahrenheit"
     sources = ["temp_c"]
     default = 0.0
 
-    [fields.meters_to_feet]
+    [inputs.meters_to_feet]
     operation = "linear_transform"
     sources = ["meters"]
     multiply = 3.28084
@@ -606,13 +606,13 @@ Example Use Cases
 .. code-block:: toml
 
     # Line item total
-    [fields.line_total]
+    [inputs.line_total]
     operation = "multiply"
     sources = ["price", "quantity"]
     default = 0.0
 
     # Discounted price
-    [fields.sale_price]
+    [inputs.sale_price]
     operation = "linear_transform"
     sources = ["price"]
     multiply = 0.85
@@ -623,17 +623,17 @@ Example Use Cases
 .. code-block:: toml
 
     # Daily temperature range
-    [fields.temp_min]
+    [inputs.temp_min]
     operation = "min"
     sources = ["temp_morning", "temp_noon", "temp_evening"]
     default = 0.0
 
-    [fields.temp_max]
+    [inputs.temp_max]
     operation = "max"
     sources = ["temp_morning", "temp_noon", "temp_evening"]
     default = 0.0
 
-    [fields.temp_avg]
+    [inputs.temp_avg]
     operation = "average"
     sources = ["temp_morning", "temp_noon", "temp_evening"]
     default = 0.0
@@ -680,20 +680,20 @@ organization and maintainability:
 
     from viewtext import LayoutLoader
 
-    # Method 1: Using constructor parameters
-    loader = LayoutLoader(
-        config_path="layouts.toml",
-        formatters_path="formatters.toml",
-        fields_path="fields.toml"
-    )
+    # Method 1: Provide multiple configuration files
+    loader = LayoutLoader([
+        "layouts.toml",
+        "inputs.toml",
+        "formatters.toml",
+    ])
     config = loader.load()
 
-    # Method 2: Using static method
-    config = LayoutLoader.load_from_files(
-        layouts_path="layouts.toml",
-        formatters_path="formatters.toml",
-        fields_path="fields.toml"
-    )
+    # Method 2: Using static helper
+    config = LayoutLoader.load_from_files([
+        "layouts.toml",
+        "inputs.toml",
+        "formatters.toml",
+    ])
 
 **Example: Separate Formatters File**
 
@@ -719,25 +719,25 @@ organization and maintainability:
     name = "Product Display"
 
     [[layouts.product.lines]]
-    field = "price"
+    input = "price"
     index = 0
     formatter = "price_usd"
 
-**Example: Separate Fields File**
+**Example: Separate Inputs File**
 
-``fields.toml``:
+``inputs.toml``:
 
 .. code-block:: toml
 
-    [fields.temperature]
+    [inputs.temperature]
     context_key = "temp"
     default = 0
 
-    [fields.city]
+    [inputs.city]
     context_key = "location.city"
     default = "Unknown"
 
-    [fields.first_tag]
+    [inputs.first_tag]
     context_key = "tags.0"
     default = ""
 
@@ -748,15 +748,15 @@ organization and maintainability:
     # Use --formatters and --fields flags
     viewtext --config layouts.toml \\
              --formatters formatters.toml \\
-             --fields fields.toml \\
+             --fields inputs.toml \\
              list
 
-    viewtext -c layouts.toml -f formatters.toml -F fields.toml render weather
+    viewtext -c layouts.toml -f formatters.toml -F inputs.toml render weather
 
 **Benefits of Split Files**
 
 1. **Modularity**: Separate concerns into different files
-2. **Reusability**: Share formatters and fields across multiple layout files
+2. **Reusability**: Share formatters and inputs across multiple layout files
 3. **Team Collaboration**: Different team members can work on different files
 4. **Maintainability**: Easier to find and update specific configurations
 
@@ -764,7 +764,7 @@ organization and maintainability:
 
 When multiple files are provided:
 
-- Fields from ``fields.toml`` are merged into the base configuration
+- Fields from ``inputs.toml`` are merged into the base configuration
 - Formatters from ``formatters.toml`` are merged into the base configuration
 - If the same key exists in multiple files, values from separate files take precedence
 - All separate files are optional
@@ -802,7 +802,7 @@ ViewText raises specific exceptions for common errors:
     # ValueError for unknown field
     registry = BaseFieldRegistry()
     try:
-        getter = registry.get("unknown_field")
+        getter = registry.get("unknown_input")
     except ValueError as e:
         print(f"Field error: {e}")
 
@@ -967,7 +967,7 @@ Build layouts dynamically from data:
 
         for i, field in enumerate(fields):
             layout["lines"].append({
-                "field": field,
+                "input": field,
                 "index": i,
                 "formatter": "text"
             })
@@ -1042,14 +1042,14 @@ Example with autocomplete:
 
 .. code-block:: toml
 
-    [fields.user_age]
+    [inputs.user_age]
     context_key = "age"
     type = "int"                    # Autocomplete suggests: str, int, float, bool, list, dict
     min_value = 0
     max_value = 120
     on_validation_error = "use_default"  # Autocomplete suggests: use_default, raise, skip, coerce
 
-    [fields.temp_f]
+    [inputs.temp_f]
     operation = "celsius_to_fahrenheit"  # Autocomplete suggests all operations
 
 Validation Command
@@ -1071,7 +1071,7 @@ Configuration
 The schema is configured in ``.taplo.toml`` and automatically applies to:
 
 - ``**/layouts*.toml`` - Layout configuration files
-- ``**/fields.toml`` - Field-only configuration files
+- ``**/inputs.toml`` - Field-only configuration files
 - ``**/formatters.toml`` - Formatter-only configuration files
 
 See ``.taplo/README.md`` for more information on the schema.

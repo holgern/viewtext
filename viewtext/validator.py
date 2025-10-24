@@ -1,7 +1,7 @@
 """
 Field validation module for viewtext.
 
-This module provides validation functionality for field values, including
+This module provides validation functionality for input values, including
 type checking, constraint validation, and error handling strategies.
 """
 
@@ -18,7 +18,7 @@ class ValidationError(Exception):
 
 class FieldValidator:
     """
-    Validator for field values based on FieldMapping configuration.
+    Validator for input values based on InputMapping configuration.
 
     This class handles type validation, constraint checking, and error
     handling for field values extracted from context data.

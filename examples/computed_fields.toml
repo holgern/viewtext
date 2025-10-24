@@ -1,107 +1,117 @@
-[fields]
+[inputs]
 
-[fields.temp_f]
+[inputs.temp_f]
 operation = "celsius_to_fahrenheit"
 sources = ["temp_c"]
 default = 0.0
 
-[fields.temp_c_from_f]
+[inputs.temp_c_from_f]
 operation = "fahrenheit_to_celsius"
 sources = ["temp_f_raw"]
 default = 0.0
 
-[fields.total_price]
+[inputs.total_price]
 operation = "multiply"
 sources = ["price", "quantity"]
 default = 0.0
 
-[fields.discount_price]
+[inputs.discount_price]
 operation = "linear_transform"
 sources = ["price"]
 multiply = 0.8
 default = 0.0
 
-[fields.average_score]
+[inputs.score1]
+constant = 1
+
+[inputs.score2]
+constant = 2
+
+[inputs.score3]
+constant = 3
+
+
+[inputs.average_score]
 operation = "average"
 sources = ["score1", "score2", "score3"]
 default = 0.0
 
-[fields.min_temp]
+[inputs.min_temp]
 operation = "min"
 sources = ["temp_morning", "temp_noon", "temp_evening"]
 default = 0.0
 
-[fields.max_temp]
+[inputs.max_temp]
 operation = "max"
 sources = ["temp_morning", "temp_noon", "temp_evening"]
 default = 0.0
 
-[fields.bmi]
+[inputs.bmi]
 operation = "divide"
 sources = ["weight_kg", "height_m_sq"]
 default = 0.0
 
-[fields.speed_mph]
+[inputs.speed_mph]
 operation = "linear_transform"
 sources = ["speed_kmh"]
 multiply = 0.621371
 default = 0.0
 
-[fields.abs_change]
+[inputs.abs_change]
 operation = "abs"
 sources = ["price_change"]
 default = 0.0
 
-[fields.rounded_price]
+[inputs.rounded_price]
 operation = "round"
 sources = ["price"]
 default = 0.0
 
-[fields.price_ceiled]
+[inputs.price_ceiled]
 operation = "ceil"
 sources = ["price"]
 default = 0.0
 
-[fields.price_floored]
+[inputs.price_floored]
 operation = "floor"
 sources = ["price"]
 default = 0.0
 
-[fields.remainder]
+[inputs.remainder]
 operation = "modulo"
 sources = ["number", "divisor"]
 default = 0
 
-[fields.full_name]
+[inputs.full_name]
 operation = "concat"
 sources = ["first_name", "last_name"]
 separator = " "
 default = ""
 
-[fields.domain]
+[inputs.domain]
 operation = "split"
 sources = ["email"]
 separator = "@"
 index = 1
 default = ""
 
-[fields.year]
+[inputs.year]
 operation = "substring"
 sources = ["date"]
 start = 0
 end = 4
 default = ""
 
-[fields.price_display]
+[inputs.price_display]
 operation = "conditional"
-condition = { field = "currency", equals = "USD" }
+condition = { input = "currency", equals = "USD" }
 if_true = "$~amount~"
 if_false = "~amount~ ~currency~"
 default = ""
 
-[fields.user_badge]
+[inputs.user_badge]
 operation = "conditional"
-condition = { field = "membership", equals = "premium" }
+condition = { input = "membership", equals = "premium" }
 if_true = "⭐ Premium"
 if_false = "Standard"
 default = "Guest"
@@ -125,109 +135,165 @@ type = "number"
 decimals = 1
 suffix = " mph"
 
+[presenters.price]
+input = "price"
+formatter = "price_fmt"
+
+[presenters.quantity]
+input = "quantity"
+formatter = "number"
+formatter_params = { suffix = "x" }
+
+[presenters.total_price]
+input = "total_price"
+formatter = "price_fmt"
+
+[presenters.discount_price]
+input = "discount_price"
+formatter = "price_fmt"
+formatter_params = { prefix = "SALE: " }
+
+[presenters.product]
+input = "product"
+formatter = "text"
+
+[presenters.temp_c]
+input = "temp_c"
+formatter = "number"
+formatter_params = { decimals = 1, suffix = "°C" }
+
+[presenters.temp_f]
+input = "temp_f"
+formatter = "temperature"
+
+[presenters.student]
+input = "student"
+formatter = "text"
+
+[presenters.score]
+input = "score"
+formatter = "score_fmt"
+
+[presenters.score1]
+input = "score1"
+formatter = "score_fmt"
+
+[presenters.score2]
+input = "score2"
+formatter = "score_fmt"
+
+[presenters.score3]
+input = "score3"
+formatter = "score_fmt"
+
+
+[presenters.average_score]
+input = "average_score"
+formatter = "score_fmt"
+formatter_params = { prefix = "Avg: " }
+
+[presenters.location]
+input = "location"
+formatter = "text"
+
+[presenters.min_temp]
+input = "min_temp"
+formatter = "temperature"
+formatter_params = { prefix = "Min: " }
+
+[presenters.max_temp]
+input = "max_temp"
+formatter = "temperature"
+formatter_params = { prefix = "Max: " }
+
+[presenters.speed_kmh]
+input = "speed_kmh"
+formatter = "number"
+formatter_params = { decimals = 1, suffix = " km/h" }
+
+[presenters.speed_mph]
+input = "speed_mph"
+formatter = "speed_fmt"
+
 [layouts.temperature]
 name = "Temperature Conversion"
 
 [[layouts.temperature.lines]]
 index = 0
-field = "temp_c"
-formatter = "number"
-formatter_params = { decimals = 1, suffix = "°C" }
+presenter = "temp_c"
 
 [[layouts.temperature.lines]]
 index = 10
-field = "temp_f"
-formatter = "temperature"
+presenter = "temp_f"
 
 [layouts.shopping]
 name = "Shopping Cart"
 
 [[layouts.shopping.lines]]
 index = 0
-field = "product"
-formatter = "text"
+presenter = "product"
 
 [[layouts.shopping.lines]]
 index = 15
-field = "quantity"
-formatter = "number"
-formatter_params = { suffix = "x" }
+presenter = "quantity"
 
 [[layouts.shopping.lines]]
 index = 20
-field = "price"
-formatter = "price_fmt"
+presenter = "price"
 
 [[layouts.shopping.lines]]
 index = 30
-field = "total_price"
-formatter = "price_fmt"
+presenter = "total_price"
 
 [[layouts.shopping.lines]]
 index = 45
-field = "discount_price"
-formatter = "price_fmt"
-formatter_params = { prefix = "SALE: " }
+presenter = "discount_price"
 
 [layouts.scores]
 name = "Student Scores"
 
 [[layouts.scores.lines]]
 index = 0
-field = "student"
-formatter = "text"
+presenter = "student"
 
 [[layouts.scores.lines]]
-index = 15
-field = "score1"
-formatter = "score_fmt"
+index = 1
+presenter = "score1"
 
 [[layouts.scores.lines]]
-index = 25
-field = "score2"
-formatter = "score_fmt"
+index = 2
+presenter = "score2"
 
 [[layouts.scores.lines]]
-index = 35
-field = "score3"
-formatter = "score_fmt"
+index = 3
+presenter = "score3"
 
 [[layouts.scores.lines]]
-index = 45
-field = "average_score"
-formatter = "score_fmt"
-formatter_params = { prefix = "Avg: " }
+index = 4
+presenter = "average_score"
 
 [layouts.weather]
 name = "Weather Report"
 
 [[layouts.weather.lines]]
 index = 0
-field = "location"
-formatter = "text"
+presenter = "location"
 
 [[layouts.weather.lines]]
 index = 15
-field = "min_temp"
-formatter = "temperature"
-formatter_params = { prefix = "Min: " }
+presenter = "min_temp"
 
 [[layouts.weather.lines]]
 index = 30
-field = "max_temp"
-formatter = "temperature"
-formatter_params = { prefix = "Max: " }
+presenter = "max_temp"
 
 [layouts.speed]
 name = "Speed Conversion"
 
 [[layouts.speed.lines]]
 index = 0
-field = "speed_kmh"
-formatter = "number"
-formatter_params = { decimals = 1, suffix = " km/h" }
+presenter = "speed_kmh"
 
 [[layouts.speed.lines]]
 index = 20
-field = "speed_mph"
-formatter = "speed_fmt"
+presenter = "speed_mph"

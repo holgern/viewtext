@@ -108,14 +108,30 @@ class LayoutEngine:
 
         for line_config in lines:
             index = line_config.get("index")
-            field_name = line_config.get("field")
+            input_name = line_config.get("input")
+            presenter_name = line_config.get("presenter")
             formatter_name = line_config.get("formatter")
             formatter_params = line_config.get("formatter_params", {})
 
-            if index is None or field_name is None:
+            if index is None:
                 continue
 
-            value = self._get_field_value(field_name, context)
+            # Use presenter definition if specified
+            if presenter_name and self.layout_loader:
+                presenter_config = self.layout_loader.get_presenter_config(
+                    presenter_name
+                )
+                if presenter_config:
+                    # Get input name from presenter config if not specified in line
+                    if input_name is None:
+                        input_name = presenter_config.get("input")
+                    formatter_name = presenter_config.get("formatter")
+                    formatter_params = presenter_config.get("formatter_params", {})
+
+            if input_name is None:
+                continue
+
+            value = self._get_input_value(input_name, context)
 
             if formatter_name:
                 value = self._format_value(
@@ -164,14 +180,30 @@ class LayoutEngine:
 
         for item_config in items:
             key = item_config.get("key")
-            field_name = item_config.get("field")
+            input_name = item_config.get("input")
+            presenter_name = item_config.get("presenter")
             formatter_name = item_config.get("formatter")
             formatter_params = item_config.get("formatter_params", {})
 
-            if key is None or field_name is None:
+            if key is None:
                 continue
 
-            value = self._get_field_value(field_name, context)
+            # Use presenter definition if specified
+            if presenter_name and self.layout_loader:
+                presenter_config = self.layout_loader.get_presenter_config(
+                    presenter_name
+                )
+                if presenter_config:
+                    # Get input name from presenter config if not specified in item
+                    if input_name is None:
+                        input_name = presenter_config.get("input")
+                    formatter_name = presenter_config.get("formatter")
+                    formatter_params = presenter_config.get("formatter_params", {})
+
+            if input_name is None:
+                continue
+
+            value = self._get_input_value(input_name, context)
 
             if formatter_name:
                 value = self._format_value(
@@ -182,14 +214,14 @@ class LayoutEngine:
 
         return result
 
-    def _get_field_value(self, field_name: str, context: dict[str, Any]) -> Any:
+    def _get_input_value(self, input_name: str, context: dict[str, Any]) -> Any:
         """
         Get field value from registry or context.
 
         Parameters
         ----------
-        field_name : str
-            Name of the field to retrieve
+        input_name : str
+            Name of the input to retrieve
         context : dict[str, Any]
             Context dictionary
 
@@ -198,11 +230,11 @@ class LayoutEngine:
         Any
             The field value, or None if not found
         """
-        if self.field_registry and self.field_registry.has_field(field_name):
-            getter = self.field_registry.get(field_name)
+        if self.field_registry and self.field_registry.has_field(input_name):
+            getter = self.field_registry.get(input_name)
             return getter(context)
-        elif field_name in context:
-            return context[field_name]
+        elif input_name in context:
+            return context[input_name]
         else:
             return None
 

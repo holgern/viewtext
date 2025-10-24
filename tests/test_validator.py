@@ -322,7 +322,7 @@ class TestValidationWithRegistryBuilder:
 
         config_path = tmp_path / "test.toml"
         config_path.write_text("""
-[fields.age]
+[inputs.age]
 context_key = "age"
 type = "int"
 min_value = 0
@@ -330,7 +330,7 @@ max_value = 120
 on_validation_error = "use_default"
 default = 0
 
-[fields.name]
+[inputs.name]
 context_key = "name"
 type = "str"
 min_length = 1
@@ -341,7 +341,7 @@ on_validation_error = "raise"
 name = "Test Layout"
 
 [[layouts.test.lines]]
-field = "age"
+input = "age"
 index = 0
 """)
 
@@ -368,7 +368,7 @@ index = 0
 
         config_path = tmp_path / "test.toml"
         config_path.write_text("""
-[fields.total]
+[inputs.total]
 operation = "add"
 sources = ["price", "tax"]
 type = "float"
@@ -380,7 +380,7 @@ default = 0.0
 name = "Test Layout"
 
 [[layouts.test.lines]]
-field = "total"
+input = "total"
 index = 0
 """)
 

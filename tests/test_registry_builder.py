@@ -1,6 +1,6 @@
 import unittest
 
-from viewtext.loader import FieldMapping
+from viewtext.loader import InputMapping
 from viewtext.registry_builder import MethodCallParser, RegistryBuilder
 
 
@@ -271,9 +271,9 @@ class TestRegistryBuilder(unittest.TestCase):
         self.assertEqual(getter(context), 0.75)
 
 
-class TestComputedFields(unittest.TestCase):
+class TestComputedInputs(unittest.TestCase):
     def test_celsius_to_fahrenheit(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="celsius_to_fahrenheit", sources=["temp_c"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("temp_f", mapping)
@@ -287,7 +287,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), -40.0)
 
     def test_fahrenheit_to_celsius(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="fahrenheit_to_celsius", sources=["temp_f"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("temp_c", mapping)
@@ -301,7 +301,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), -40.0)
 
     def test_multiply_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="multiply", sources=["price", "quantity"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("total", mapping)
@@ -309,7 +309,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 31.5)
 
     def test_divide_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="divide", sources=["total", "count"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("average", mapping)
@@ -317,7 +317,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 25.0)
 
     def test_divide_by_zero_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="divide", sources=["total", "count"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("result", mapping)
@@ -325,19 +325,19 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 0.0)
 
     def test_add_operation(self):
-        mapping = FieldMapping(operation="add", sources=["a", "b"], default=0.0)
+        mapping = InputMapping(operation="add", sources=["a", "b"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("sum", mapping)
         context = {"a": 10, "b": 5}
         self.assertEqual(getter(context), 15)
 
     def test_subtract_operation(self):
-        mapping = FieldMapping(operation="subtract", sources=["a", "b"], default=0.0)
+        mapping = InputMapping(operation="subtract", sources=["a", "b"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("diff", mapping)
         context = {"a": 10, "b": 3}
         self.assertEqual(getter(context), 7)
 
     def test_average_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="average", sources=["a", "b", "c"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("avg", mapping)
@@ -345,19 +345,19 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 20.0)
 
     def test_min_operation(self):
-        mapping = FieldMapping(operation="min", sources=["a", "b", "c"], default=0.0)
+        mapping = InputMapping(operation="min", sources=["a", "b", "c"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("minimum", mapping)
         context = {"a": 10, "b": 5, "c": 15}
         self.assertEqual(getter(context), 5)
 
     def test_max_operation(self):
-        mapping = FieldMapping(operation="max", sources=["a", "b", "c"], default=0.0)
+        mapping = InputMapping(operation="max", sources=["a", "b", "c"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("maximum", mapping)
         context = {"a": 10, "b": 25, "c": 15}
         self.assertEqual(getter(context), 25)
 
     def test_abs_operation(self):
-        mapping = FieldMapping(operation="abs", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="abs", sources=["value"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("abs_value", mapping)
         context = {"value": -42}
         self.assertEqual(getter(context), 42)
@@ -366,7 +366,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 42)
 
     def test_round_operation(self):
-        mapping = FieldMapping(operation="round", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="round", sources=["value"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("rounded", mapping)
         context = {"value": 3.14159}
         self.assertEqual(getter(context), 3)
@@ -375,7 +375,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 4)
 
     def test_linear_transform_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="linear_transform",
             sources=["value"],
             multiply=2.5,
@@ -387,7 +387,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 20.0)
 
     def test_linear_transform_multiply_only(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="linear_transform", sources=["value"], multiply=3, default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("scaled", mapping)
@@ -395,7 +395,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 15.0)
 
     def test_linear_transform_add_only(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="linear_transform", sources=["value"], add=100, default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("offset", mapping)
@@ -403,7 +403,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 125.0)
 
     def test_linear_transform_divide_only(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="linear_transform", sources=["value"], divide=4, default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("divided", mapping)
@@ -411,7 +411,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 5.0)
 
     def test_linear_transform_divide_by_zero_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="linear_transform", sources=["value"], divide=0, default=999.0
         )
         getter = RegistryBuilder._create_operation_getter("result", mapping)
@@ -419,7 +419,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 999.0)
 
     def test_missing_source_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="multiply", sources=["price", "quantity"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("total", mapping)
@@ -427,7 +427,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 0.0)
 
     def test_non_numeric_source_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="multiply", sources=["price", "quantity"], default=0.0
         )
         getter = RegistryBuilder._create_operation_getter("total", mapping)
@@ -435,36 +435,36 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 0.0)
 
     def test_invalid_operation_raises_error(self):
-        mapping = FieldMapping(operation="invalid_op", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="invalid_op", sources=["value"], default=0.0)
         with self.assertRaises(ValueError):
             RegistryBuilder._create_operation_getter("result", mapping)
 
     def test_ceil_operation(self):
-        mapping = FieldMapping(operation="ceil", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="ceil", sources=["value"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("ceiled", mapping)
         context = {"value": 3.2}
         self.assertEqual(getter(context), 4)
 
     def test_ceil_operation_negative(self):
-        mapping = FieldMapping(operation="ceil", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="ceil", sources=["value"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("ceiled", mapping)
         context = {"value": -3.7}
         self.assertEqual(getter(context), -3)
 
     def test_floor_operation(self):
-        mapping = FieldMapping(operation="floor", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="floor", sources=["value"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("floored", mapping)
         context = {"value": 3.8}
         self.assertEqual(getter(context), 3)
 
     def test_floor_operation_negative(self):
-        mapping = FieldMapping(operation="floor", sources=["value"], default=0.0)
+        mapping = InputMapping(operation="floor", sources=["value"], default=0.0)
         getter = RegistryBuilder._create_operation_getter("floored", mapping)
         context = {"value": -3.2}
         self.assertEqual(getter(context), -4)
 
     def test_modulo_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="modulo", sources=["value", "divisor"], default=0
         )
         getter = RegistryBuilder._create_operation_getter("remainder", mapping)
@@ -472,7 +472,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 2)
 
     def test_modulo_by_zero_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="modulo", sources=["value", "divisor"], default=999
         )
         getter = RegistryBuilder._create_operation_getter("remainder", mapping)
@@ -480,7 +480,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), 999)
 
     def test_concat_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat", sources=["first", "last"], separator=" ", default=""
         )
         getter = RegistryBuilder._create_operation_getter("full_name", mapping)
@@ -488,7 +488,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "John Doe")
 
     def test_concat_operation_no_separator(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat", sources=["part1", "part2"], default=""
         )
         getter = RegistryBuilder._create_operation_getter("combined", mapping)
@@ -496,7 +496,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "HelloWorld")
 
     def test_concat_missing_source_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat", sources=["first", "last"], separator=" ", default="N/A"
         )
         getter = RegistryBuilder._create_operation_getter("full_name", mapping)
@@ -504,7 +504,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "N/A")
 
     def test_concat_with_prefix(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat", sources=["price"], prefix="$", default=""
         )
         getter = RegistryBuilder._create_operation_getter("formatted_price", mapping)
@@ -512,7 +512,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "$99.99")
 
     def test_concat_with_suffix(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat", sources=["temp"], suffix="°C", default=""
         )
         getter = RegistryBuilder._create_operation_getter("formatted_temp", mapping)
@@ -520,7 +520,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "25°C")
 
     def test_concat_with_prefix_and_suffix(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat",
             sources=["value"],
             prefix="[",
@@ -532,7 +532,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "[test]")
 
     def test_concat_with_separator_prefix_suffix(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat",
             sources=["first", "last"],
             separator=" ",
@@ -545,7 +545,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "Name: John Doe!")
 
     def test_concat_with_skip_empty(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat",
             sources=["first", "middle", "last"],
             separator=" ",
@@ -557,7 +557,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "John Doe")
 
     def test_concat_with_skip_empty_all_missing(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat",
             sources=["first", "last"],
             separator=" ",
@@ -569,7 +569,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "")
 
     def test_concat_without_skip_empty_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat",
             sources=["first", "middle", "last"],
             separator=" ",
@@ -581,7 +581,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "N/A")
 
     def test_concat_skip_empty_with_prefix_suffix(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="concat",
             sources=["city", "state", "country"],
             separator=", ",
@@ -595,7 +595,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "Location: San Francisco, USA.")
 
     def test_split_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="split", sources=["text"], separator=" ", default=[]
         )
         getter = RegistryBuilder._create_operation_getter("words", mapping)
@@ -603,7 +603,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), ["Hello", "World", "Test"])
 
     def test_split_operation_comma(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="split", sources=["csv"], separator=",", default=[]
         )
         getter = RegistryBuilder._create_operation_getter("items", mapping)
@@ -611,7 +611,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), ["apple", "banana", "cherry"])
 
     def test_split_missing_source_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="split", sources=["text"], separator=" ", default=["error"]
         )
         getter = RegistryBuilder._create_operation_getter("words", mapping)
@@ -619,7 +619,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), ["error"])
 
     def test_substring_operation(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="substring", sources=["text"], start=0, end=5, default=""
         )
         getter = RegistryBuilder._create_operation_getter("substr", mapping)
@@ -627,7 +627,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "Hello")
 
     def test_substring_operation_no_end(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="substring", sources=["text"], start=6, default=""
         )
         getter = RegistryBuilder._create_operation_getter("substr", mapping)
@@ -635,7 +635,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "World")
 
     def test_substring_operation_negative_start(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="substring", sources=["text"], start=-5, default=""
         )
         getter = RegistryBuilder._create_operation_getter("substr", mapping)
@@ -643,7 +643,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "World")
 
     def test_substring_missing_source_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="substring", sources=["text"], start=0, end=5, default="N/A"
         )
         getter = RegistryBuilder._create_operation_getter("substr", mapping)
@@ -651,7 +651,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "N/A")
 
     def test_split_operation_with_index(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="split",
             sources=["email"],
             separator="@",
@@ -663,7 +663,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "example.com")
 
     def test_split_operation_with_negative_index(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="split", sources=["path"], separator="/", index=-1, default=""
         )
         getter = RegistryBuilder._create_operation_getter("filename", mapping)
@@ -671,7 +671,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "file.txt")
 
     def test_split_operation_index_out_of_bounds(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="split", sources=["text"], separator=" ", index=10, default="N/A"
         )
         getter = RegistryBuilder._create_operation_getter("word", mapping)
@@ -679,9 +679,9 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "N/A")
 
     def test_conditional_operation_true(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="conditional",
-            condition={"field": "currency", "equals": "usd"},
+            condition={"input": "currency", "equals": "usd"},
             if_true="~price_usd~",
             if_false="~price_default~",
             default="",
@@ -691,9 +691,9 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "100")
 
     def test_conditional_operation_false(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="conditional",
-            condition={"field": "currency", "equals": "usd"},
+            condition={"input": "currency", "equals": "usd"},
             if_true="~price_usd~",
             if_false="~price_default~",
             default="",
@@ -703,9 +703,9 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "50")
 
     def test_conditional_operation_with_text(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="conditional",
-            condition={"field": "is_admin", "equals": True},
+            condition={"input": "is_admin", "equals": True},
             if_true="Admin: ~username~",
             if_false="User: ~username~",
             default="",
@@ -715,9 +715,9 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "Admin: alice")
 
     def test_conditional_operation_missing_field(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="conditional",
-            condition={"field": "status", "equals": "active"},
+            condition={"input": "status", "equals": "active"},
             if_true="~active_message~",
             if_false="~inactive_message~",
             default="N/A",
@@ -727,9 +727,9 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "N/A")
 
     def test_conditional_operation_missing_referenced_field(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="conditional",
-            condition={"field": "currency", "equals": "usd"},
+            condition={"input": "currency", "equals": "usd"},
             if_true="~missing_field~",
             if_false="default",
             default="",
@@ -739,7 +739,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "")
 
     def test_format_number_operation_comma_separator(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             thousands_sep=",",
@@ -751,7 +751,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "100,000")
 
     def test_format_number_operation_dot_separator(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             thousands_sep=".",
@@ -763,7 +763,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "100.000")
 
     def test_format_number_operation_space_separator(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             thousands_sep=" ",
@@ -775,7 +775,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "1 234 567")
 
     def test_format_number_operation_with_decimals(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             thousands_sep=",",
@@ -787,7 +787,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "1,234.57")
 
     def test_format_number_operation_no_separator(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             thousands_sep="",
@@ -799,7 +799,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "100000")
 
     def test_format_number_operation_missing_value(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             thousands_sep=",",
@@ -811,7 +811,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "N/A")
 
     def test_format_number_operation_context_key(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             context_key="value",
             thousands_sep=".",
@@ -823,7 +823,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "1.234.567.89")
 
     def test_format_number_operation_european_format(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["amount"],
             thousands_sep=".",
@@ -836,7 +836,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "1.234.567,89")
 
     def test_format_number_operation_swiss_format(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["price"],
             thousands_sep="'",
@@ -849,7 +849,7 @@ class TestComputedFields(unittest.TestCase):
         self.assertEqual(getter(context), "1'234'567.89")
 
     def test_format_number_operation_decimal_sep_only(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             operation="format_number",
             sources=["value"],
             decimal_sep=",",
@@ -865,7 +865,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
     def test_python_function_datetime(self):
         import time
 
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="datetime",
             python_function="datetime.datetime.now().timestamp()",
             transform="int",
@@ -878,7 +878,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertLess(result - int(time.time()), 2)
 
     def test_python_function_caching(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="random", python_function="random.random()", default=0.0
         )
         getter = RegistryBuilder._create_python_function_getter("random_value", mapping)
@@ -888,7 +888,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertEqual(first_call, second_call)
 
     def test_python_function_uuid(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="uuid", python_function="str(uuid.uuid4())", default=""
         )
         getter = RegistryBuilder._create_python_function_getter("unique_id", mapping)
@@ -898,7 +898,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertEqual(len(result), 36)
 
     def test_python_function_math(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="math", python_function="math.pi", default=0.0
         )
         getter = RegistryBuilder._create_python_function_getter("pi_value", mapping)
@@ -907,7 +907,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertAlmostEqual(result, 3.14159, places=5)
 
     def test_python_function_with_transform(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="math",
             python_function="math.pi",
             transform="int",
@@ -919,7 +919,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertEqual(result, 3)
 
     def test_python_function_bad_module_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="nonexistent_module",
             python_function="nonexistent_module.func()",
             default="default",
@@ -930,7 +930,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertEqual(result, "default")
 
     def test_python_function_bad_function_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="math",
             python_function="math.nonexistent_function()",
             default=999,
@@ -941,7 +941,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertEqual(result, 999)
 
     def test_python_function_syntax_error_returns_default(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="math",
             python_function="invalid syntax here",
             default="error",
@@ -952,14 +952,14 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertEqual(result, "error")
 
     def test_python_function_no_module(self):
-        mapping = FieldMapping(python_function="2 + 2", default=0)
+        mapping = InputMapping(python_function="2 + 2", default=0)
         getter = RegistryBuilder._create_python_function_getter("simple_math", mapping)
         context = {}
         result = getter(context)
         self.assertEqual(result, 4)
 
     def test_python_function_with_validator(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="math",
             python_function="math.pi",
             type="float",
@@ -973,7 +973,7 @@ class TestPythonFunctionGetter(unittest.TestCase):
         self.assertAlmostEqual(result, 3.14159, places=5)
 
     def test_python_function_validator_out_of_range(self):
-        mapping = FieldMapping(
+        mapping = InputMapping(
             python_module="math",
             python_function="math.pi",
             type="float",

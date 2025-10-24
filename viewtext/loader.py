@@ -6,7 +6,8 @@ configuration files using Pydantic models for validation.
 """
 
 import os
-from typing import Any, Optional
+from collections.abc import Sequence
+from typing import Any, Optional, Union
 
 try:
     import tomllib  # type: ignore[import-not-found]
@@ -16,24 +17,46 @@ except ModuleNotFoundError:
 from pydantic import BaseModel, Field
 
 
+class PresenterConfig(BaseModel):
+    """
+    Configuration for a presenter definition that specifies how an input should look.
+
+    Attributes
+    ----------
+    input : str
+        Name of the input to display
+    formatter : str
+        Name of the formatter to apply
+    formatter_params : dict[str, Any]
+        Parameters to pass to the formatter
+    """
+
+    input: str
+    formatter: str
+    formatter_params: dict[str, Any] = Field(default_factory=dict)
+
+
 class LineConfig(BaseModel):
     """
     Configuration for a single line in a layout.
 
     Attributes
     ----------
-    field : str
-        Name of the field to display
+    input : str, optional
+        Name of the input to display (can be specified in presenter definition)
     index : int
         Line index (0-based position in the layout)
+    presenter : str, optional
+        Name of the presenter definition to use
     formatter : str, optional
-        Name of the formatter to apply
-    formatter_params : dict[str, Any]
+        Name of the formatter to apply when no presenter is used
+    formatter_params : dict[str, Any], optional
         Parameters to pass to the formatter
     """
 
-    field: str
+    input: Optional[str] = None
     index: int
+    presenter: Optional[str] = None
     formatter: Optional[str] = None
     formatter_params: dict[str, Any] = Field(default_factory=dict)
 
@@ -44,18 +67,21 @@ class DictItemConfig(BaseModel):
 
     Attributes
     ----------
-    field : str
-        Name of the field to display
+    input : str, optional
+        Name of the input to display (can be specified in presenter definition)
     key : str
         Key name in the output dictionary
+    presenter : str, optional
+        Name of the presenter definition to use
     formatter : str, optional
-        Name of the formatter to apply
-    formatter_params : dict[str, Any]
+        Name of the formatter to apply when no presenter is used
+    formatter_params : dict[str, Any], optional
         Parameters to pass to the formatter
     """
 
-    field: str
+    input: Optional[str] = None
     key: str
+    presenter: Optional[str] = None
     formatter: Optional[str] = None
     formatter_params: dict[str, Any] = Field(default_factory=dict)
 
@@ -122,24 +148,24 @@ class FormatterConfigParams(BaseModel):
     fields: Optional[list[str]] = None
 
 
-class FieldMapping(BaseModel):
+class InputMapping(BaseModel):
     """
-    Mapping configuration for a field.
+    Mapping configuration for an input.
 
     Attributes
     ----------
     context_key : str, optional
         Key to look up in the context dictionary
     constant : Any, optional
-        Constant value to use for this field (int, float, str, bool, etc.)
+        Constant value to use for this input (int, float, str, bool, etc.)
     default : Any, optional
-        Default value if the field is not found
+        Default value if the input is not found
     transform : str, optional
         Transform to apply (upper, lower, title, strip, int, float, str, bool)
     operation : str, optional
         Named operation to apply (celsius_to_fahrenheit, multiply, add, etc.)
     sources : list[str], optional
-        List of field names to use as sources for operations
+        List of input names to use as sources for operations
     multiply : float, optional
         Multiplier for linear transform operations
     add : float, optional
@@ -165,7 +191,7 @@ class FieldMapping(BaseModel):
     decimals_param : int, optional
         Decimal places for format_number operation
     type : str, optional
-        Expected type of the field value (str, int, float, bool, dict, list, any)
+        Expected type of the input value (str, int, float, bool, dict, list, any)
     on_validation_error : str, optional
         Error handling strategy (use_default, raise, skip, coerce)
     min_value : float, optional
@@ -236,15 +262,18 @@ class LayoutsConfig(BaseModel):
         Dictionary of layout configurations
     formatters : dict[str, FormatterConfigParams], optional
         Dictionary of formatter configurations
-    fields : dict[str, FieldMapping], optional
-        Dictionary of field mappings
+    inputs : dict[str, InputMapping], optional
+        Dictionary of input mappings
+    presenters : dict[str, PresenterConfig], optional
+        Dictionary of presenter configurations
     context_provider : str, optional
         Name of the context provider to use
     """
 
     layouts: dict[str, LayoutConfig]
     formatters: Optional[dict[str, FormatterConfigParams]] = None
-    fields: Optional[dict[str, FieldMapping]] = None
+    inputs: Optional[dict[str, InputMapping]] = None
+    presenters: Optional[dict[str, PresenterConfig]] = None
     context_provider: Optional[str] = None
 
 
@@ -277,27 +306,27 @@ class LayoutLoader:
 
     def __init__(
         self,
-        config_path: Optional[str] = None,
-        formatters_path: Optional[str] = None,
-        fields_path: Optional[str] = None,
+        config_path: Optional[Union[str, Sequence[str]]] = None,
     ):
         """
         Initialize the layout loader.
 
         Parameters
         ----------
-        config_path : str, optional
-            Path to the TOML configuration file
-        formatters_path : str, optional
-            Path to separate formatters TOML file
-        fields_path : str, optional
-            Path to separate fields TOML file
+        config_path : str or sequence[str], optional
+            One or more TOML configuration files to load and merge
         """
         if config_path is None:
-            config_path = self._get_default_config_path()
-        self.config_path = config_path
-        self.formatters_path = formatters_path
-        self.fields_path = fields_path
+            config_paths = [self._get_default_config_path()]
+        elif isinstance(config_path, str):
+            config_paths = [config_path]
+        else:
+            config_paths = list(config_path)
+
+        if not config_paths:
+            raise ValueError("At least one configuration path must be provided")
+
+        self.config_paths = config_paths
         self._layouts_config: Optional[LayoutsConfig] = None
 
     @staticmethod
@@ -334,67 +363,56 @@ class LayoutLoader:
         >>> print(list(config.layouts.keys()))
         ['demo', 'advanced']
         """
-        if not os.path.exists(self.config_path):
-            raise FileNotFoundError(f"Layout config not found: {self.config_path}")
+        data: dict[str, Any] = {}
 
-        with open(self.config_path, "rb") as f:
-            data = tomllib.load(f)
+        for index, path in enumerate(self.config_paths):
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"Layout config not found: {path}")
 
-        if self.formatters_path or self.fields_path:
-            data = self._merge_configs(data)
+            with open(path, "rb") as f:
+                loaded = tomllib.load(f)
+
+            if index == 0:
+                data = loaded
+            else:
+                data = self._merge_dicts(data, loaded)
 
         self._layouts_config = LayoutsConfig(**data)
         return self._layouts_config
 
-    def _merge_configs(self, base_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Merge additional configuration files into the base data.
+    @staticmethod
+    def _merge_dicts(
+        base_data: dict[str, Any], new_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Merge a secondary configuration dictionary into the base data."""
 
-        Parameters
-        ----------
-        base_data : dict[str, Any]
-            Base configuration data from main config file
+        merged = base_data.copy()
 
-        Returns
-        -------
-        dict[str, Any]
-            Merged configuration data
-        """
-        if self.formatters_path and os.path.exists(self.formatters_path):
-            with open(self.formatters_path, "rb") as f:
-                formatters_data = tomllib.load(f)
-                if "formatters" in formatters_data:
-                    if "formatters" not in base_data:
-                        base_data["formatters"] = {}
-                    base_data["formatters"].update(formatters_data["formatters"])
+        for key, value in new_data.items():
+            if key in {"layouts", "inputs", "formatters", "presenters"}:
+                existing = merged.get(key, {})
+                if not isinstance(existing, dict) or not isinstance(value, dict):
+                    merged[key] = value
+                else:
+                    combined = existing.copy()
+                    combined.update(value)
+                    merged[key] = combined
+            else:
+                merged[key] = value
 
-        if self.fields_path and os.path.exists(self.fields_path):
-            with open(self.fields_path, "rb") as f:
-                fields_data = tomllib.load(f)
-                if "fields" in fields_data:
-                    if "fields" not in base_data:
-                        base_data["fields"] = {}
-                    base_data["fields"].update(fields_data["fields"])
-
-        return base_data
+        return merged
 
     @staticmethod
     def load_from_files(
-        layouts_path: str,
-        formatters_path: Optional[str] = None,
-        fields_path: Optional[str] = None,
+        layouts_path: Union[str, Sequence[str]],
     ) -> LayoutsConfig:
         """
         Load configuration from multiple TOML files.
 
         Parameters
         ----------
-        layouts_path : str
-            Path to the layouts TOML file
-        formatters_path : str, optional
-            Path to the formatters TOML file
-        fields_path : str, optional
-            Path to the fields TOML file
+        layouts_path : str or sequence[str]
+            One or more TOML configuration files to load and merge
 
         Returns
         -------
@@ -409,36 +427,18 @@ class LayoutLoader:
         Examples
         --------
         >>> config = LayoutLoader.load_from_files(
-        ...     "layouts.toml",
-        ...     formatters_path="formatters.toml",
-        ...     fields_path="fields.toml"
+        ...     ["layouts.toml", "inputs.toml", "presenters.toml"]
         ... )
         >>> print(list(config.layouts.keys()))
         ['demo', 'advanced']
         """
-        if not os.path.exists(layouts_path):
-            raise FileNotFoundError(f"Layout config not found: {layouts_path}")
+        if isinstance(layouts_path, str):
+            config_paths = [layouts_path]
+        else:
+            config_paths = list(layouts_path)
 
-        with open(layouts_path, "rb") as f:
-            data = tomllib.load(f)
-
-        if formatters_path and os.path.exists(formatters_path):
-            with open(formatters_path, "rb") as f:
-                formatters_data = tomllib.load(f)
-                if "formatters" in formatters_data:
-                    if "formatters" not in data:
-                        data["formatters"] = {}
-                    data["formatters"].update(formatters_data["formatters"])
-
-        if fields_path and os.path.exists(fields_path):
-            with open(fields_path, "rb") as f:
-                fields_data = tomllib.load(f)
-                if "fields" in fields_data:
-                    if "fields" not in data:
-                        data["fields"] = {}
-                    data["fields"].update(fields_data["fields"])
-
-        return LayoutsConfig(**data)
+        loader = LayoutLoader(config_paths)
+        return loader.load()
 
     def get_layout(self, layout_name: str) -> dict[str, Any]:
         """
@@ -549,19 +549,19 @@ class LayoutLoader:
         formatter_config = self._layouts_config.formatters[preset_name]
         return formatter_config.model_dump(exclude_none=True)
 
-    def get_field_mappings(self) -> dict[str, FieldMapping]:
+    def get_input_mappings(self) -> dict[str, InputMapping]:
         """
-        Get all field mapping configurations.
+        Get all input mapping configurations.
 
         Returns
         -------
-        dict[str, FieldMapping]
-            Dictionary of field mappings, or empty dict if none defined
+        dict[str, InputMapping]
+            Dictionary of input mappings, or empty dict if none defined
 
         Examples
         --------
         >>> loader = LayoutLoader("layouts.toml")
-        >>> mappings = loader.get_field_mappings()
+        >>> mappings = loader.get_input_mappings()
         >>> print(mappings["temperature"].context_key)
         temp
         """
@@ -570,10 +570,10 @@ class LayoutLoader:
 
         assert self._layouts_config is not None
 
-        if self._layouts_config.fields is None:
+        if self._layouts_config.inputs is None:
             return {}
 
-        return self._layouts_config.fields
+        return self._layouts_config.inputs
 
     def get_context_provider(self) -> Optional[str]:
         """
@@ -597,6 +597,41 @@ class LayoutLoader:
         assert self._layouts_config is not None
 
         return self._layouts_config.context_provider
+
+    def get_presenter_config(self, presenter_name: str) -> Optional[dict[str, Any]]:
+        """
+        Get presenter configuration by name.
+
+        Parameters
+        ----------
+        presenter_name : str
+            Name of the presenter configuration
+
+        Returns
+        -------
+        dict[str, Any] or None
+            Presenter configuration dictionary, or None if not found
+
+        Examples
+        --------
+        >>> loader = LayoutLoader("layouts.toml")
+        >>> presenter = loader.get_presenter_config("price")
+        >>> print(presenter["input"])
+        price
+        """
+        if self._layouts_config is None:
+            self.load()
+
+        assert self._layouts_config is not None
+
+        if (
+            self._layouts_config.presenters is None
+            or presenter_name not in self._layouts_config.presenters
+        ):
+            return None
+
+        presenter_config = self._layouts_config.presenters[presenter_name]
+        return presenter_config.model_dump(exclude_none=True)
 
 
 _global_layout_loader: Optional[LayoutLoader] = None

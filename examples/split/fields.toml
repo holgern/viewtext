@@ -1,35 +1,35 @@
-[fields.demo1]
+[inputs.demo1]
 context_key = "demo1"
 
-[fields.demo2]
+[inputs.demo2]
 context_key = "demo2"
 
-[fields.demo3]
+[inputs.demo3]
 context_key = "demo3"
 
-[fields.demo4]
+[inputs.demo4]
 context_key = "demo4"
 
-[fields.text_value]
+[inputs.text_value]
 context_key = "text_value"
 
-[fields.text_upper]
+[inputs.text_upper]
 context_key = "text_value"
 transform = "upper"
 
-[fields.number_value]
+[inputs.number_value]
 context_key = "number_value"
 
-[fields.price_value]
+[inputs.price_value]
 context_key = "price_value"
 
-[fields.timestamp]
+[inputs.timestamp]
 context_key = "timestamp"
 
-[fields.missing_field]
+[inputs.missing_field]
 context_key = "nonexistent_key"
 default = "N/A"
 
-[fields.city]
+[inputs.city]
 context_key = "city"
 default = "Unknown City"

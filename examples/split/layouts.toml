@@ -2,22 +2,22 @@
 name = "Demo Display"
 
 [[layouts.demo.lines]]
-field = "demo1"
+input = "demo1"
 index = 0
 formatter = "text"
 
 [[layouts.demo.lines]]
-field = "demo2"
+input = "demo2"
 index = 1
 formatter = "text"
 
 [[layouts.demo.lines]]
-field = "demo3"
+input = "demo3"
 index = 2
 formatter = "text"
 
 [[layouts.demo.lines]]
-field = "demo4"
+input = "demo4"
 index = 3
 formatter = "text"
 
@@ -25,36 +25,36 @@ formatter = "text"
 name = "Advanced Features Demo"
 
 [[layouts.advanced.lines]]
-field = "text_value"
+input = "text_value"
 index = 0
 formatter = "text"
 
 [[layouts.advanced.lines]]
-field = "text_upper"
+input = "text_upper"
 index = 1
 formatter = "uppercase_text"
 
 [[layouts.advanced.lines]]
-field = "number_value"
+input = "number_value"
 index = 2
 formatter = "number_with_commas"
 
 [[layouts.advanced.lines]]
-field = "price_value"
+input = "price_value"
 index = 3
 formatter = "price_usd"
 
 [[layouts.advanced.lines]]
-field = "timestamp"
+input = "timestamp"
 index = 4
 formatter = "datetime_short"
 
 [[layouts.advanced.lines]]
-field = "missing_field"
+input = "missing_field"
 index = 5
 formatter = "text"
 
 [[layouts.advanced.lines]]
-field = "city"
+input = "city"
 index = 6
 formatter = "text"

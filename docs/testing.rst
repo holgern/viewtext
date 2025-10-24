@@ -30,7 +30,7 @@ within your test functions:
     name = "My Use Case Layout"
 
     [[layouts.my_layout.lines]]
-    field = "temperature"
+    input = "temperature"
     index = 0
     formatter = "number"
 
@@ -104,10 +104,10 @@ Here's a complete example testing a weather display use case:
     class TestWeatherDisplay:
         def test_temperature_and_humidity_display(self):
             config_content = """
-    [fields.temp]
+    [inputs.temp]
     context_key = "temperature"
 
-    [fields.humidity]
+    [inputs.humidity]
     context_key = "humidity"
 
     [formatters.temp_fmt]
@@ -124,12 +124,12 @@ Here's a complete example testing a weather display use case:
     name = "Weather Display"
 
     [[layouts.weather.lines]]
-    field = "temp"
+    input = "temp"
     index = 0
     formatter = "temp_fmt"
 
     [[layouts.weather.lines]]
-    field = "humidity"
+    input = "humidity"
     index = 1
     formatter = "humidity_fmt"
     """
@@ -174,10 +174,10 @@ Test that layouts load correctly from TOML:
         assert config.layouts["my_layout"].name == "My Layout"
         assert len(config.layouts["my_layout"].lines) == 3
 
-Field Mapping
+Input Mapping
 ~~~~~~~~~~~~~
 
-Test that fields resolve correctly from context:
+Test that inputs resolve correctly from context:
 
 .. code-block:: python
 
@@ -191,7 +191,7 @@ Test that fields resolve correctly from context:
         engine = LayoutEngine(field_registry=registry)
 
         layout_config = {
-            "lines": [{"field": "temp", "index": 0}]
+            "lines": [{"input": "temp", "index": 0}]
         }
         context = {"temperature": 25}
 
@@ -216,7 +216,7 @@ Test that formatters work correctly with parameters from TOML:
 
         layout_config = {
             "lines": [{
-                "field": "price",
+                "input": "price",
                 "index": 0,
                 "formatter": "price",
                 "formatter_params": {"symbol": "$", "decimals": 2}
@@ -230,26 +230,26 @@ Test that formatters work correctly with parameters from TOML:
 Template Formatter Testing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Test template formatters that combine multiple fields:
+Test template formatters that combine multiple inputs:
 
 .. code-block:: python
 
     def test_template_formatter():
         config_content = """
-    [fields.first_name]
+    [inputs.first_name]
     context_key = "first_name"
 
-    [fields.last_name]
+    [inputs.last_name]
     context_key = "last_name"
 
-    [fields.age]
+    [inputs.age]
     context_key = "age"
 
     [layouts.profile]
     name = "User Profile"
 
     [[layouts.profile.lines]]
-    field = "full_name"
+    input = "full_name"
     index = 0
     formatter = "template"
 
@@ -257,7 +257,7 @@ Test template formatters that combine multiple fields:
     template = "{first_name} {last_name}"
 
     [[layouts.profile.lines]]
-    field = "info"
+    input = "info"
     index = 1
     formatter = "template"
 
@@ -291,13 +291,13 @@ Test template formatters that combine multiple fields:
             os.unlink(tmp_path)
 
     def test_template_with_missing_field():
-        """Test that template formatter handles missing fields gracefully."""
+        """Test that template formatter handles missing inputs gracefully."""
         config_content = """
     [layouts.test]
     name = "Test Layout"
 
     [[layouts.test.lines]]
-    field = "greeting"
+    input = "greeting"
     index = 0
     formatter = "template"
 
@@ -316,34 +316,34 @@ Test template formatters that combine multiple fields:
             registry = BaseFieldRegistry()
             engine = LayoutEngine(field_registry=registry)
 
-            # Context missing the 'name' field
+            # Context missing the 'name' input
             context = {}
 
             result = engine.build_line_str(layout, context)
 
-            # Should handle missing field gracefully
+            # Should handle missing input gracefully
             assert "Hello" in result[0]
 
         finally:
             os.unlink(tmp_path)
 
     def test_complex_template():
-        """Test template with multiple fields and formatting."""
+        """Test template with multiple inputs and formatting."""
         config_content = """
-    [fields.temp]
+    [inputs.temp]
     context_key = "temperature"
 
-    [fields.humidity]
+    [inputs.humidity]
     context_key = "humidity"
 
-    [fields.location]
+    [inputs.location]
     context_key = "location"
 
     [layouts.weather_report]
     name = "Weather Report"
 
     [[layouts.weather_report.lines]]
-    field = "summary"
+    input = "summary"
     index = 0
     formatter = "template"
 
@@ -378,7 +378,7 @@ Test template formatters that combine multiple fields:
 Edge Cases
 ~~~~~~~~~~
 
-Test edge cases like missing fields, invalid formatters, and empty contexts:
+Test edge cases like missing inputs, invalid formatters, and empty contexts:
 
 .. code-block:: python
 
@@ -387,7 +387,7 @@ Test edge cases like missing fields, invalid formatters, and empty contexts:
         engine = LayoutEngine(field_registry=registry)
 
         layout_config = {
-            "lines": [{"field": "nonexistent", "index": 0}]
+            "lines": [{"input": "nonexistent", "index": 0}]
         }
         context = {}
 
@@ -405,7 +405,7 @@ Test edge cases like missing fields, invalid formatters, and empty contexts:
 
         layout_config = {
             "lines": [{
-                "field": "value",
+                "input": "value",
                 "index": 0,
                 "formatter": "unknown_formatter"
             }]
@@ -428,7 +428,7 @@ Test the full flow from LayoutLoader → LayoutEngine → output:
     name = "Integration Test"
 
     [[layouts.integration_test.lines]]
-    field = "value1"
+    input = "value1"
     index = 0
     formatter = "text"
 
@@ -436,7 +436,7 @@ Test the full flow from LayoutLoader → LayoutEngine → output:
     prefix = "Value: "
 
     [[layouts.integration_test.lines]]
-    field = "value2"
+    input = "value2"
     index = 1
     formatter = "number"
 
@@ -509,7 +509,7 @@ Pytest Fixtures Example
     name = "Test Layout"
 
     [[layouts.test.lines]]
-    field = "value"
+    input = "value"
     index = 0
     """
 

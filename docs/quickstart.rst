@@ -1,50 +1,53 @@
 Quickstart Guide
 ================
 
-This guide will help you get started with ViewText quickly.
+This guide walks through the fastest way to render your first ViewText layout using the latest input mapping system.
 
 Installation
 ------------
 
-ViewText is available as a standalone PyPI package called ``viewtext``:
+ViewText is published on PyPI. Install it with your preferred package manager:
 
 .. code-block:: bash
 
+    uv pip install viewtext
+
+    # or
     pip install viewtext
 
 Basic Concepts
 --------------
 
-ViewText works with three main components:
+ViewText combines three core building blocks:
 
-1. **Field Mappings**: Define how fields map to context data (can be in TOML or Python)
-2. **Layout Configuration**: TOML files that define how fields map to grid positions
-3. **Layout Engine**: Builds formatted text output from layouts and context data
+1. **Input mappings** describe how values are pulled from context data or computed.
+2. **Layout configurations** assign inputs to line or dictionary positions with optional formatters and presenters.
+3. **LayoutEngine** renders formatted output using the configured mappings and formatters.
 
 Simple Example
 --------------
 
-Step 1: Create Field Mappings
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Step 1: Define Inputs
+~~~~~~~~~~~~~~~~~~~~~
 
-Create a file named ``fields.toml``:
+Create ``inputs.toml`` with the inputs your layout will reference.
 
 .. code-block:: toml
 
-    [fields.temperature]
+    [inputs.temperature]
     context_key = "temp"
 
-    [fields.humidity]
+    [inputs.humidity]
     context_key = "humidity"
 
-    [fields.location]
+    [inputs.location]
     context_key = "city"
     default = "Unknown"
 
-Step 2: Create a Layout Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Step 2: Define a Layout
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Create a file named ``layouts.toml``:
+Create ``layouts.toml`` that maps inputs to specific line positions.
 
 .. code-block:: toml
 
@@ -52,12 +55,12 @@ Create a file named ``layouts.toml``:
     name = "Weather Display"
 
     [[layouts.weather.lines]]
-    field = "location"
+    input = "location"
     index = 0
     formatter = "text_uppercase"
 
     [[layouts.weather.lines]]
-    field = "temperature"
+    input = "temperature"
     index = 1
     formatter = "number"
 
@@ -66,7 +69,7 @@ Create a file named ``layouts.toml``:
     decimals = 1
 
     [[layouts.weather.lines]]
-    field = "humidity"
+    input = "humidity"
     index = 2
     formatter = "number"
 
@@ -74,31 +77,27 @@ Create a file named ``layouts.toml``:
     suffix = "%"
     decimals = 0
 
-Step 3: Build the Layout
+Step 3: Render the Layout
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-    from viewtext import LayoutEngine, LayoutLoader
+    from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
 
-    # Load the layout and field mappings
-    loader = LayoutLoader("layouts.toml", fields_path="fields.toml")
-    config = loader.load()
+    loader = LayoutLoader(["layouts.toml", "inputs.toml"])
     layout = loader.get_layout("weather")
 
-    # Create the engine with field mappings from config
-    engine = LayoutEngine(field_mappings=config.fields)
+    registry = RegistryBuilder.build_from_config(loader=loader)
+    engine = LayoutEngine(field_registry=registry, layout_loader=loader)
 
-    # Build the output
     context = {
         "temp": 72.5,
         "humidity": 65,
-        "city": "San Francisco"
+        "city": "San Francisco",
     }
 
     lines = engine.build_line_str(layout, context)
 
-    # Print the result
     for line in lines:
         print(line)
 
@@ -110,52 +109,29 @@ Output:
     72.5°F
     65%
 
-Computed Fields
+Computed Inputs
 ---------------
 
-You can perform calculations on your data directly in TOML configuration:
+Inputs can perform calculations without Python code by using ``operation`` and ``sources`` parameters.
 
 .. code-block:: toml
 
-    [fields.temperature_f]
-    operation = "celsius_to_fahrenheit"
-    sources = ["temp_c"]
-    default = 0.0
-
-    [fields.total_price]
-    operation = "multiply"
-    sources = ["price", "quantity"]
-    default = 0.0
-
-    [fields.average_score]
-    operation = "average"
-    sources = ["score1", "score2", "score3"]
-
-Available Operations
-~~~~~~~~~~~~~~~~~~~~
-
-- **Temperature**: ``celsius_to_fahrenheit``, ``fahrenheit_to_celsius``
-- **Arithmetic**: ``multiply``, ``divide``, ``add``, ``subtract``
-- **Aggregates**: ``average``, ``min``, ``max``
-- **Transforms**: ``abs``, ``round``, ``linear_transform``
-
-Example with Layout
-~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: toml
-
-    # fields.toml
-    [fields.temp_f]
+    [inputs.temperature_f]
     operation = "celsius_to_fahrenheit"
     sources = ["temp_c"]
     default = 32.0
 
-    # layouts.toml
-    [layouts.weather]
-    name = "Weather"
+    [inputs.total_price]
+    operation = "multiply"
+    sources = ["price", "quantity"]
+    default = 0.0
+
+Use them directly in layouts:
+
+.. code-block:: toml
 
     [[layouts.weather.lines]]
-    field = "temp_f"
+    input = "temperature_f"
     index = 0
     formatter = "number"
 
@@ -163,75 +139,44 @@ Example with Layout
     decimals = 1
     suffix = "°F"
 
-.. code-block:: python
+Formatting Output
+-----------------
 
-    from viewtext import LayoutEngine, LayoutLoader, RegistryBuilder
+Add built-in formatters or presets to control presentation.
 
-    loader = LayoutLoader("layouts.toml", fields_path="fields.toml")
-    layout = loader.get_layout("weather")
+.. code-block:: toml
 
-    registry = RegistryBuilder.build_from_config(loader=loader)
-    engine = LayoutEngine(field_registry=registry)
+    [formatters.usd]
+    type = "price"
+    symbol = "$"
+    decimals = 2
 
-    lines = engine.build_line_str(layout, {"temp_c": 25})
-    print(lines[0])
+    [[layouts.product.lines]]
+    input = "line_total"
+    index = 0
+    formatter = "usd"
 
-Output: ``77.0°F``
+See :doc:`formatters_reference` for a complete parameter list.
 
-See ``examples/computed_fields.toml`` and ``examples/README_computed_fields.md`` for more examples.
+Advanced: Python Field Registry
+-------------------------------
 
-Using Built-in Formatters
---------------------------
-
-ViewText includes several built-in formatters:
-
-Text Formatters
-~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-    # text - Basic text with prefix/suffix
-    # text_uppercase - Uppercase text
-
-Number Formatters
-~~~~~~~~~~~~~~~~~
+For dynamic logic that is easier to express in Python, register getters directly with ``BaseFieldRegistry`` and pass the registry to ``LayoutEngine``. Input mappings and the field registry can be mixed freely.
 
 .. code-block:: python
 
-    # number - Format numbers with decimals and separators
-    # price - Format prices with currency symbols
-
-Date/Time Formatters
-~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-    # datetime - Format timestamps and datetime objects
-    # relative_time - Format as relative time (e.g., "5m ago")
-
-Using Python Field Registry (Advanced)
----------------------------------------
-
-For more complex field logic, you can use Python's ``BaseFieldRegistry`` instead of TOML:
-
-.. code-block:: python
-
-    from viewtext import BaseFieldRegistry
+    from viewtext import BaseFieldRegistry, LayoutEngine
 
     registry = BaseFieldRegistry()
+    registry.register("temperature", lambda ctx: ctx["temp"])  # Python getter
 
-    # Register custom field getters with complex logic
-    registry.register("temperature", lambda ctx: ctx["temp"])
-    registry.register("status", lambda ctx: "Hot" if ctx["temp"] > 80 else "Cool")
-
-    # Use the registry with the engine
     engine = LayoutEngine(field_registry=registry)
-
-See the :doc:`user_guide` for more details on when to use each approach.
+    layout = {"lines": [{"input": "temperature", "index": 0}]}
+    print(engine.build_line_str(layout, {"temp": 21.5})[0])
 
 Next Steps
 ----------
 
-- Learn more about :doc:`user_guide`
-- Explore :doc:`api_reference`
-- See more :doc:`examples`
+- Dive into :doc:`user_guide` for a deeper explanation of presenters, formatters, and validation.
+- Browse :doc:`examples` to see real-world configurations.
+- Explore :doc:`inputs_reference` and :doc:`computed_fields_reference` for exhaustive parameter details.

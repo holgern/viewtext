@@ -20,7 +20,7 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "lines": [
-                {"field": "temp", "index": 0},
+                {"input": "temp", "index": 0},
             ]
         }
         context = {"temperature": 25}
@@ -44,8 +44,8 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "lines": [
-                {"field": "temp", "index": 0},
-                {"field": "humidity", "index": 1},
+                {"input": "temp", "index": 0},
+                {"input": "humidity", "index": 1},
             ]
         }
         context = {"temperature": 25, "humidity": 60}
@@ -66,7 +66,7 @@ class TestLayoutEngine:
         layout_config = {
             "lines": [
                 {
-                    "field": "price",
+                    "input": "price",
                     "index": 0,
                     "formatter": "price",
                     "formatter_params": {"symbol": "$", "decimals": 2},
@@ -83,7 +83,7 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=None)
         layout_config = {
             "lines": [
-                {"field": "temperature", "index": 0},
+                {"input": "temperature", "index": 0},
             ]
         }
         context = {"temperature": 25}
@@ -97,7 +97,7 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "lines": [
-                {"field": "nonexistent", "index": 0},
+                {"input": "nonexistent", "index": 0},
             ]
         }
         context = {}
@@ -118,7 +118,7 @@ class TestLayoutEngine:
         layout_config = {
             "lines": [
                 {
-                    "field": "name",
+                    "input": "name",
                     "index": 0,
                     "formatter": "text",
                     "formatter_params": {"prefix": "Hello, ", "suffix": "!"},
@@ -143,7 +143,7 @@ class TestLayoutEngine:
         layout_config = {
             "lines": [
                 {
-                    "field": "count",
+                    "input": "count",
                     "index": 0,
                     "formatter": "number",
                     "formatter_params": {"thousands_sep": ","},
@@ -168,7 +168,7 @@ class TestLayoutEngine:
         layout_config = {
             "lines": [
                 {
-                    "field": "value",
+                    "input": "value",
                     "index": 0,
                     "formatter": "unknown_formatter",
                     "formatter_params": {},
@@ -195,9 +195,9 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "lines": [
-                {"field": "temp"},
+                {"input": "temp"},
                 {"index": 0},
-                {"field": "valid", "index": 1},
+                {"input": "valid", "index": 1},
             ]
         }
         context = {"valid": "test"}
@@ -217,7 +217,7 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "items": [
-                {"field": "temp", "key": "temperature"},
+                {"input": "temp", "key": "temperature"},
             ]
         }
         context = {"temperature": 25}
@@ -241,8 +241,8 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "items": [
-                {"field": "temp", "key": "temp"},
-                {"field": "humidity", "key": "humid"},
+                {"input": "temp", "key": "temp"},
+                {"input": "humidity", "key": "humid"},
             ]
         }
         context = {"temperature": 25, "humidity": 60}
@@ -263,7 +263,7 @@ class TestLayoutEngine:
         layout_config = {
             "items": [
                 {
-                    "field": "price",
+                    "input": "price",
                     "key": "cost",
                     "formatter": "price",
                     "formatter_params": {"symbol": "$", "decimals": 2},
@@ -280,7 +280,7 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=None)
         layout_config = {
             "items": [
-                {"field": "temperature", "key": "temp"},
+                {"input": "temperature", "key": "temp"},
             ]
         }
         context = {"temperature": 25}
@@ -294,7 +294,7 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "items": [
-                {"field": "nonexistent", "key": "missing"},
+                {"input": "nonexistent", "key": "missing"},
             ]
         }
         context = {}
@@ -315,7 +315,7 @@ class TestLayoutEngine:
         layout_config = {
             "items": [
                 {
-                    "field": "name",
+                    "input": "name",
                     "key": "greeting",
                     "formatter": "text",
                     "formatter_params": {"prefix": "Hello, ", "suffix": "!"},
@@ -340,7 +340,7 @@ class TestLayoutEngine:
         layout_config = {
             "items": [
                 {
-                    "field": "count",
+                    "input": "count",
                     "key": "total",
                     "formatter": "number",
                     "formatter_params": {"thousands_sep": ","},
@@ -367,9 +367,9 @@ class TestLayoutEngine:
         engine = LayoutEngine(field_registry=registry)
         layout_config = {
             "items": [
-                {"field": "temp"},
+                {"input": "temp"},
                 {"key": "empty"},
-                {"field": "valid", "key": "data"},
+                {"input": "valid", "key": "data"},
             ]
         }
         context = {"valid": "test"}
@@ -378,7 +378,7 @@ class TestLayoutEngine:
 
         assert result == {"data": "test"}
 
-    def test_get_field_value_registry_priority(self):
+    def test_get_input_value_registry_priority(self):
         registry = BaseFieldRegistry()
 
         def custom_getter(ctx):
@@ -388,31 +388,31 @@ class TestLayoutEngine:
 
         engine = LayoutEngine(field_registry=registry)
 
-        result = engine._get_field_value("field", {"field": "from_context"})
+        result = engine._get_input_value("field", {"field": "from_context"})
 
         assert result == "from_registry"
 
-    def test_get_field_value_from_context_fallback(self):
+    def test_get_input_value_from_context_fallback(self):
         registry = BaseFieldRegistry()
         engine = LayoutEngine(field_registry=registry)
 
-        result = engine._get_field_value("field", {"field": "from_context"})
+        result = engine._get_input_value("field", {"field": "from_context"})
 
         assert result == "from_context"
 
-    def test_get_field_value_not_found(self):
+    def test_get_input_value_not_found(self):
         registry = BaseFieldRegistry()
         engine = LayoutEngine(field_registry=registry)
 
-        result = engine._get_field_value("nonexistent", {})
+        result = engine._get_input_value("nonexistent", {})
 
         assert result is None
 
 
 class TestLayoutEngineWithComputedFields:
     def test_integration_celsius_to_fahrenheit(self):
-        fields_content = """
-[fields.temp_f]
+        inputs_content = """
+[inputs.temp_f]
 operation = "celsius_to_fahrenheit"
 sources = ["temp_c"]
 default = 0.0
@@ -422,7 +422,7 @@ default = 0.0
 name = "Temperature"
 
 [[layouts.temperature.lines]]
-field = "temp_f"
+input = "temp_f"
 index = 0
 formatter = "number"
 
@@ -430,12 +430,12 @@ formatter = "number"
 decimals = 1
 suffix = "°F"
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -445,7 +445,7 @@ suffix = "°F"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("temperature")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -457,12 +457,12 @@ suffix = "°F"
 
             assert result == ["77.0°F"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_integration_multiply_operation(self):
-        fields_content = """
-[fields.total]
+        inputs_content = """
+[inputs.total]
 operation = "multiply"
 sources = ["price", "quantity"]
 default = 0.0
@@ -472,7 +472,7 @@ default = 0.0
 name = "Shopping"
 
 [[layouts.shopping.lines]]
-field = "total"
+input = "total"
 index = 0
 formatter = "price"
 
@@ -480,12 +480,12 @@ formatter = "price"
 symbol = "$"
 decimals = 2
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -495,7 +495,7 @@ decimals = 2
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("shopping")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -507,12 +507,12 @@ decimals = 2
 
             assert result == ["$59.97"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_integration_average_operation(self):
-        fields_content = """
-[fields.avg]
+        inputs_content = """
+[inputs.avg]
 operation = "average"
 sources = ["score1", "score2", "score3"]
 default = 0.0
@@ -522,19 +522,19 @@ default = 0.0
 name = "Scores"
 
 [[layouts.scores.lines]]
-field = "avg"
+input = "avg"
 index = 0
 formatter = "number"
 
 [layouts.scores.lines.formatter_params]
 decimals = 2
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -544,7 +544,7 @@ decimals = 2
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("scores")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -556,12 +556,12 @@ decimals = 2
 
             assert result == ["87.67"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_integration_linear_transform(self):
-        fields_content = """
-[fields.scaled]
+        inputs_content = """
+[inputs.scaled]
 operation = "linear_transform"
 sources = ["value"]
 multiply = 2.5
@@ -573,19 +573,19 @@ default = 0.0
 name = "Transform"
 
 [[layouts.transform.lines]]
-field = "scaled"
+input = "scaled"
 index = 0
 formatter = "number"
 
 [layouts.transform.lines.formatter_params]
 decimals = 1
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -595,7 +595,7 @@ decimals = 1
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("transform")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -607,12 +607,12 @@ decimals = 1
 
             assert result == ["60.0"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_integration_missing_source_uses_default(self):
-        fields_content = """
-[fields.temp_f]
+        inputs_content = """
+[inputs.temp_f]
 operation = "celsius_to_fahrenheit"
 sources = ["temp_c"]
 default = 32.0
@@ -622,7 +622,7 @@ default = 32.0
 name = "Temperature"
 
 [[layouts.temperature.lines]]
-field = "temp_f"
+input = "temp_f"
 index = 0
 formatter = "number"
 
@@ -630,12 +630,12 @@ formatter = "number"
 decimals = 1
 suffix = "°F"
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -645,7 +645,7 @@ suffix = "°F"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("temperature")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -657,17 +657,17 @@ suffix = "°F"
 
             assert result == ["32.0°F"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
-    def test_integration_multiple_computed_fields(self):
-        fields_content = """
-[fields.temp_f]
+    def test_integration_multiple_computed_inputs(self):
+        inputs_content = """
+[inputs.temp_f]
 operation = "celsius_to_fahrenheit"
 sources = ["temp_c"]
 default = 0.0
 
-[fields.total]
+[inputs.total]
 operation = "multiply"
 sources = ["price", "qty"]
 default = 0.0
@@ -677,7 +677,7 @@ default = 0.0
 name = "Multi"
 
 [[layouts.multi.lines]]
-field = "temp_f"
+input = "temp_f"
 index = 0
 formatter = "number"
 
@@ -686,7 +686,7 @@ decimals = 1
 suffix = "°F"
 
 [[layouts.multi.lines]]
-field = "total"
+input = "total"
 index = 1
 formatter = "price"
 
@@ -694,12 +694,12 @@ formatter = "price"
 symbol = "$"
 decimals = 2
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -709,7 +709,7 @@ decimals = 2
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("multi")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -721,21 +721,21 @@ decimals = 2
 
             assert result == ["32.0°F", "$21.00"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_conditional_operation_integration(self):
-        fields_content = """
-[fields.price_display]
+        inputs_content = """
+[inputs.price_display]
 operation = "conditional"
-condition = { field = "currency", equals = "USD" }
+condition = { input = "currency", equals = "USD" }
 if_true = "$~amount~"
 if_false = "~amount~ ~currency~"
 default = "N/A"
 
-[fields.membership_badge]
+[inputs.membership_badge]
 operation = "conditional"
-condition = { field = "is_premium", equals = "true" }
+condition = { input = "is_premium", equals = "true" }
 if_true = "⭐ Premium"
 if_false = "Standard"
 default = "Guest"
@@ -745,21 +745,21 @@ default = "Guest"
 name = "Pricing Display"
 
 [[layouts.pricing.lines]]
-field = "price_display"
+input = "price_display"
 index = 0
 formatter = "text"
 
 [[layouts.pricing.lines]]
-field = "membership_badge"
+input = "membership_badge"
 index = 1
 formatter = "text"
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -769,7 +769,7 @@ formatter = "text"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("pricing")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -796,19 +796,19 @@ formatter = "text"
             result_missing = engine.build_line_str(layout, context_missing)
             assert result_missing == ["N/A", "⭐ Premium"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_format_number_operation_integration(self):
-        fields_content = """
-[fields.formatted_comma]
+        inputs_content = """
+[inputs.formatted_comma]
 operation = "format_number"
 sources = ["value1"]
 thousands_sep = ","
 decimals_param = 0
 default = "N/A"
 
-[fields.formatted_european]
+[inputs.formatted_european]
 operation = "format_number"
 sources = ["value2"]
 thousands_sep = "."
@@ -816,7 +816,7 @@ decimal_sep = ","
 decimals_param = 2
 default = "N/A"
 
-[fields.formatted_space]
+[inputs.formatted_space]
 operation = "format_number"
 sources = ["value3"]
 thousands_sep = " "
@@ -828,26 +828,26 @@ default = "N/A"
 name = "Number Display"
 
 [[layouts.numbers.lines]]
-field = "formatted_comma"
+input = "formatted_comma"
 index = 0
 formatter = "text"
 
 [[layouts.numbers.lines]]
-field = "formatted_european"
+input = "formatted_european"
 index = 1
 formatter = "text"
 
 [[layouts.numbers.lines]]
-field = "formatted_space"
+input = "formatted_space"
 index = 2
 formatter = "text"
 """
-        tmp_fields = tempfile.NamedTemporaryFile(
+        tmp_inputs = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
         )
-        tmp_fields.write(fields_content)
-        tmp_fields.close()
-        fields_path = tmp_fields.name
+        tmp_inputs.write(inputs_content)
+        tmp_inputs.close()
+        inputs_path = tmp_inputs.name
 
         tmp_layouts = tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False, encoding="utf-8"
@@ -857,7 +857,7 @@ formatter = "text"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("numbers")
 
             registry = RegistryBuilder.build_from_config(loader=loader)
@@ -872,14 +872,14 @@ formatter = "text"
             result_missing = engine.build_line_str(layout, context_missing)
             assert result_missing == ["50,000", "N/A", "N/A"]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
-    def test_python_function_field(self):
+    def test_python_function_input(self):
         from datetime import datetime
 
-        fields_data = """
-[fields.current_time]
+        inputs_data = """
+[inputs.current_time]
 python_module = "datetime"
 python_function = "datetime.datetime.now().timestamp()"
 transform = "int"
@@ -890,15 +890,15 @@ type = "int"
 name = "Test Layout"
 
 [[layouts.test.lines]]
-field = "current_time"
+input = "current_time"
 index = 0
 """
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False
-        ) as fields_file:
-            fields_file.write(fields_data)
-            fields_path = fields_file.name
+        ) as inputs_file:
+            inputs_file.write(inputs_data)
+            inputs_path = inputs_file.name
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False
@@ -907,7 +907,7 @@ index = 0
             layouts_path = layouts_file.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("test")
             registry = RegistryBuilder.build_from_config(loader=loader)
             engine = LayoutEngine(field_registry=registry)
@@ -919,12 +919,12 @@ index = 0
             result_timestamp = int(result[0])
             assert abs(result_timestamp - current_timestamp) < 2
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
     def test_python_function_caching(self):
-        fields_data = """
-[fields.random_value]
+        inputs_data = """
+[inputs.random_value]
 python_module = "random"
 python_function = "random.random()"
 type = "float"
@@ -934,19 +934,19 @@ type = "float"
 name = "Test Layout"
 
 [[layouts.test.lines]]
-field = "random_value"
+input = "random_value"
 index = 0
 
 [[layouts.test.lines]]
-field = "random_value"
+input = "random_value"
 index = 1
 """
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False
-        ) as fields_file:
-            fields_file.write(fields_data)
-            fields_path = fields_file.name
+        ) as inputs_file:
+            inputs_file.write(inputs_data)
+            inputs_path = inputs_file.name
 
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".toml", delete=False
@@ -955,7 +955,7 @@ index = 1
             layouts_path = layouts_file.name
 
         try:
-            loader = LayoutLoader(config_path=layouts_path, fields_path=fields_path)
+            loader = LayoutLoader([layouts_path, inputs_path])
             layout = loader.get_layout("test")
             registry = RegistryBuilder.build_from_config(loader=loader)
             engine = LayoutEngine(field_registry=registry)
@@ -965,7 +965,7 @@ index = 1
 
             assert result[0] == result[1]
         finally:
-            os.unlink(fields_path)
+            os.unlink(inputs_path)
             os.unlink(layouts_path)
 
 
@@ -983,7 +983,7 @@ thousands_sep = ","
 name = "Product"
 
 [[layouts.product.lines]]
-field = "price"
+input = "price"
 index = 0
 formatter = "usd_price"
 """
@@ -1002,9 +1002,7 @@ formatter = "usd_price"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             layout = loader.get_layout("product")
 
             engine = LayoutEngine(field_registry=None, layout_loader=loader)
@@ -1030,7 +1028,7 @@ format = "%H:%M"
 name = "Time Display"
 
 [[layouts.time_display.lines]]
-field = "timestamp"
+input = "timestamp"
 index = 0
 formatter = "time_hm"
 """
@@ -1049,9 +1047,7 @@ formatter = "time_hm"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             layout = loader.get_layout("time_display")
 
             engine = LayoutEngine(field_registry=None, layout_loader=loader)
@@ -1078,7 +1074,7 @@ decimals = 0
 name = "Duration"
 
 [[layouts.duration.lines]]
-field = "elapsed"
+input = "elapsed"
 index = 0
 formatter = "minutes"
 """
@@ -1097,9 +1093,7 @@ formatter = "minutes"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             layout = loader.get_layout("duration")
 
             engine = LayoutEngine(field_registry=None, layout_loader=loader)
@@ -1124,7 +1118,7 @@ decimals = 2
 name = "Product"
 
 [[layouts.product.lines]]
-field = "price"
+input = "price"
 index = 0
 formatter = "price"
 
@@ -1147,9 +1141,7 @@ decimals = 3
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             layout = loader.get_layout("product")
 
             engine = LayoutEngine(field_registry=None, layout_loader=loader)
@@ -1168,7 +1160,7 @@ decimals = 3
 name = "Test"
 
 [[layouts.test.lines]]
-field = "value"
+input = "value"
 index = 0
 formatter = "text"
 """
@@ -1215,17 +1207,17 @@ decimals = 1
 name = "Dashboard"
 
 [[layouts.dashboard.lines]]
-field = "price"
+input = "price"
 index = 0
 formatter = "usd_price"
 
 [[layouts.dashboard.lines]]
-field = "timestamp"
+input = "timestamp"
 index = 1
 formatter = "time_hm"
 
 [[layouts.dashboard.lines]]
-field = "change"
+input = "change"
 index = 2
 formatter = "percent"
 """
@@ -1244,9 +1236,7 @@ formatter = "percent"
         layouts_path = tmp_layouts.name
 
         try:
-            loader = LayoutLoader(
-                config_path=layouts_path, formatters_path=formatters_path
-            )
+            loader = LayoutLoader([layouts_path, formatters_path])
             layout = loader.get_layout("dashboard")
 
             engine = LayoutEngine(field_registry=None, layout_loader=loader)
@@ -1273,7 +1263,7 @@ formatter = "percent"
         layout_config = {
             "lines": [
                 {
-                    "field": "price",
+                    "input": "price",
                     "index": 0,
                     "formatter": "usd_price",
                     "formatter_params": {},

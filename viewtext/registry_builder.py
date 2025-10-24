@@ -10,7 +10,7 @@ import math
 import re
 from typing import Any, Callable, Optional, Union, cast
 
-from .loader import FieldMapping, LayoutLoader
+from .loader import InputMapping, LayoutLoader
 from .registry import BaseFieldRegistry
 from .validator import FieldValidator
 
@@ -206,7 +206,7 @@ class RegistryBuilder:
         config_path: Optional[str] = None, loader: Optional[LayoutLoader] = None
     ) -> BaseFieldRegistry:
         """
-        Build a field registry from TOML configuration.
+        Build an input registry from TOML configuration.
 
         Parameters
         ----------
@@ -228,44 +228,44 @@ class RegistryBuilder:
         """
         if loader is None:
             loader = LayoutLoader(config_path)
-        field_mappings = loader.get_field_mappings()
+        input_mappings = loader.get_input_mappings()
 
         registry = BaseFieldRegistry()
 
-        for field_name, mapping in field_mappings.items():
+        for input_name, mapping in input_mappings.items():
             if not mapping.operation:
                 if mapping.constant is not None:
                     getter = RegistryBuilder._create_constant_getter(
-                        field_name, mapping
+                        input_name, mapping
                     )
                 elif mapping.python_function:
                     getter = RegistryBuilder._create_python_function_getter(
-                        field_name, mapping
+                        input_name, mapping
                     )
                 else:
-                    context_key = mapping.context_key or field_name
+                    context_key = mapping.context_key or input_name
                     getter = RegistryBuilder._create_getter(
-                        field_name,
+                        input_name,
                         context_key,
                         mapping.default,
                         mapping.transform,
                         mapping,
                     )
-                registry.register(field_name, getter)
+                registry.register(input_name, getter)
 
-        for field_name, mapping in field_mappings.items():
+        for input_name, mapping in input_mappings.items():
             if mapping.operation:
                 getter = RegistryBuilder._create_operation_getter(
-                    field_name, mapping, registry
+                    input_name, mapping, registry
                 )
-                registry.register(field_name, getter)
+                registry.register(input_name, getter)
 
         return registry
 
     @staticmethod
     def _create_constant_getter(
         field_name: str,
-        mapping: FieldMapping,
+        mapping: InputMapping,
     ) -> Callable[[dict[str, Any]], Any]:
         """
         Create a getter function for constant fields.
@@ -274,7 +274,7 @@ class RegistryBuilder:
         ----------
         field_name : str
             Name of the field
-        mapping : FieldMapping
+        mapping : InputMapping
             Field mapping configuration containing constant value
 
         Returns
@@ -284,8 +284,8 @@ class RegistryBuilder:
 
         Examples
         --------
-        >>> from viewtext.loader import FieldMapping
-        >>> mapping = FieldMapping(constant=60, type="int")
+        >>> from viewtext.loader import InputMapping
+        >>> mapping = InputMapping(constant=60, type="int")
         >>> getter = RegistryBuilder._create_constant_getter("sixty", mapping)
         >>> getter({})
         60
@@ -323,7 +323,7 @@ class RegistryBuilder:
         context_key: Optional[str] = None,
         default: Any = None,
         transform: Optional[str] = None,
-        mapping: Optional[FieldMapping] = None,
+        mapping: Optional[InputMapping] = None,
     ) -> Callable[[dict[str, Any]], Any]:
         """
         Create a getter function for a field.
@@ -338,7 +338,7 @@ class RegistryBuilder:
             Default value if field is not found
         transform : str, optional
             Transform to apply (upper, lower, title, strip, int, float, str, bool)
-        mapping : FieldMapping, optional
+        mapping : InputMapping, optional
             Complete field mapping with validation configuration
 
         Returns
@@ -422,7 +422,7 @@ class RegistryBuilder:
     @staticmethod
     def _create_python_function_getter(
         field_name: str,
-        mapping: FieldMapping,
+        mapping: InputMapping,
     ) -> Callable[[dict[str, Any]], Any]:
         """
         Create a getter function for fields that execute Python functions.
@@ -431,7 +431,7 @@ class RegistryBuilder:
         ----------
         field_name : str
             Name of the field
-        mapping : FieldMapping
+        mapping : InputMapping
             Field mapping configuration containing python_module and python_function
 
         Returns
@@ -441,8 +441,8 @@ class RegistryBuilder:
 
         Examples
         --------
-        >>> from viewtext.loader import FieldMapping
-        >>> mapping = FieldMapping(
+        >>> from viewtext.loader import InputMapping
+        >>> mapping = InputMapping(
         ...     python_module="datetime",
         ...     python_function="datetime.now().timestamp()",
         ...     transform="int"
@@ -768,6 +768,7 @@ class RegistryBuilder:
     def _handle_conditional_operation(
         context: dict[str, Any],
         params: dict[str, Any],
+        registry: Optional[BaseFieldRegistry] = None,
     ) -> Any:
         """Handle conditional operation for if/else logic."""
         condition = params.get("condition")
@@ -778,13 +779,17 @@ class RegistryBuilder:
         if condition is None or if_true is None or if_false is None:
             return default
 
-        field = condition.get("field")
+        input_name = condition.get("input")
         equals = condition.get("equals")
 
-        if field is None:
+        if input_name is None:
             return default
 
-        field_value = context.get(field)
+        if registry and registry.has_field(input_name):
+            getter = registry.get(input_name)
+            field_value = getter(context)
+        else:
+            field_value = context.get(input_name)
 
         if field_value is None:
             return default
@@ -858,7 +863,7 @@ class RegistryBuilder:
     @staticmethod
     def _create_operation_getter(
         field_name: str,
-        mapping: FieldMapping,
+        mapping: InputMapping,
         registry: Optional[BaseFieldRegistry] = None,
     ) -> Callable[[dict[str, Any]], Any]:
         """
@@ -868,7 +873,7 @@ class RegistryBuilder:
         ----------
         field_name : str
             Name of the field
-        mapping : FieldMapping
+        mapping : InputMapping
             Field mapping configuration containing operation and parameters
 
         Returns
@@ -878,8 +883,8 @@ class RegistryBuilder:
 
         Examples
         --------
-        >>> from viewtext.loader import FieldMapping
-        >>> mapping = FieldMapping(
+        >>> from viewtext.loader import InputMapping
+        >>> mapping = InputMapping(
         ...     operation="celsius_to_fahrenheit",
         ...     context_key="temp_c"
         ... )
@@ -960,7 +965,7 @@ class RegistryBuilder:
 
                 elif operation == "conditional":
                     result = RegistryBuilder._handle_conditional_operation(
-                        context, params
+                        context, params, registry
                     )
 
                 elif operation == "format_number":

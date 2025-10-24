@@ -5,11 +5,11 @@
   "description": "Schema for ViewText TOML layout configuration files",
   "type": "object",
   "properties": {
-    "fields": {
+    "inputs": {
       "type": "object",
-      "description": "Field definitions that extract and transform data from context",
+      "description": "Input definitions that extract and transform data from context",
       "additionalProperties": {
-        "$ref": "#/definitions/field"
+        "$ref": "#/definitions/input"
       }
     },
     "formatters": {
@@ -26,15 +26,22 @@
         "$ref": "#/definitions/layout"
       }
     },
+    "presenters": {
+      "type": "object",
+      "description": "Presenter definitions that specify how inputs should look",
+      "additionalProperties": {
+        "$ref": "#/definitions/presenter"
+      }
+    },
     "context_provider": {
       "type": "string",
       "description": "Name of the context provider to use"
     }
   },
   "definitions": {
-    "field": {
+    "input": {
       "type": "object",
-      "description": "Field definition for extracting and transforming context data",
+      "description": "Input definition for extracting and transforming context data",
       "properties": {
         "context_key": {
           "type": "string",
@@ -79,7 +86,7 @@
           "items": {
             "type": "string"
           },
-          "description": "List of field names to use as sources for operations"
+          "description": "List of input names to use as sources for operations"
         },
         "multiply": {
           "type": "number",
@@ -125,23 +132,23 @@
           "type": "object",
           "description": "Condition for conditional operation",
           "properties": {
-            "field": {
+            "input": {
               "type": "string",
-              "description": "Field name to check"
+              "description": "Input name to check"
             },
             "equals": {
               "description": "Value to compare against"
             }
           },
-          "required": ["field", "equals"]
+          "required": ["input", "equals"]
         },
         "if_true": {
           "type": "string",
-          "description": "Value to return if condition is true (supports ~field~ syntax)"
+          "description": "Value to return if condition is true (supports ~input~ syntax)"
         },
         "if_false": {
           "type": "string",
-          "description": "Value to return if condition is false (supports ~field~ syntax)"
+          "description": "Value to return if condition is false (supports ~input~ syntax)"
         },
         "decimals_param": {
           "type": "integer",
@@ -240,7 +247,7 @@
               {"required": ["constant"]}
             ]
           },
-          "description": "Context field: extracts value from context dictionary"
+          "description": "Context input: extracts value from context dictionary"
         },
         {
           "required": ["operation"],
@@ -251,7 +258,7 @@
               {"required": ["constant"]}
             ]
           },
-          "description": "Computed field: performs calculation on source data"
+          "description": "Computed input: performs calculation on source data"
         },
         {
           "required": ["python_function"],
@@ -262,7 +269,7 @@
               {"required": ["constant"]}
             ]
           },
-          "description": "Python function field: executes Python code to generate value"
+          "description": "Python function input: executes Python code to generate value"
         },
         {
           "required": ["constant"],
@@ -273,7 +280,7 @@
               {"required": ["python_function"]}
             ]
           },
-          "description": "Constant field: returns a static value"
+          "description": "Constant input: returns a static value"
         }
       ]
     },
@@ -369,182 +376,128 @@
       },
       "required": ["name"]
     },
+    "presenter": {
+      "type": "object",
+      "description": "Presenter definition that specifies how an input should look",
+      "properties": {
+        "input": {
+          "type": "string",
+          "description": "Name of the input to display with this presenter"
+        },
+        "formatter": {
+          "type": "string",
+          "description": "Name of the formatter to apply (built-in type like 'text', 'number', 'datetime', or a preset name from the formatters section)"
+        },
+        "formatter_params": {
+          "type": "object",
+          "description": "Parameters to pass to the formatter",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "Currency symbol for price formatter"
+            },
+            "symbol_position": {
+              "type": "string",
+              "enum": ["prefix", "suffix"],
+              "description": "Position of currency symbol"
+            },
+            "decimals": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of decimal places"
+            },
+            "thousands_sep": {
+              "type": "string",
+              "maxLength": 1,
+              "description": "Thousands separator character"
+            },
+            "decimal_sep": {
+              "type": "string",
+              "maxLength": 1,
+              "description": "Decimal separator character"
+            },
+            "prefix": {
+              "type": "string",
+              "description": "String to prepend to the value"
+            },
+            "suffix": {
+              "type": "string",
+              "description": "String to append to the value"
+            },
+            "format": {
+              "type": "string",
+              "description": "Format string (e.g., datetime format)"
+            },
+            "template": {
+              "type": "string",
+              "description": "Template string with {field_name} placeholders"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of field names for template substitution"
+            },
+            "field_formatters": {
+              "type": "object",
+              "description": "Formatter configurations for individual fields in templates",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "description": "Reference to a formatter preset defined in [formatters]"
+                  },
+                  {
+                    "$ref": "#/definitions/formatter",
+                    "description": "Inline formatter configuration"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "required": ["input", "formatter"]
+    },
     "line": {
       "type": "object",
       "description": "Line configuration in a layout",
       "properties": {
-        "field": {
+        "input": {
           "type": "string",
-          "description": "Name of the field to display on this line"
+          "description": "Name of the input to display on this line (can be specified in presenter definition)"
         },
         "index": {
           "type": "integer",
           "minimum": 0,
           "description": "Line index (0-based position in the layout)"
         },
-        "formatter": {
+        "presenter": {
           "type": "string",
-          "description": "Name of the formatter to apply (built-in type like 'text', 'number', 'datetime', or a preset name from the formatters section)"
-        },
-        "formatter_params": {
-          "type": "object",
-          "description": "Parameters to pass to the formatter",
-          "properties": {
-            "symbol": {
-              "type": "string",
-              "description": "Currency symbol for price formatter"
-            },
-            "symbol_position": {
-              "type": "string",
-              "enum": ["prefix", "suffix"],
-              "description": "Position of currency symbol"
-            },
-            "decimals": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Number of decimal places"
-            },
-            "thousands_sep": {
-              "type": "string",
-              "maxLength": 1,
-              "description": "Thousands separator character"
-            },
-            "decimal_sep": {
-              "type": "string",
-              "maxLength": 1,
-              "description": "Decimal separator character"
-            },
-            "prefix": {
-              "type": "string",
-              "description": "String to prepend to the value"
-            },
-            "suffix": {
-              "type": "string",
-              "description": "String to append to the value"
-            },
-            "format": {
-              "type": "string",
-              "description": "Format string (e.g., datetime format)"
-            },
-            "template": {
-              "type": "string",
-              "description": "Template string with {field_name} placeholders"
-            },
-            "fields": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "List of field names for template substitution"
-            },
-            "field_formatters": {
-              "type": "object",
-              "description": "Formatter configurations for individual fields in templates",
-              "additionalProperties": {
-                "oneOf": [
-                  {
-                    "type": "string",
-                    "description": "Reference to a formatter preset defined in [formatters]"
-                  },
-                  {
-                    "$ref": "#/definitions/formatter",
-                    "description": "Inline formatter configuration"
-                  }
-                ]
-              }
-            }
-          }
+          "description": "Name of the presenter definition to use"
         }
       },
-      "required": ["field", "index"]
+      "required": ["index"]
     },
     "dict_item": {
       "type": "object",
       "description": "Dictionary item configuration in a layout",
       "properties": {
-        "field": {
+        "input": {
           "type": "string",
-          "description": "Name of the field to display"
+          "description": "Name of the input to display"
         },
         "key": {
           "type": "string",
           "description": "Key name in the output dictionary"
         },
-        "formatter": {
+        "presenter": {
           "type": "string",
-          "description": "Name of the formatter to apply (built-in type like 'text', 'number', 'datetime', or a preset name from the formatters section)"
-        },
-        "formatter_params": {
-          "type": "object",
-          "description": "Parameters to pass to the formatter",
-          "properties": {
-            "symbol": {
-              "type": "string",
-              "description": "Currency symbol for price formatter"
-            },
-            "symbol_position": {
-              "type": "string",
-              "enum": ["prefix", "suffix"],
-              "description": "Position of currency symbol"
-            },
-            "decimals": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Number of decimal places"
-            },
-            "thousands_sep": {
-              "type": "string",
-              "maxLength": 1,
-              "description": "Thousands separator character"
-            },
-            "decimal_sep": {
-              "type": "string",
-              "maxLength": 1,
-              "description": "Decimal separator character"
-            },
-            "prefix": {
-              "type": "string",
-              "description": "String to prepend to the value"
-            },
-            "suffix": {
-              "type": "string",
-              "description": "String to append to the value"
-            },
-            "format": {
-              "type": "string",
-              "description": "Format string (e.g., datetime format)"
-            },
-            "template": {
-              "type": "string",
-              "description": "Template string with {field_name} placeholders"
-            },
-            "fields": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "List of field names for template substitution"
-            },
-            "field_formatters": {
-              "type": "object",
-              "description": "Formatter configurations for individual fields in templates",
-              "additionalProperties": {
-                "oneOf": [
-                  {
-                    "type": "string",
-                    "description": "Reference to a formatter preset defined in [formatters]"
-                  },
-                  {
-                    "$ref": "#/definitions/formatter",
-                    "description": "Inline formatter configuration"
-                  }
-                ]
-              }
-            }
-          }
+          "description": "Name of the presenter definition to use"
         }
       },
-      "required": ["field", "key"]
+      "required": ["key"]
     }
   }
 }

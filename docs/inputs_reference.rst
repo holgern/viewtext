@@ -1,29 +1,29 @@
-Fields Reference
+Inputs Reference
 ================
 
-This document provides a complete reference for field definitions in ViewText.
+This document provides a complete reference for input definitions in ViewText.
 
 Overview
 --------
 
-Fields are the foundation of ViewText layouts. They define how data is extracted from context dictionaries and can include:
+Inputs are the foundation of ViewText layouts. They define how data is extracted from context dictionaries and can include:
 
-- **Context Key Mapping** - Map field names to context dictionary keys
+- **Context Key Mapping** - Map input names to context dictionary keys
 - **Validation Rules** - Enforce type checking and constraints
 - **Computed Operations** - Perform calculations without writing code
 - **Default Values** - Provide fallbacks for missing data
 - **Transformations** - Apply simple text transformations
 
-Field Definition Structure
+Input Definition Structure
 --------------------------
 
-Fields are defined in the ``[fields]`` section of TOML configuration files:
+Inputs are defined in the ``[inputs]`` section of TOML configuration files:
 
 .. code-block:: toml
 
-    [fields.field_name]
+    [inputs.field_name]
     # Required: How to get the value
-    context_key = "path.to.value"  # OR operation = "..." for computed fields
+    context_key = "path.to.value"  # OR operation = "..." for computed inputs
 
     # Optional: Validation
     type = "str"
@@ -37,27 +37,27 @@ Fields are defined in the ``[fields]`` section of TOML configuration files:
     # Optional: Text transformation
     transform = "upper"
 
-Field Types
+Input Mapping Types
 -----------
 
-There are five types of field definitions:
+There are five types of input definitions:
 
-1. **Context Fields** - Extract values directly from context
-2. **Computed Fields** - Perform calculations on source data
-3. **Constant Fields** - Return static values
-4. **Python Function Fields** - Execute Python code to generate values
-5. **Validated Fields** - Include type checking and constraints
+1. **Context Inputs** - Extract values directly from context
+2. **Computed Inputs** - Perform calculations on source data
+3. **Constant Inputs** - Return static values
+4. **Python Function Inputs** - Execute Python code to generate values
+5. **Validated Inputs** - Include type checking and constraints
 
-Context Fields
+Context Inputs
 ~~~~~~~~~~~~~~
 
-Map field names to keys in the context dictionary.
+Map input names to keys in the context dictionary.
 
 **Basic Example:**
 
 .. code-block:: toml
 
-    [fields.temperature]
+    [inputs.temperature]
     context_key = "temp"
     default = 0
 
@@ -65,7 +65,7 @@ Map field names to keys in the context dictionary.
 
 .. code-block:: toml
 
-    [fields.city_name]
+    [inputs.city_name]
     context_key = "location.city"
     default = "Unknown"
 
@@ -73,7 +73,7 @@ Map field names to keys in the context dictionary.
 
 .. code-block:: toml
 
-    [fields.upper_name]
+    [inputs.upper_name]
     context_key = "name.upper()"
     default = ""
 
@@ -81,11 +81,11 @@ Map field names to keys in the context dictionary.
 
 .. code-block:: toml
 
-    [fields.first_item]
+    [inputs.first_item]
     context_key = "items.0"
     default = None
 
-Computed Fields
+Computed Inputs
 ~~~~~~~~~~~~~~~
 
 Perform operations on source data. See :doc:`computed_fields_reference` for complete documentation.
@@ -94,17 +94,17 @@ Perform operations on source data. See :doc:`computed_fields_reference` for comp
 
 .. code-block:: toml
 
-    [fields.total_price]
+    [inputs.total_price]
     operation = "multiply"
     sources = ["price", "quantity"]
     default = 0.0
 
-    [fields.temp_fahrenheit]
+    [inputs.temp_fahrenheit]
     operation = "celsius_to_fahrenheit"
     sources = ["temp_celsius"]
     default = 0.0
 
-Constant Fields
+Constant Inputs
 ~~~~~~~~~~~~~~~
 
 Return static values without requiring context data. Useful for constants like currency symbols, fixed numbers, or configuration values.
@@ -121,29 +121,29 @@ Return static values without requiring context data. Useful for constants like c
 .. code-block:: toml
 
     # String constants
-    [fields.currency_symbol]
+    [inputs.currency_symbol]
     constant = "€"
     type = "str"
 
-    [fields.app_name]
+    [inputs.app_name]
     constant = "ViewText"
     type = "str"
 
     # Numeric constants
-    [fields.vat_rate]
+    [inputs.vat_rate]
     constant = 0.19
     type = "float"
 
-    [fields.max_retries]
+    [inputs.max_retries]
     constant = 3
     type = "int"
 
     # Boolean constants
-    [fields.debug_mode]
+    [inputs.debug_mode]
     constant = false
     type = "bool"
 
-Python Function Fields
+Python Function Inputs
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Execute Python code to generate dynamic values. Useful for timestamps, UUIDs, random values, or any Python expression.
@@ -161,7 +161,7 @@ Execute Python code to generate dynamic values. Useful for timestamps, UUIDs, ra
 .. code-block:: toml
 
     # Current timestamp
-    [fields.current_time]
+    [inputs.current_time]
     python_module = "datetime"
     python_function = "datetime.datetime.now().timestamp()"
     transform = "int"
@@ -169,28 +169,28 @@ Execute Python code to generate dynamic values. Useful for timestamps, UUIDs, ra
     default = 0
 
     # Generate UUID
-    [fields.request_id]
+    [inputs.request_id]
     python_module = "uuid"
     python_function = "str(uuid.uuid4())"
     type = "str"
     default = ""
 
     # Random number
-    [fields.random_value]
+    [inputs.random_value]
     python_module = "random"
     python_function = "random.randint(1, 100)"
     type = "int"
     default = 0
 
     # Simple math (no module needed)
-    [fields.constant]
+    [inputs.constant]
     python_function = "2 + 2"
     default = 0
 
 .. warning::
-   Python function fields execute arbitrary Python code. Only use trusted configuration files.
+   Python function inputs execute arbitrary Python code. Only use trusted configuration files.
 
-Validated Fields
+Validated Inputs
 ~~~~~~~~~~~~~~~~
 
 Include validation rules for type checking and constraints. See :doc:`validation_reference` for complete documentation.
@@ -199,14 +199,14 @@ Include validation rules for type checking and constraints. See :doc:`validation
 
 .. code-block:: toml
 
-    [fields.username]
+    [inputs.username]
     context_key = "username"
     type = "str"
     min_length = 3
     max_length = 20
     on_validation_error = "raise"
 
-    [fields.age]
+    [inputs.age]
     context_key = "age"
     type = "int"
     min_value = 0
@@ -242,27 +242,27 @@ The key path to extract from the context dictionary. Supports:
 .. code-block:: toml
 
     # Simple key
-    [fields.status]
+    [inputs.status]
     context_key = "status"
 
     # Nested dictionary key
-    [fields.city]
+    [inputs.city]
     context_key = "location.city"
 
     # Method call
-    [fields.upper_text]
+    [inputs.upper_text]
     context_key = "text.upper()"
 
     # Array index
-    [fields.first_tag]
+    [inputs.first_tag]
     context_key = "tags.0"
 
     # Nested array
-    [fields.matrix_value]
+    [inputs.matrix_value]
     context_key = "matrix.0.1"
 
     # Array with dictionary
-    [fields.first_user_email]
+    [inputs.first_user_email]
     context_key = "users.0.email"
 
 default
@@ -278,15 +278,15 @@ Value to return when the field cannot be retrieved or validation fails.
 
 .. code-block:: toml
 
-    [fields.temperature]
+    [inputs.temperature]
     context_key = "temp"
     default = 0
 
-    [fields.username]
+    [inputs.username]
     context_key = "user.name"
     default = "Guest"
 
-    [fields.tags]
+    [inputs.tags]
     context_key = "tags"
     default = []
 
@@ -308,12 +308,12 @@ Simple text transformations applied after retrieving the value.
 
 .. code-block:: toml
 
-    [fields.uppercase_name]
+    [inputs.uppercase_name]
     context_key = "name"
     transform = "upper"
     default = ""
 
-    [fields.lowercase_email]
+    [inputs.lowercase_email]
     context_key = "email"
     transform = "lower"
     default = ""
@@ -323,7 +323,7 @@ python_module
 
 **Type:** ``str``
 
-**Required:** No (for Python function fields)
+**Required:** No (for Python function inputs)
 
 Name of the Python standard library module to import before executing ``python_function``.
 
@@ -331,17 +331,17 @@ Name of the Python standard library module to import before executing ``python_f
 
 .. code-block:: toml
 
-    [fields.current_time]
+    [inputs.current_time]
     python_module = "datetime"
     python_function = "datetime.datetime.now().timestamp()"
     default = 0
 
-    [fields.uuid]
+    [inputs.uuid]
     python_module = "uuid"
     python_function = "str(uuid.uuid4())"
     default = ""
 
-    [fields.random_value]
+    [inputs.random_value]
     python_module = "random"
     python_function = "random.randint(1, 100)"
     default = 0
@@ -351,7 +351,7 @@ python_function
 
 **Type:** ``str``
 
-**Required:** Yes (for Python function fields)
+**Required:** Yes (for Python function inputs)
 
 Python expression to evaluate. The expression has access to any modules imported via ``python_module``.
 
@@ -364,7 +364,7 @@ Results are cached per render using ``__python_function_cache_{field_name}`` to 
 .. code-block:: toml
 
     # With module import
-    [fields.timestamp]
+    [inputs.timestamp]
     python_module = "datetime"
     python_function = "datetime.datetime.now().timestamp()"
     transform = "int"
@@ -372,14 +372,14 @@ Results are cached per render using ``__python_function_cache_{field_name}`` to 
     default = 0
 
     # Generate UUID
-    [fields.request_id]
+    [inputs.request_id]
     python_module = "uuid"
     python_function = "str(uuid.uuid4())"
     type = "str"
     default = ""
 
 .. warning::
-   Python function fields execute arbitrary code. Only use trusted configuration files.
+   Python function inputs execute arbitrary code. Only use trusted configuration files.
 
 .. note::
    For static constant values, use the ``constant`` parameter instead of ``python_function``.
@@ -389,7 +389,7 @@ constant
 
 **Type:** Any (string, number, boolean, etc.)
 
-**Required:** Yes (for constant fields)
+**Required:** Yes (for constant inputs)
 
 Static value to return for this field. Unlike ``default``, which is only used as a fallback, ``constant`` is the primary value.
 
@@ -398,22 +398,22 @@ Static value to return for this field. Unlike ``default``, which is only used as
 .. code-block:: toml
 
     # String constant
-    [fields.currency_symbol]
+    [inputs.currency_symbol]
     constant = "€"
     type = "str"
 
     # Numeric constant
-    [fields.seconds_per_minute]
+    [inputs.seconds_per_minute]
     constant = 60
     type = "int"
 
     # Float constant
-    [fields.pi]
+    [inputs.pi]
     constant = 3.14159
     type = "float"
 
     # Boolean constant
-    [fields.feature_enabled]
+    [inputs.feature_enabled]
     constant = true
     type = "bool"
 
@@ -429,12 +429,12 @@ Static value to return for this field. Unlike ``default``, which is only used as
 .. code-block:: toml
 
     # Preferred: Use constant for static values
-    [fields.euro]
+    [inputs.euro]
     constant = "€"
     type = "str"
 
     # Avoid: Using python_function for constants
-    [fields.euro]
+    [inputs.euro]
     python_function = "'€'"
     type = "str"
 
@@ -456,7 +456,7 @@ Specifies the expected data type.
 
 .. code-block:: toml
 
-    [fields.age]
+    [inputs.age]
     context_key = "age"
     type = "int"
     default = 0
@@ -476,7 +476,7 @@ Controls behavior when validation fails.
 
 .. code-block:: toml
 
-    [fields.username]
+    [inputs.username]
     context_key = "username"
     type = "str"
     on_validation_error = "raise"
@@ -497,7 +497,7 @@ Minimum allowed value (inclusive).
 
 .. code-block:: toml
 
-    [fields.age]
+    [inputs.age]
     type = "int"
     min_value = 0
     default = 0
@@ -515,7 +515,7 @@ Maximum allowed value (inclusive).
 
 .. code-block:: toml
 
-    [fields.percentage]
+    [inputs.percentage]
     type = "float"
     max_value = 100.0
     default = 0.0
@@ -536,7 +536,7 @@ Minimum string length.
 
 .. code-block:: toml
 
-    [fields.username]
+    [inputs.username]
     type = "str"
     min_length = 3
     default = "guest"
@@ -554,7 +554,7 @@ Maximum string length.
 
 .. code-block:: toml
 
-    [fields.bio]
+    [inputs.bio]
     type = "str"
     max_length = 200
     default = ""
@@ -572,7 +572,7 @@ Regular expression pattern for validation.
 
 .. code-block:: toml
 
-    [fields.email]
+    [inputs.email]
     type = "str"
     pattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     on_validation_error = "skip"
@@ -593,7 +593,7 @@ List of allowed values.
 
 .. code-block:: toml
 
-    [fields.status]
+    [inputs.status]
     type = "str"
     allowed_values = ["active", "pending", "inactive"]
     default = "pending"
@@ -614,7 +614,7 @@ Minimum number of items.
 
 .. code-block:: toml
 
-    [fields.tags]
+    [inputs.tags]
     type = "list"
     min_items = 1
     default = ["general"]
@@ -632,7 +632,7 @@ Maximum number of items.
 
 .. code-block:: toml
 
-    [fields.tags]
+    [inputs.tags]
     type = "list"
     max_items = 5
     default = []
@@ -647,7 +647,7 @@ operation
 
 **Type:** ``str``
 
-**Required:** Yes (for computed fields)
+**Required:** Yes (for computed inputs)
 
 The operation to perform. Available operations:
 
@@ -680,13 +680,13 @@ sources
 
 **Required:** Yes (for most computed operations)
 
-List of source field names to use as inputs.
+List of source input names to use as inputs.
 
 **Example:**
 
 .. code-block:: toml
 
-    [fields.total]
+    [inputs.total]
     operation = "add"
     sources = ["price", "tax", "shipping"]
     default = 0.0
@@ -700,7 +700,7 @@ Different operations support additional parameters:
 
 .. code-block:: toml
 
-    [fields.scaled]
+    [inputs.scaled]
     operation = "linear_transform"
     sources = ["value"]
     multiply = 2
@@ -712,7 +712,7 @@ Different operations support additional parameters:
 
 .. code-block:: toml
 
-    [fields.full_name]
+    [inputs.full_name]
     operation = "concat"
     sources = ["first_name", "last_name"]
     separator = " "
@@ -725,7 +725,7 @@ Different operations support additional parameters:
 
 .. code-block:: toml
 
-    [fields.domain]
+    [inputs.domain]
     operation = "split"
     sources = ["email"]
     separator = "@"
@@ -736,7 +736,7 @@ Different operations support additional parameters:
 
 .. code-block:: toml
 
-    [fields.year]
+    [inputs.year]
     operation = "substring"
     sources = ["date"]
     start = 0
@@ -747,9 +747,9 @@ Different operations support additional parameters:
 
 .. code-block:: toml
 
-    [fields.price_display]
+    [inputs.price_display]
     operation = "conditional"
-    condition = { field = "currency", equals = "USD" }
+    condition = { input = "currency", equals = "USD" }
     if_true = "$~amount~"
     if_false = "~amount~ ~currency~"
     default = ""
@@ -758,7 +758,7 @@ Different operations support additional parameters:
 
 .. code-block:: toml
 
-    [fields.formatted_price]
+    [inputs.formatted_price]
     operation = "format_number"
     sources = ["price"]
     thousands_sep = ","
@@ -776,7 +776,7 @@ Simple Keys
 
 .. code-block:: toml
 
-    [fields.name]
+    [inputs.name]
     context_key = "name"
 
 **Context:**
@@ -794,7 +794,7 @@ Use dot notation for nested dictionaries:
 
 .. code-block:: toml
 
-    [fields.city]
+    [inputs.city]
     context_key = "location.city"
 
 **Context:**
@@ -812,7 +812,7 @@ Call methods on context values:
 
 .. code-block:: toml
 
-    [fields.upper_name]
+    [inputs.upper_name]
     context_key = "name.upper()"
 
 **Context:**
@@ -827,7 +827,7 @@ Call methods on context values:
 
 .. code-block:: toml
 
-    [fields.formatted]
+    [inputs.formatted]
     context_key = "text.replace('foo', 'bar')"
 
 Attribute Access
@@ -837,7 +837,7 @@ Access object attributes:
 
 .. code-block:: toml
 
-    [fields.length]
+    [inputs.length]
     context_key = "items.__len__()"
 
 **Context:**
@@ -855,7 +855,7 @@ Access list and tuple items by numeric index using dot notation:
 
 .. code-block:: toml
 
-    [fields.first_tag]
+    [inputs.first_tag]
     context_key = "tags.0"
 
 **Context:**
@@ -872,7 +872,7 @@ You can access nested arrays by chaining numeric indices:
 
 .. code-block:: toml
 
-    [fields.matrix_value]
+    [inputs.matrix_value]
     context_key = "matrix.0.1"
 
 **Context:**
@@ -889,7 +889,7 @@ Combine array indexing with dictionary key access:
 
 .. code-block:: toml
 
-    [fields.first_user_name]
+    [inputs.first_user_name]
     context_key = "users.0.name"
 
 **Context:**
@@ -911,7 +911,7 @@ Access deeply nested data structures:
 
 .. code-block:: toml
 
-    [fields.median_fee]
+    [inputs.median_fee]
     context_key = "mempool_blocks.0.fees.median"
 
 **Context:**
@@ -941,7 +941,7 @@ Chain multiple operations:
 
 .. code-block:: toml
 
-    [fields.clean_text]
+    [inputs.clean_text]
     context_key = "text.strip().lower()"
 
 **Context:**
@@ -960,17 +960,17 @@ Simple Weather Display
 
 .. code-block:: toml
 
-    [fields.temperature]
+    [inputs.temperature]
     context_key = "temp"
     type = "float"
     default = 0.0
 
-    [fields.city]
+    [inputs.city]
     context_key = "city"
     type = "str"
     default = "Unknown"
 
-    [fields.humidity]
+    [inputs.humidity]
     context_key = "humidity"
     type = "int"
     min_value = 0
@@ -982,7 +982,7 @@ User Profile
 
 .. code-block:: toml
 
-    [fields.username]
+    [inputs.username]
     context_key = "username"
     type = "str"
     min_length = 3
@@ -990,13 +990,13 @@ User Profile
     pattern = "^[a-zA-Z0-9_]+$"
     on_validation_error = "raise"
 
-    [fields.email]
+    [inputs.email]
     context_key = "email"
     type = "str"
     pattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     on_validation_error = "skip"
 
-    [fields.age]
+    [inputs.age]
     context_key = "age"
     type = "int"
     min_value = 13
@@ -1004,14 +1004,14 @@ User Profile
     on_validation_error = "use_default"
     default = 0
 
-    [fields.membership]
+    [inputs.membership]
     context_key = "membership"
     type = "str"
     allowed_values = ["free", "premium", "enterprise"]
     on_validation_error = "use_default"
     default = "free"
 
-    [fields.display_name]
+    [inputs.display_name]
     operation = "concat"
     sources = ["first_name", "last_name"]
     separator = " "
@@ -1022,38 +1022,38 @@ E-commerce Product
 
 .. code-block:: toml
 
-    [fields.product_name]
+    [inputs.product_name]
     context_key = "name"
     type = "str"
     max_length = 100
     default = ""
 
-    [fields.price]
+    [inputs.price]
     context_key = "price"
     type = "float"
     min_value = 0.0
     on_validation_error = "use_default"
     default = 0.0
 
-    [fields.quantity]
+    [inputs.quantity]
     context_key = "quantity"
     type = "int"
     min_value = 1
     on_validation_error = "use_default"
     default = 1
 
-    [fields.line_total]
+    [inputs.line_total]
     operation = "multiply"
     sources = ["price", "quantity"]
     default = 0.0
 
-    [fields.sale_price]
+    [inputs.sale_price]
     operation = "linear_transform"
     sources = ["price"]
     multiply = 0.85
     default = 0.0
 
-    [fields.formatted_price]
+    [inputs.formatted_price]
     operation = "format_number"
     sources = ["price"]
     thousands_sep = ","
@@ -1068,44 +1068,44 @@ Best Practices
 
    .. code-block:: toml
 
-       [fields.optional_field]
+       [inputs.optional_field]
        context_key = "optional"
        default = ""  # Always specify a default
 
-2. **Use validation for critical fields**
+2. **Use validation for critical inputs**
 
    .. code-block:: toml
 
-       [fields.user_id]
+       [inputs.user_id]
        context_key = "id"
        type = "int"
        on_validation_error = "raise"
 
 3. **Choose appropriate error handling**
 
-   - ``use_default`` for optional/display fields
-   - ``raise`` for required fields
-   - ``skip`` for truly optional fields
+   - ``use_default`` for optional/display inputs
+   - ``raise`` for required inputs
+   - ``skip`` for truly optional inputs
    - ``coerce`` for flexible input
 
-4. **Use descriptive field names**
+4. **Use descriptive input names**
 
    .. code-block:: toml
 
        # Good
-       [fields.temperature_fahrenheit]
-       [fields.user_email_address]
+       [inputs.temperature_fahrenheit]
+       [inputs.user_email_address]
 
        # Avoid
-       [fields.temp]
-       [fields.email]
+       [inputs.temp]
+       [inputs.email]
 
-5. **Combine validation with computed fields**
+5. **Combine validation with computed inputs**
 
    .. code-block:: toml
 
        # Step 1: Validate input
-       [fields.price_validated]
+       [inputs.price_validated]
        context_key = "price"
        type = "float"
        min_value = 0.0
@@ -1113,24 +1113,24 @@ Best Practices
        default = 0.0
 
        # Step 2: Compute with validated value
-       [fields.price_with_tax]
+       [inputs.price_with_tax]
        operation = "linear_transform"
        sources = ["price_validated"]
        multiply = 1.08
        default = 0.0
 
-6. **Test your field definitions**
+6. **Test your input definitions**
 
    .. code-block:: bash
 
-       # Test individual fields
+       # Test individual inputs
        viewtext -c config.toml test field_name key=value
 
        # Validate configuration
        viewtext -c config.toml check
 
-       # List all fields
-       viewtext -c config.toml fields
+       # List all inputs
+       viewtext -c config.toml inputs
 
 7. **Document complex field logic**
 
@@ -1140,7 +1140,7 @@ Best Practices
 
        # User age with strict validation
        # Must be between 13-120 for COPPA compliance
-       [fields.user_age]
+       [inputs.user_age]
        context_key = "age"
        type = "int"
        min_value = 13
@@ -1155,19 +1155,19 @@ Graceful Fallbacks
 
 .. code-block:: toml
 
-    [fields.display_name]
+    [inputs.display_name]
     operation = "conditional"
-    condition = { field = "username", equals = "" }
+    condition = { input = "username", equals = "" }
     if_true = "Guest"
     if_false = "~username~"
     default = "Guest"
 
-Optional Fields with Filtering
+Optional Inputs with Filtering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: toml
 
-    [fields.optional_email]
+    [inputs.optional_email]
     context_key = "email"
     type = "str"
     pattern = "^[a-zA-Z0-9._%+-]+@.*"
@@ -1178,46 +1178,46 @@ Flexible Type Handling
 
 .. code-block:: toml
 
-    [fields.count]
+    [inputs.count]
     context_key = "count"
     type = "int"
     min_value = 0
     on_validation_error = "coerce"
     default = 0
 
-Chaining Computed Fields
+Chaining Computed Inputs
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: toml
 
     # Step 1: Calculate subtotal
-    [fields.subtotal]
+    [inputs.subtotal]
     operation = "multiply"
     sources = ["price", "quantity"]
     default = 0.0
 
     # Step 2: Calculate tax
-    [fields.tax]
+    [inputs.tax]
     operation = "linear_transform"
     sources = ["subtotal"]
     multiply = 0.08
     default = 0.0
 
     # Step 3: Calculate total
-    [fields.total]
+    [inputs.total]
     operation = "add"
     sources = ["subtotal", "tax"]
     default = 0.0
 
-CLI Commands for Fields
+CLI Commands for Inputs
 -----------------------
 
-List All Fields
+List All Inputs
 ~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-    viewtext -c config.toml fields
+    viewtext -c config.toml inputs
 
 Test a Field
 ~~~~~~~~~~~~
@@ -1238,8 +1238,8 @@ See Also
 
 - :doc:`computed_fields_reference` - Computed field operations
 - :doc:`validation_reference` - Field validation details
-- :doc:`user_guide` - Using fields in layouts
+- :doc:`user_guide` - Using inputs in layouts
 - :doc:`formatters_reference` - Formatting field values for display
-- ``examples/fields.toml`` - Example field configurations
+- ``examples/inputs.toml`` - Example field configurations
 - ``examples/validation_example.toml`` - Validation examples
 - ``examples/computed_fields.toml`` - Computed field examples
