@@ -40,7 +40,7 @@ The project documentation is built using Sphinx and hosted on ReadTheDocs.
 To build the documentation locally:
 
 ```bash
-python doc/make
+cd docs && make clean && make html
 ```
 
 The generated documentation will be available in the `docs/_build/html` directory.
@@ -70,10 +70,11 @@ To run tests with coverage: `pytest --cov=viewtext --cov-report=term`
 ### Linting and Formatting
 
 This project uses `ruff` for linting and formatting, and `prettier` for other file
-types. These are enforced by pre-commit hooks.
+types. `mypy` is used for static type checking. These are enforced by `pre-commit`
+hooks.
 
-Run linting and formatting:
-`ruff check --fix --exit-non-zero-on-fix --config=.ruff.toml`
+Run linting and formatting: `ruff check` Run pre-commit: `pre-commit --all-files` Run
+mypy: `mypy viewtext`
 
 ### cli
 
@@ -95,27 +96,9 @@ viewtext/                   # Main package
   ├── formatters.py        # FormatterRegistry - text formatting functions
   ├── loader.py            # LayoutLoader - loads TOML layout configs
   ├── registry.py          # BaseFieldRegistry - field registration system
-  ├── demo_field_registry.py  # Demo field registry example
-  └── demo_generator.py    # Demo layout generator example
-
 tests/                     # Test directory
-  ├── __init__.py
-  └── test_registry.py     # Tests for BaseFieldRegistry
-
 docs/                      # Documentation
-  ├── conf.py             # Sphinx configuration
-  ├── make.py             # Documentation build script
-  ├── Makefile            # Documentation makefile
-  ├── make.bat            # Windows documentation build script
-  └── requirements.txt    # Documentation dependencies
-
-layouts.toml               # Example TOML layout configurations
 pyproject.toml             # Project metadata and build configuration
-setup.py                   # Setup script
-requirements.txt           # Package dependencies
-requirements-test.txt      # Test dependencies
-.ruff.toml                 # Ruff linter/formatter configuration
-.pre-commit-config.yaml    # Pre-commit hooks configuration
 ```
 
 ### Key Modules
@@ -169,7 +152,7 @@ The schema provides:
 When working on the code, be aware of these common issues:
 
 1. TOML configuration parsing: Ensure layout configurations follow the expected schema
-   defined in `loader.py` Pydantic models and `.taplo/viewtext-schema.json`
+   defined in `loader.py` Pydantic models and `schemas/viewtext.json`
 2. Field registry resolution: Fields are resolved first from the field registry, then
    from the context dictionary
 3. Formatter parameters: Formatters accept optional parameters that should be validated

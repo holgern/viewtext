@@ -2,6 +2,7 @@
 
 import importlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -20,6 +21,56 @@ app = typer.Typer(help="ViewText CLI - Text grid layout generator")
 console = Console()
 
 config_path: str = "layouts.toml"
+
+
+def resolve_cli_file(value: Optional[str], option_name: str) -> Optional[str]:
+    if value is None:
+        return None
+
+    raw_path = Path(value).expanduser()
+
+    if raw_path.exists():
+        return str(raw_path.resolve())
+
+    if raw_path.is_absolute():
+        raise FileNotFoundError(f"Could not find {option_name} file '{value}'.")
+
+    if not raw_path.suffix:
+        local_with_suffix = raw_path.with_suffix(".toml")
+        if local_with_suffix.exists():
+            return str(local_with_suffix.resolve())
+
+    xdg_config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    xdg_base = xdg_config_home / "viewtext"
+
+    xdg_candidate = xdg_base / raw_path
+    if xdg_candidate.exists():
+        return str(xdg_candidate.resolve())
+
+    if not raw_path.suffix:
+        xdg_candidate_with_suffix = xdg_candidate.with_suffix(".toml")
+        if xdg_candidate_with_suffix.exists():
+            return str(xdg_candidate_with_suffix.resolve())
+
+    raise FileNotFoundError(
+        f"Could not find {option_name} file '{value}'. Checked current "
+        f"directory and {xdg_base}."
+    )
+
+
+def resolve_context_files(
+    ctx: typer.Context,
+) -> tuple[str, Optional[str], Optional[str]]:
+    if ctx.obj is None:
+        ctx.obj = {}
+
+    raw_config = ctx.obj.get("config", config_path)
+    resolved_config = resolve_cli_file(raw_config, "config")
+
+    resolved_formatters = resolve_cli_file(ctx.obj.get("formatters"), "formatters")
+    resolved_fields = resolve_cli_file(ctx.obj.get("fields"), "fields")
+
+    return resolved_config, resolved_formatters, resolved_fields
 
 
 @app.callback()
@@ -55,10 +106,10 @@ def create_mock_context() -> dict[str, Any]:
 
 @app.command(name="list")
 def list_layouts(ctx: typer.Context) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
         loader = LayoutLoader(config, formatters_path, fields_path)
         layouts_config = loader.load()
 
@@ -110,10 +161,10 @@ def show_layout(
     ctx: typer.Context,
     layout_name: str = typer.Argument(..., help="Name of the layout to display"),
 ) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
         loader = LayoutLoader(config, formatters_path, fields_path)
         layout = loader.get_layout(layout_name)
 
@@ -189,10 +240,10 @@ def render(
         False, "--json", "-j", help="Output rendered lines as JSON"
     ),
 ) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
         loader = LayoutLoader(config, formatters_path, fields_path)
         layout = loader.get_layout(layout_name)
 
@@ -303,10 +354,10 @@ def render(
 
 @app.command(name="fields")
 def list_fields(ctx: typer.Context) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
         loader = LayoutLoader(config, formatters_path, fields_path)
         field_mappings = loader.get_field_mappings()
 
@@ -509,10 +560,10 @@ def test_field(
         "(e.g., for template formatters)",
     ),
 ) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
         loader = LayoutLoader(config, formatters_path, fields_path)
         field_mappings = loader.get_field_mappings()
 
@@ -673,15 +724,15 @@ def test_field(
 
 @app.command()
 def check(ctx: typer.Context) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
-
     errors = []
     warnings = []
     registry = None
 
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
+
         config_file = Path(config)
 
         console.print("\n[bold]ViewText Configuration Validation[/bold]\n")
@@ -1082,10 +1133,11 @@ def _generate_field_definitions(
 
 @app.command()
 def info(ctx: typer.Context) -> None:
-    config = config_path
-    formatters_path = ctx.obj.get("formatters")
-    fields_path = ctx.obj.get("fields")
     try:
+        config, formatters_path, fields_path = resolve_context_files(ctx)
+        global config_path
+        config_path = config
+
         config_file = Path(config)
 
         console.print("\n[bold]ViewText Configuration Info[/bold]\n")
