@@ -15,7 +15,7 @@ from viewtext.registry_builder import RegistryBuilder
 config_path = str(Path(__file__).parent / "computed_fields.toml")
 loader = LayoutLoader(config_path)
 registry = RegistryBuilder.build_from_config(loader=loader)
-engine = LayoutEngine(registry)
+engine = LayoutEngine(field_registry=registry, layout_loader=loader)
 
 
 print("=" * 60)
@@ -79,8 +79,8 @@ context = {
 layout = loader.get_layout("scores")
 result = engine.build_line_str(layout, context)
 print(
-    f"Student: {result[0]:10}  Scores: {result[15]:5} {result[25]:5} "
-    f"{result[35]:5}  {result[45]}"
+    f"Student: {result[0]:10}  Scores: {result[1]:5} {result[2]:5} "
+    f"{result[3]:5}  {result[4]}"
 )
 print()
 
@@ -92,8 +92,8 @@ context = {
 }
 result = engine.build_line_str(layout, context)
 print(
-    f"Student: {result[0]:10}  Scores: {result[15]:5} {result[25]:5} "
-    f"{result[35]:5}  {result[45]}"
+    f"Student: {result[0]:10}  Scores: {result[1]:5} {result[2]:5} "
+    f"{result[3]:5}  {result[4]}"
 )
 print()
 

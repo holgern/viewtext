@@ -118,11 +118,11 @@
         },
         "prefix": {
           "type": "string",
-          "description": "Prefix string for concat operation"
+          "description": "Prefix string for concat operation. Supports {{input_name}} syntax to reference input field values."
         },
         "suffix": {
           "type": "string",
-          "description": "Suffix string for concat operation"
+          "description": "Suffix string for concat operation. Supports {{input_name}} syntax to reference input field values."
         },
         "skip_empty": {
           "type": "boolean",
@@ -327,11 +327,11 @@
         },
         "prefix": {
           "type": "string",
-          "description": "String to prepend to the value"
+          "description": "String to prepend to the value. Supports {{input_name}} syntax to reference input field values."
         },
         "suffix": {
           "type": "string",
-          "description": "String to append to the value"
+          "description": "String to append to the value. Supports {{input_name}} syntax to reference input field values."
         },
         "format": {
           "type": "string",
@@ -418,11 +418,11 @@
             },
             "prefix": {
               "type": "string",
-              "description": "String to prepend to the value"
+              "description": "String to prepend to the value. Supports {{input_name}} syntax to reference input field values."
             },
             "suffix": {
               "type": "string",
-              "description": "String to append to the value"
+              "description": "String to append to the value. Supports {{input_name}} syntax to reference input field values."
             },
             "format": {
               "type": "string",

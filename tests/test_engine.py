@@ -729,8 +729,8 @@ decimals = 2
 [inputs.price_display]
 operation = "conditional"
 condition = { input = "currency", equals = "USD" }
-if_true = "$~amount~"
-if_false = "~amount~ ~currency~"
+if_true = "${{amount}}"
+if_false = "{{amount}} {{currency}}"
 default = "N/A"
 
 [inputs.membership_badge]
@@ -1275,3 +1275,230 @@ formatter = "percent"
         result = engine.build_line_str(layout_config, context)
 
         assert result == ["123.45"]
+
+    def test_input_reference_in_prefix(self):
+        registry = BaseFieldRegistry()
+
+        def symbol_getter(ctx):
+            return ctx["symbol"]
+
+        def price_getter(ctx):
+            return ctx["price"]
+
+        registry.register("symbol", symbol_getter)
+        registry.register("price", price_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "lines": [
+                {
+                    "input": "price",
+                    "index": 0,
+                    "formatter": "text",
+                    "formatter_params": {"prefix": "{{symbol}}"},
+                },
+            ]
+        }
+        context = {"symbol": "$", "price": "100"}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["$100"]
+
+    def test_input_reference_in_suffix(self):
+        registry = BaseFieldRegistry()
+
+        def unit_getter(ctx):
+            return ctx["unit"]
+
+        def temp_getter(ctx):
+            return ctx["temperature"]
+
+        registry.register("unit", unit_getter)
+        registry.register("temperature", temp_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "lines": [
+                {
+                    "input": "temperature",
+                    "index": 0,
+                    "formatter": "number",
+                    "formatter_params": {"suffix": "{{unit}}", "decimals": 1},
+                },
+            ]
+        }
+        context = {"unit": "°C", "temperature": 23.456}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["23.5°C"]
+
+    def test_multiple_input_references_in_prefix(self):
+        registry = BaseFieldRegistry()
+
+        def currency_getter(ctx):
+            return ctx["currency"]
+
+        def amount_getter(ctx):
+            return ctx["amount"]
+
+        registry.register("currency", currency_getter)
+        registry.register("amount", amount_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "lines": [
+                {
+                    "input": "amount",
+                    "index": 0,
+                    "formatter": "text",
+                    "formatter_params": {"prefix": "{{currency}}{{amount}} "},
+                },
+            ]
+        }
+        context = {"currency": "$", "amount": "100"}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["$100 100"]
+
+    def test_input_reference_with_missing_field(self):
+        registry = BaseFieldRegistry()
+
+        def price_getter(ctx):
+            return ctx["price"]
+
+        registry.register("price", price_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "lines": [
+                {
+                    "input": "price",
+                    "index": 0,
+                    "formatter": "text",
+                    "formatter_params": {"prefix": "{{missing_symbol}}"},
+                },
+            ]
+        }
+        context = {"price": "100"}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["100"]
+
+    def test_input_reference_in_price_formatter(self):
+        registry = BaseFieldRegistry()
+
+        def symbol_getter(ctx):
+            return ctx["symbol"]
+
+        def price_getter(ctx):
+            return ctx["price"]
+
+        registry.register("symbol", symbol_getter)
+        registry.register("price", price_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "lines": [
+                {
+                    "input": "price",
+                    "index": 0,
+                    "formatter": "price",
+                    "formatter_params": {"symbol": "{{symbol}}", "decimals": 2},
+                },
+            ]
+        }
+        context = {"symbol": "€", "price": 123.45}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["€123.45"]
+
+    def test_input_reference_in_dict_formatter(self):
+        registry = BaseFieldRegistry()
+
+        def unit_getter(ctx):
+            return ctx["unit"]
+
+        def temp_getter(ctx):
+            return ctx["temperature"]
+
+        registry.register("unit", unit_getter)
+        registry.register("temperature", temp_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        layout_config = {
+            "items": [
+                {
+                    "input": "temperature",
+                    "key": "temp",
+                    "formatter": "number",
+                    "formatter_params": {"suffix": "{{unit}}", "decimals": 1},
+                },
+            ]
+        }
+        context = {"unit": "°F", "temperature": 98.6}
+
+        result = engine.build_dict_str(layout_config, context)
+
+        assert result == {"temp": "98.6°F"}
+
+    def test_input_reference_with_context_fallback(self):
+        engine = LayoutEngine(field_registry=None)
+        layout_config = {
+            "lines": [
+                {
+                    "input": "value",
+                    "index": 0,
+                    "formatter": "text",
+                    "formatter_params": {"prefix": "{{symbol}}"},
+                },
+            ]
+        }
+        context = {"symbol": "$", "value": "100"}
+
+        result = engine.build_line_str(layout_config, context)
+
+        assert result == ["$100"]
+
+    def test_resolve_input_references_method(self):
+        registry = BaseFieldRegistry()
+
+        def symbol_getter(ctx):
+            return ctx["symbol"]
+
+        registry.register("symbol", symbol_getter)
+
+        engine = LayoutEngine(field_registry=registry)
+        context = {"symbol": "$", "other": "value"}
+
+        result = engine._resolve_input_references("Price: {{symbol}}100", context)
+
+        assert result == "Price: $100"
+
+    def test_resolve_input_references_no_tildes(self):
+        engine = LayoutEngine(field_registry=None)
+        context = {"symbol": "$"}
+
+        result = engine._resolve_input_references("Static text", context)
+
+        assert result == "Static text"
+
+    def test_resolve_input_references_empty_string(self):
+        engine = LayoutEngine(field_registry=None)
+        context = {"symbol": "$"}
+
+        result = engine._resolve_input_references("", context)
+
+        assert result == ""
+
+    def test_resolve_input_references_missing_input(self):
+        engine = LayoutEngine(field_registry=None)
+        context = {"other": "value"}
+
+        result = engine._resolve_input_references("Value: {{missing}}", context)
+
+        assert result == "Value: "

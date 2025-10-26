@@ -1,0 +1,315 @@
+[inputs]
+
+# User profile computed fields
+[inputs.full_name]
+operation = "concat"
+sources = ["first_name", "last_name"]
+separator = " "
+default = "Unknown User"
+
+[inputs.age_display]
+operation = "conditional"
+condition = { input = "age", equals = 0 }
+if_true = "Age not specified"
+if_false = "{{age}} years old"
+default = "Age unknown"
+
+[inputs.location_display]
+operation = "conditional"
+condition = { input = "country", equals = "USA" }
+if_true = "{{city}}, {{country}}"
+if_false = "{{city}}, {{country}}"
+default = "Location unknown"
+
+# Product information computed fields
+[inputs.product_title]
+operation = "concat"
+sources = ["brand", "product_name"]
+separator = " "
+default = "Unknown Product"
+
+[inputs.price_display]
+operation = "conditional"
+condition = { input = "currency", equals = "USD" }
+if_true = "${{price}}"
+if_false = "{{price}} {{currency}}"
+default = "Price not available"
+
+[inputs.stock_status]
+operation = "conditional"
+condition = { input = "stock", equals = 0 }
+if_true = "Out of Stock"
+if_false = "In Stock ({{stock}} units)"
+default = "Stock unknown"
+
+# Weather report computed fields
+[inputs.temperature_display]
+operation = "concat"
+sources = ["temperature", "condition"]
+separator = "°C - "
+default = "Temperature unknown"
+
+[inputs.humidity_display]
+operation = "concat"
+sources = ["humidity"]
+separator = "Humidity: "
+suffix = "%"
+default = "Humidity unknown"
+
+[inputs.wind_display]
+operation = "concat"
+sources = ["wind_speed"]
+separator = "Wind: "
+suffix = " km/h"
+default = "Wind unknown"
+
+[inputs.weather_summary]
+operation = "conditional"
+condition = { input = "condition", equals = "Sunny" }
+if_true = "{{location}}: {{temperature}}°C and {{condition}}"
+if_false = "{{location}}: {{temperature}}°C, {{condition}}"
+default = "Weather data unavailable"
+
+# Order status computed fields
+[inputs.order_title]
+operation = "concat"
+sources = ["order_id", "customer_name"]
+separator = " - "
+default = "Order unknown"
+
+[inputs.status_display]
+operation = "conditional"
+condition = { input = "status", equals = "shipped" }
+if_true = "✅ Shipped"
+if_false = "⏳ {{status}}"
+default = "Status unknown"
+
+[inputs.tracking_display]
+operation = "conditional"
+condition = { input = "tracking_number", equals = "" }
+if_true = "Tracking not available"
+if_false = "Track: {{tracking_number}}"
+default = "Tracking unknown"
+
+[inputs.delivery_display]
+operation = "conditional"
+condition = { input = "estimated_delivery", equals = "" }
+if_true = "Delivery date not set"
+if_false = "Est. delivery: {{estimated_delivery}}"
+default = "Delivery date unknown"
+
+# File system computed fields
+[inputs.file_size_mb]
+operation = "divide"
+sources = ["file_size", "1048576"]  # Divide by 1024*1024 to get MB
+default = 0.0
+
+[inputs.size_display]
+operation = "conditional"
+condition = { input = "file_size_mb", equals = "0.0" }
+if_true = "Empty file"
+if_false = "{{file_size_mb}} MB"
+default = "Size unknown"
+
+[inputs.type_display]
+operation = "concat"
+sources = ["file_type"]
+separator = "Type: "
+default = "Unknown type"
+
+[inputs.modified_display]
+operation = "concat"
+sources = ["modified_date"]
+separator = "Modified: "
+default = "Date unknown"
+
+[inputs.permissions_display]
+operation = "concat"
+sources = ["permissions"]
+separator = "Permissions: "
+default = "Permissions unknown"
+
+# Formatters
+[formatters.title]
+type = "text"
+
+[formatters.info]
+type = "text"
+
+[formatters.status]
+type = "text"
+
+[formatters.weather]
+type = "text"
+
+[formatters.file]
+type = "text"
+
+[formatters.number_mb]
+type = "number"
+decimals = 2
+
+# Presenters
+[presenters.full_name]
+input = "full_name"
+formatter = "title"
+
+[presenters.age]
+input = "age_display"
+formatter = "info"
+
+[presenters.location]
+input = "location_display"
+formatter = "info"
+
+[presenters.product_title]
+input = "product_title"
+formatter = "title"
+
+[presenters.price]
+input = "price_display"
+formatter = "info"
+
+[presenters.stock]
+input = "stock_status"
+formatter = "status"
+
+[presenters.weather_summary]
+input = "weather_summary"
+formatter = "weather"
+
+[presenters.humidity]
+input = "humidity_display"
+formatter = "weather"
+
+[presenters.wind]
+input = "wind_display"
+formatter = "weather"
+
+[presenters.order_title]
+input = "order_title"
+formatter = "title"
+
+[presenters.status]
+input = "status_display"
+formatter = "status"
+
+[presenters.tracking]
+input = "tracking_display"
+formatter = "info"
+
+[presenters.delivery]
+input = "delivery_display"
+formatter = "info"
+
+[presenters.file_name]
+input = "file_name"
+formatter = "file"
+
+[presenters.size]
+input = "size_display"
+formatter = "file"
+
+[presenters.file_type]
+input = "type_display"
+formatter = "file"
+
+[presenters.modified]
+input = "modified_display"
+formatter = "file"
+
+[presenters.permissions]
+input = "permissions_display"
+formatter = "file"
+
+# Layouts
+[layouts.user_profile]
+name = "User Profile Display"
+
+[[layouts.user_profile.lines]]
+index = 0
+presenter = "full_name"
+
+[[layouts.user_profile.lines]]
+index = 1
+presenter = "age"
+
+[[layouts.user_profile.lines]]
+index = 2
+presenter = "location"
+
+[layouts.product_info]
+name = "Product Information"
+
+[[layouts.product_info.lines]]
+index = 0
+presenter = "product_title"
+
+[[layouts.product_info.lines]]
+index = 1
+presenter = "price"
+
+[[layouts.product_info.lines]]
+index = 2
+presenter = "stock"
+
+[layouts.weather_report]
+name = "Weather Report"
+
+[[layouts.weather_report.lines]]
+index = 0
+presenter = "weather_summary"
+
+[[layouts.weather_report.lines]]
+index = 1
+presenter = "humidity"
+
+[[layouts.weather_report.lines]]
+index = 2
+presenter = "wind"
+
+[[layouts.weather_report.lines]]
+index = 3
+presenter = "temperature_display"
+
+[layouts.order_status]
+name = "Order Status"
+
+[[layouts.order_status.lines]]
+index = 0
+presenter = "order_title"
+
+[[layouts.order_status.lines]]
+index = 1
+presenter = "status"
+
+[[layouts.order_status.lines]]
+index = 2
+presenter = "tracking"
+
+[[layouts.order_status.lines]]
+index = 3
+presenter = "delivery"
+
+[layouts.file_info]
+name = "File Information"
+
+[[layouts.file_info.lines]]
+index = 0
+presenter = "file_name"
+
+[[layouts.file_info.lines]]
+index = 1
+presenter = "size"
+
+[[layouts.file_info.lines]]
+index = 2
+presenter = "file_type"
+
+[[layouts.file_info.lines]]
+index = 3
+presenter = "modified"
+
+[[layouts.file_info.lines]]
+index = 4
+presenter = "permissions"

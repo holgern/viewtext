@@ -574,9 +574,23 @@ class RegistryBuilder:
         else:
             value = context.get(source)
 
-        if value is None or not isinstance(value, (int, float)):
-            return None
-        return float(value)
+        if value is None:
+            # Try to parse as literal number if not found in context
+            try:
+                return float(source)
+            except ValueError:
+                return None
+
+        # Try to convert to float if it's a string
+        if isinstance(value, (int, float)):
+            return float(value)
+        elif isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                return None
+
+        return None
 
     @staticmethod
     def _get_numeric_value(
@@ -794,12 +808,23 @@ class RegistryBuilder:
         if field_value is None:
             return default
 
-        condition_met = field_value == equals
+        # Try to convert equals to the same type as field_value for comparison
+        try:
+            if isinstance(field_value, (int, float)):
+                equals_float = float(equals)
+                condition_met = field_value == equals_float
+            elif isinstance(field_value, str):
+                equals_str = str(equals)
+                condition_met = field_value == equals_str
+            else:
+                condition_met = field_value == equals
+        except (ValueError, TypeError):
+            condition_met = field_value == equals
 
         result_template = if_true if condition_met else if_false
 
         result = RegistryBuilder._resolve_field_references(
-            result_template, context, default
+            result_template, context, default, registry
         )
         return result
 
@@ -843,22 +868,56 @@ class RegistryBuilder:
 
     @staticmethod
     def _resolve_field_references(
-        template: str, context: dict[str, Any], default: Any
+        template: str,
+        context: dict[str, Any],
+        default: Any,
+        registry: Optional[BaseFieldRegistry] = None,
     ) -> str:
-        """Resolve ~field_name~ references in a template string."""
+        """Resolve {{field_name}} and ~field_name~ references in a template string."""
         import re
 
-        pattern = r"~([^~]+)~"
+        if not template:
+            return template
 
-        def replace_field(match: re.Match[str]) -> str:
-            field_name = match.group(1)
-            value = context.get(field_name)
-            if value is None:
-                return str(default) if default is not None else ""
-            return str(value)
+        # Handle {{field_name}} syntax
+        if "{{" in template and "}}" in template:
+            pattern = r"{{\s*([^}]+)\s*}}"
 
-        result = re.sub(pattern, replace_field, template)
-        return result
+            def replace_field_braces(match: re.Match[str]) -> str:
+                field_name = match.group(1).strip()
+                # Try registry first, then context
+                if registry and registry.has_field(field_name):
+                    getter = registry.get(field_name)
+                    value = getter(context)
+                else:
+                    value = context.get(field_name)
+
+                if value is None:
+                    return str(default) if default is not None else ""
+                return str(value)
+
+            template = re.sub(pattern, replace_field_braces, template)
+
+        # Handle ~field_name~ syntax
+        if "~" in template:
+            pattern = r"~([^~]+)~"
+
+            def replace_field_tilde(match: re.Match[str]) -> str:
+                field_name = match.group(1)
+                # Try registry first, then context
+                if registry and registry.has_field(field_name):
+                    getter = registry.get(field_name)
+                    value = getter(context)
+                else:
+                    value = context.get(field_name)
+
+                if value is None:
+                    return str(default) if default is not None else ""
+                return str(value)
+
+            template = re.sub(pattern, replace_field_tilde, template)
+
+        return template
 
     @staticmethod
     def _create_operation_getter(

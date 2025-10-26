@@ -22,13 +22,13 @@ multiply = 0.8
 default = 0.0
 
 [inputs.score1]
-constant = 1
+context_key = "score1"
 
 [inputs.score2]
-constant = 2
+context_key = "score2"
 
 [inputs.score3]
-constant = 3
+context_key = "score3"
 
 
 [inputs.average_score]
@@ -105,8 +105,8 @@ default = ""
 [inputs.price_display]
 operation = "conditional"
 condition = { input = "currency", equals = "USD" }
-if_true = "$~amount~"
-if_false = "~amount~ ~currency~"
+if_true = "${{amount}}"
+if_false = "{{amount}} {{currency}}"
 default = ""
 
 [inputs.user_badge]

@@ -5,6 +5,7 @@ This module provides the LayoutEngine class that builds formatted text
 layouts by combining field registries, formatters, and layout configurations.
 """
 
+import re
 from typing import TYPE_CHECKING, Any, Optional
 
 from .formatters import get_formatter_registry
@@ -238,6 +239,35 @@ class LayoutEngine:
         else:
             return None
 
+    def _resolve_input_references(self, text: str, context: dict[str, Any]) -> str:
+        """
+        Resolve input field references in a string using {{input_name}} syntax.
+
+        Parameters
+        ----------
+        text : str
+            String that may contain {{input_name}} references
+        context : dict[str, Any]
+            Context dictionary for resolving input values
+
+        Returns
+        -------
+        str
+            String with all input references resolved to their values
+        """
+        if not text or "{{" not in text or "}}" not in text:
+            return text
+
+        # Find all {{input_name}} patterns
+        pattern = r"{{\s*([^}]+)\s*}}"
+
+        def replace_match(match: re.Match) -> str:
+            input_name = match.group(1)
+            value = self._get_input_value(input_name, context)
+            return str(value) if value is not None else ""
+
+        return re.sub(pattern, replace_match, text)
+
     def _format_value(
         self,
         value: Any,
@@ -277,6 +307,19 @@ class LayoutEngine:
                 formatter_type = formatter_name
         else:
             formatter_type = formatter_params.get("type", formatter_name)
+
+        # Resolve input references in all string parameters if context is available
+        if context is not None:
+            # Create a copy to avoid modifying the original dictionary
+            resolved_params = {}
+            for param, param_value in formatter_params.items():
+                if isinstance(param_value, str):
+                    resolved_params[param] = self._resolve_input_references(
+                        param_value, context
+                    )
+                else:
+                    resolved_params[param] = param_value
+            formatter_params = resolved_params
 
         try:
             formatter = self.formatter_registry.get(formatter_type)

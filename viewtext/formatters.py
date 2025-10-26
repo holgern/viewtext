@@ -452,7 +452,7 @@ class FormatterRegistry:
         if context is not None and engine is not None:
             field_values: dict[str, Any] = {}
             for field_name in fields:
-                val = engine._get_field_value(field_name, context)
+                val = engine._get_input_value(field_name, context)
 
                 if field_name in field_formatters:
                     formatter_config = field_formatters[field_name]
