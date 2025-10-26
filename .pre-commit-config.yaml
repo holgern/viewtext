@@ -12,7 +12,7 @@ exclude: |
   # Don't bother non-technical authors with formatting issues in docs
   readme/.*\.(rst|md)$|
   # Ignore build and dist directories in addons
-  /build/|/dist/|/dev/|/notnebooks/
+  /build/|/dist/|/dev/|/notebooks/
   # You don't usually want a bot to modify your legal texts
   (LICENSE.*|COPYING.*)|
 default_language_version:
@@ -20,13 +20,17 @@ default_language_version:
   node: "16.17.0"
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.8
+    rev: v0.14.2
     hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix, --config=.ruff.toml]
+      - id: ruff-check
+        args: [--fix]
       - id: ruff-format
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.0
+    hooks:
+      - id: pyupgrade
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: check-toml
       - id: check-yaml
@@ -37,8 +41,6 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
       - id: debug-statements
-      - id: fix-encoding-pragma
-        args: ["--remove"]
       - id: check-case-conflict
       - id: check-docstring-first
       - id: check-executables-have-shebangs
@@ -51,13 +53,10 @@ repos:
       - id: prettier
         name: prettier (with plugin-xml)
         additional_dependencies:
-          - "prettier@2.7.1"
-          - "@prettier/plugin-xml@2.2.0"
-        args:
-          - --plugin=@prettier/plugin-xml
+          - "prettier@3.6.2"
         files: \.(css|htm|html|js|json|jsx|less|md|scss|toml|ts|xml|yaml|yml)$
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.24.0
+    rev: v9.38.0
     hooks:
       - id: eslint
         verbose: true

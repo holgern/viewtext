@@ -23,13 +23,11 @@ ViewText TOML files in editors that support [Taplo](https://taplo.tamasfe.dev/).
 The schema validates:
 
 - **Field definitions**: Ensures proper field structure with required properties
-
   - Context fields with `context_key`
   - Computed fields with `operation` and `sources`
   - Validation rules (type, constraints)
 
 - **Formatter configurations**: Validates formatter types and parameters
-
   - Built-in formatters: `text`, `number`, `price`, `datetime`, `relative_time`,
     `template`
   - Formatter-specific parameters
